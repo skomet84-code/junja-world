@@ -16,6 +16,19 @@ type SaveData = {
 };
 
 const SAVE_KEY = 'junja-world-v01';
+const VILLAGE_ROADS:number[][]=[
+  [540,590,760,430,1130,390,1470,470,1660,650,1600,900,1390,1080,1040,1120,720,1010,520,820],
+  [860,0,1240,0,1330,580,1110,720,930,600],
+  [0,650,650,570,1040,670,980,930,560,990,0,1060],
+  [1320,480,1780,350,2350,300,2390,650,1900,760,1430,790],
+  [1030,880,1350,820,1890,1350,1270,1350]
+];
+const VILLAGE_BLOCKED:number[][]=[
+  [1480,650,1850,610,2080,760,2020,1010,1690,1040,1450,900],
+  [560,520,820,470,930,620,850,820,610,850,470,700],
+  [0,1060,720,1000,1050,1190,1050,1350,0,1350],
+  [1870,0,2400,0,2400,290,2100,330]
+];
 const ui = {
   auth: document.querySelector<HTMLElement>('#auth-layer')!,
   game: document.querySelector<HTMLElement>('#game-ui')!,
@@ -289,6 +302,11 @@ class WorldScene extends Phaser.Scene {
   private buildWorld() {
     this.worldMap=this.add.image(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'world-map').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(-20);
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x081a16, .04).setDepth(-19);
+    if(new URLSearchParams(location.search).has('navdebug')){
+      const debug=this.add.graphics().setDepth(1900);
+      debug.fillStyle(0x38e879,.2);VILLAGE_ROADS.forEach(points=>debug.fillPoints(points.reduce<Phaser.Geom.Point[]>((all,value,index,array)=>{if(index%2===0)all.push(new Phaser.Geom.Point(value,array[index+1]));return all;},[]),true));
+      debug.fillStyle(0xff3158,.3);VILLAGE_BLOCKED.forEach(points=>debug.fillPoints(points.reduce<Phaser.Geom.Point[]>((all,value,index,array)=>{if(index%2===0)all.push(new Phaser.Geom.Point(value,array[index+1]));return all;},[]),true));
+    }
     this.obstacles = this.physics.add.staticGroup();
     const boundary = [[-20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH+20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH/2,-20,WORLD_WIDTH,40],[WORLD_WIDTH/2,WORLD_HEIGHT+20,WORLD_WIDTH,40]];
     boundary.forEach(([x,y,w,h]) => { const b=this.obstacles.create(x,y,'rock') as Phaser.Physics.Arcade.Image; b.setVisible(false).setDisplaySize(w,h).refreshBody(); });
@@ -416,20 +434,7 @@ class WorldScene extends Phaser.Scene {
     const inRect=(r:[number,number,number,number])=>x>=r[0]&&x<=r[0]+r[2]&&y>=r[1]&&y<=r[1]+r[3];
     const inPoly=(points:number[])=>Phaser.Geom.Polygon.Contains(new Phaser.Geom.Polygon(points),x,y);
     if(this.zone==='village'){
-      const roads:number[][]=[
-        [540,590,760,430,1130,390,1470,470,1660,650,1600,900,1390,1080,1040,1120,720,1010,520,820],
-        [860,0,1240,0,1330,580,1110,720,930,600],
-        [0,650,650,570,1040,670,980,930,560,990,0,1060],
-        [1320,480,1780,350,2350,300,2390,650,1900,760,1430,790],
-        [1030,880,1350,820,1890,1350,1270,1350]
-      ];
-      const blocked:number[][]=[
-        [1480,650,1850,610,2080,760,2020,1010,1690,1040,1450,900],
-        [560,520,820,470,930,620,850,820,610,850,470,700],
-        [0,1060,720,1000,1050,1190,1050,1350,0,1350],
-        [1870,0,2400,0,2400,290,2100,330]
-      ];
-      return roads.some(inPoly)&&!blocked.some(inPoly);
+      return VILLAGE_ROADS.some(inPoly)&&!VILLAGE_BLOCKED.some(inPoly);
     }
     const fieldBounds:[number,number,number,number]=[100,110,2200,1190];
     const water:[number,number,number,number][]=[
