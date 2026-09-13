@@ -25,7 +25,7 @@
             <button class="class-card" data-class="ranger"><b>➳</b><span>궁사</span><small>민첩한 원거리 공격</small></button>
           </div>
           <button id="enter-game" class="primary-button">초보자 마을 입장</button>
-          <div class="login-footer"><span>JUNJA WORLD v0.3.0</span><span>PC · MOBILE</span></div>
+          <div class="login-footer"><span>JUNJA WORLD v0.4.0</span><span>PC · MOBILE</span></div>
         </div>
       </section>
 
@@ -41,6 +41,7 @@
           <div class="bar hp"><i id="hp-bar"></i><span id="hp-text">120 / 120</span></div>
           <div class="bar xp"><i id="xp-bar"></i><span id="xp-text">0 / 100</span></div>
           <div class="stats"><span>공격력 <b id="atk-text">24</b></span><span>처치 <b id="kill-text">0</b></span></div>
+          <button id="inventory-button" class="inventory-button">가방 <kbd>I</kbd></button>
         </aside>
         <aside class="quest-panel">
           <div class="panel-title"><span>임무</span><small>MAIN</small></div>
@@ -54,7 +55,14 @@
           <div class="npc-face">翁</div>
           <div><strong>촌장 백운</strong><p id="dialogue-text"></p><small>E 또는 클릭하여 계속</small></div>
         </div>
-        <div class="controls-guide"><span><kbd>WASD</kbd> 이동</span><span><kbd>SPACE</kbd> 공격</span><span><kbd>E</kbd> 대화</span></div>
+        <aside id="inventory-panel" class="inventory-panel hidden">
+          <div class="inventory-head"><strong>모험가의 가방</strong><button id="inventory-close">×</button></div>
+          <div class="currency">엽전 <b id="gold-text">0</b></div>
+          <div class="item-row"><span class="item-icon">藥</span><div><b>초급 회복약</b><small>체력 50 회복 · 보유 <em id="potion-text">0</em>개</small></div><button id="use-potion">사용</button></div>
+          <div class="item-row"><span class="item-icon">劍</span><div><b>수련용 철검</b><small>공격력 +<em id="weapon-text">0</em> · 강화 단계에 따라 증가</small></div><button id="upgrade-weapon">강화</button></div>
+          <p class="inventory-note">무기 강화 비용: <b id="upgrade-cost">100</b>엽전</p>
+        </aside>
+        <div class="controls-guide"><span><kbd>WASD</kbd> 이동</span><span><kbd>SPACE</kbd> 공격</span><span><kbd>E</kbd> 대화</span><span><kbd>I</kbd> 가방</span></div>
         <div class="mobile-controls">
           <div class="dpad"><button data-dir="up">▲</button><button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button></div>
           <div class="actions"><button id="mobile-talk">대화</button><button id="mobile-attack">공격</button></div>

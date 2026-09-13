@@ -10,6 +10,9 @@ type SaveData = {
   hp: number;
   kills: number;
   quest: 0 | 1 | 2 | 3;
+  gold: number;
+  potions: number;
+  weaponLevel: number;
 };
 
 const SAVE_KEY = 'junja-world-v01';
@@ -38,6 +41,15 @@ const ui = {
   reset: document.querySelector<HTMLButtonElement>('#reset-save')!,
   mobileAttack: document.querySelector<HTMLButtonElement>('#mobile-attack')!,
   mobileTalk: document.querySelector<HTMLButtonElement>('#mobile-talk')!
+  ,inventoryButton: document.querySelector<HTMLButtonElement>('#inventory-button')!
+  ,inventoryPanel: document.querySelector<HTMLElement>('#inventory-panel')!
+  ,inventoryClose: document.querySelector<HTMLButtonElement>('#inventory-close')!
+  ,gold: document.querySelector<HTMLElement>('#gold-text')!
+  ,potions: document.querySelector<HTMLElement>('#potion-text')!
+  ,weapon: document.querySelector<HTMLElement>('#weapon-text')!
+  ,upgradeCost: document.querySelector<HTMLElement>('#upgrade-cost')!
+  ,usePotion: document.querySelector<HTMLButtonElement>('#use-potion')!
+  ,upgradeWeapon: document.querySelector<HTMLButtonElement>('#upgrade-weapon')!
 };
 
 let chosenClass: HeroClass = 'warrior';
@@ -47,13 +59,14 @@ let launchSave: SaveData | undefined;
 let toastTimer = 0;
 
 function freshSave(name: string, heroClass: HeroClass): SaveData {
-  return { name, heroClass, level: 1, xp: 0, hp: HERO_CLASSES[heroClass].maxHp, kills: 0, quest: 0 };
+  return { name, heroClass, level: 1, xp: 0, hp: HERO_CLASSES[heroClass].maxHp, kills: 0, quest: 0, gold: 0, potions: 1, weaponLevel: 0 };
 }
 
 function readSave(): SaveData | null {
   try {
     const parsed = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null') as SaveData | null;
-    return parsed?.name && HERO_CLASSES[parsed.heroClass] ? parsed : null;
+    if(!parsed?.name || !HERO_CLASSES[parsed.heroClass]) return null;
+    return { ...parsed, gold: parsed.gold ?? 0, potions: parsed.potions ?? 1, weaponLevel: parsed.weaponLevel ?? 0 };
   } catch { return null; }
 }
 
@@ -72,7 +85,7 @@ function updateHud(save: SaveData) {
   const base = HERO_CLASSES[save.heroClass];
   const maxHp = base.maxHp + (save.level - 1) * 14;
   const requiredXp = save.level * 100;
-  const attack = base.attack + (save.level - 1) * 5;
+  const attack = base.attack + (save.level - 1) * 5 + save.weaponLevel * 3;
   ui.name.textContent = save.name;
   ui.heroClass.textContent = `Lv.${save.level} ${base.label}`;
   ui.portrait.textContent = save.heroClass === 'warrior' ? '⚔' : save.heroClass === 'mage' ? '✦' : '➳';
@@ -82,12 +95,16 @@ function updateHud(save: SaveData) {
   ui.xpText.textContent = `${save.xp} / ${requiredXp}`;
   ui.atk.textContent = String(attack);
   ui.kills.textContent = String(save.kills);
+  ui.gold.textContent=String(save.gold);
+  ui.potions.textContent=String(save.potions);
+  ui.weapon.textContent=String(save.weaponLevel*3);
+  ui.upgradeCost.textContent=String((save.weaponLevel+1)*100);
 
   const quests = [
     ['낯선 마을의 부름', '촌장 백운에게 말을 걸어보자.', '10%'],
-    ['단풍골의 골칫거리', `마을 밖의 초록 슬라임을 처치하자. (${Math.min(save.kills, 3)}/3)`, `${25 + Math.min(save.kills, 3) * 18}%`],
+    ['청운들판의 골칫거리', `동문 밖 청운들판의 몬스터를 처치하자. (${Math.min(save.kills, 3)}/3)`, `${25 + Math.min(save.kills, 3) * 18}%`],
     ['첫 번째 승리', '촌장 백운에게 돌아가 보고하자.', '88%'],
-    ['단풍골의 수호자', '첫 임무 완료! 마을과 주변을 자유롭게 탐험하자.', '100%']
+    ['백운성의 수호자', '첫 임무 완료! 청운들판에서 장비와 금전을 모아보자.', '100%']
   ];
   const quest = quests[save.quest];
   ui.questTitle.textContent = quest[0];
@@ -141,6 +158,10 @@ ui.reset.addEventListener('click', () => {
 ui.dialogue.addEventListener('click', () => sceneRef?.talk());
 ui.mobileAttack.addEventListener('pointerdown', () => sceneRef?.attack());
 ui.mobileTalk.addEventListener('pointerdown', () => sceneRef?.talk());
+ui.inventoryButton.addEventListener('click',()=>sceneRef?.toggleInventory());
+ui.inventoryClose.addEventListener('click',()=>sceneRef?.toggleInventory(false));
+ui.usePotion.addEventListener('click',()=>sceneRef?.usePotion());
+ui.upgradeWeapon.addEventListener('click',()=>sceneRef?.upgradeWeapon());
 
 class WorldScene extends Phaser.Scene {
   private save!: SaveData;
@@ -149,6 +170,7 @@ class WorldScene extends Phaser.Scene {
   private playerShadow!: Phaser.GameObjects.Ellipse;
   private elder!: Phaser.Physics.Arcade.Sprite;
   private slimes!: Phaser.Physics.Arcade.Group;
+  private pickups!: Phaser.Physics.Arcade.Group;
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
@@ -156,6 +178,7 @@ class WorldScene extends Phaser.Scene {
   private lastAttack = 0;
   private lastHurt = 0;
   private talking = false;
+  private inventoryOpen = false;
   private mobileDirection = new Phaser.Math.Vector2();
   private zone: 'village' | 'field' = 'village';
   private worldMap!: Phaser.GameObjects.Image;
@@ -190,7 +213,7 @@ class WorldScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, .08, .08);
     this.cameras.main.setZoom(1);
     this.cameras.main.fadeIn(700, 8, 18, 28);
-    this.time.delayedCall(650, () => notify(`단풍골에 온 것을 환영한다, ${this.save.name}!`));
+    this.time.delayedCall(650, () => notify(`백운성에 온 것을 환영한다, ${this.save.name}!`));
     persist(this.save);
     updateHud(this.save);
   }
@@ -242,6 +265,8 @@ class WorldScene extends Phaser.Scene {
     make('slime', 64, 52, g => {
       g.fillStyle(0x1e2c25,.2).fillEllipse(32,46,50,10); g.fillStyle(0x57bb63).fillRoundedRect(7,16,50,31,16); g.fillStyle(0x85dc78).fillCircle(23,20,15).fillCircle(39,20,16); g.fillStyle(0x173429).fillCircle(23,30,3).fillCircle(42,30,3); g.lineStyle(2,0x255c37).beginPath().moveTo(29,38).lineTo(35,38).strokePath();
     });
+    make('coin',24,24,g=>{g.fillStyle(0x6b3f12,.35).fillEllipse(12,19,18,6);g.fillStyle(0xf3c84d).fillCircle(12,11,9);g.lineStyle(2,0x9a611e).strokeCircle(12,11,7);});
+    make('potion',24,30,g=>{g.fillStyle(0xded5b6).fillRect(8,2,8,6);g.fillStyle(0x9b2e42).fillRoundedRect(5,7,14,20,5);g.fillStyle(0xf26974,.55).fillCircle(10,14,4);});
   }
 
   private createAnimations() {
@@ -274,8 +299,8 @@ class WorldScene extends Phaser.Scene {
       [1130,1265,500,230],[1640,1280,430,210],
       [1215,740,150,235],[1350,915,210,150]
     ].forEach(([x,y,w,h])=>block(x,y,w,h));
-    this.add.text(1120,505,'백운성', {fontFamily:'serif',fontSize:'30px',fontStyle:'bold',color:'#fff0b5',stroke:'#2b1c13',strokeThickness:7}).setOrigin(.5).setDepth(2000).setAlpha(.9);
-    this.add.text(1120,540,'초보자 마을', {fontFamily:'Noto Sans KR',fontSize:'12px',color:'#fff1ca',stroke:'#2b1c13',strokeThickness:5}).setOrigin(.5).setDepth(2000);
+    this.add.text(1120,505,'백운성', {fontFamily:'serif',fontSize:'30px',fontStyle:'bold',color:'#fff0b5',stroke:'#2b1c13',strokeThickness:7}).setOrigin(.5).setDepth(2000).setAlpha(.9).setName('village-title');
+    this.add.text(1120,540,'초보자 마을', {fontFamily:'Noto Sans KR',fontSize:'12px',color:'#fff1ca',stroke:'#2b1c13',strokeThickness:5}).setOrigin(.5).setDepth(2000).setName('village-subtitle');
   }
 
   private createHouse(x:number,y:number,label:string,roofColor:number) {
@@ -294,7 +319,7 @@ class WorldScene extends Phaser.Scene {
     this.elder = this.physics.add.staticSprite(1070,645,'elder-art').setScale(.058).setDepth(646);
     this.elder.setSize(430,260).setOffset(380,990).refreshBody();
     this.add.text(1070,555,'!',{fontFamily:'serif',fontSize:'28px',fontStyle:'bold',color:'#ffd65c',stroke:'#4e3308',strokeThickness:6}).setOrigin(.5).setDepth(2100).setName('quest-mark');
-    this.add.text(1070,710,'촌장 백운',{fontFamily:'Noto Sans KR',fontSize:'12px',fontStyle:'bold',color:'#fff3c8',stroke:'#13212a',strokeThickness:5}).setOrigin(.5).setDepth(2100);
+    this.add.text(1070,710,'촌장 백운',{fontFamily:'Noto Sans KR',fontSize:'12px',fontStyle:'bold',color:'#fff3c8',stroke:'#13212a',strokeThickness:5}).setOrigin(.5).setDepth(2100).setName('elder-label');
 
     this.playerShadow=this.add.ellipse(1160,805,36,11,0x10251d,.34).setDepth(800);
     this.player=this.physics.add.sprite(1160,780,`hero-${this.save.heroClass}`,1).setScale(.24).setDepth(821).setCollideWorldBounds(true);
@@ -303,21 +328,29 @@ class WorldScene extends Phaser.Scene {
     this.lastValid.set(this.player.x,this.player.y);
 
     this.slimes=this.physics.add.group();
-    [[2050,260],[2210,330],[2130,480],[2280,560],[1980,1040],[2180,1130],[2290,1230]].forEach(([x,y],i) => {
+    const monsters=[
+      [2050,260,'초록 슬라임',54,9,35,12,0xffffff],[2210,330,'초록 슬라임',54,9,35,12,0xffffff],
+      [2130,480,'푸른 물방울',72,12,48,18,0x83cfff],[2280,560,'푸른 물방울',72,12,48,18,0x83cfff],
+      [1980,1040,'붉은 도깨비령',105,16,70,30,0xff8178],[2180,1130,'붉은 도깨비령',105,16,70,30,0xff8178],[2290,1230,'붉은 도깨비령',105,16,70,30,0xff8178]
+    ] as const;
+    monsters.forEach(([x,y,name,hp,damage,xp,gold,tint],i) => {
       const slime=this.slimes.create(x,y,'slime') as Phaser.Physics.Arcade.Sprite;
-      slime.setScale(.1).setDepth(y).setSize(280,190).setOffset(110,290).setCollideWorldBounds(true).setBounce(.4).play('slime-idle');
-      slime.setData({ hp: 54, maxHp: 54, bornX:x, bornY:y, nextMove:i*420, dir: new Phaser.Math.Vector2() });
+      slime.setScale(name==='붉은 도깨비령' ? .13 : .1).setDepth(y).setSize(280,190).setOffset(110,290).setCollideWorldBounds(true).setBounce(.4).setTint(tint).play('slime-idle');
+      slime.setData({ name,hp,maxHp:hp,damage,xp,gold,tint,bornX:x,bornY:y,nextMove:i*420,dir:new Phaser.Math.Vector2() });
     });
     this.slimes.getChildren().forEach(item=>(item as Phaser.Physics.Arcade.Sprite).disableBody(true,true));
     this.physics.add.collider(this.slimes,this.slimes);
     this.physics.add.overlap(this.player,this.slimes,(_p,s) => this.hurtPlayer(s as Phaser.Physics.Arcade.Sprite));
+    this.pickups=this.physics.add.group({allowGravity:false});
+    this.physics.add.overlap(this.player,this.pickups,(_p,item)=>this.collectPickup(item as Phaser.Physics.Arcade.Sprite));
   }
 
   private bindControls() {
     this.cursors=this.input.keyboard!.createCursorKeys();
-    this.keys=this.input.keyboard!.addKeys('W,A,S,D,E,SPACE') as Record<string,Phaser.Input.Keyboard.Key>;
+    this.keys=this.input.keyboard!.addKeys('W,A,S,D,E,I,SPACE') as Record<string,Phaser.Input.Keyboard.Key>;
     this.keys.E.on('down',()=>this.talk());
     this.keys.SPACE.on('down',()=>this.attack());
+    this.keys.I.on('down',()=>this.toggleInventory());
     document.querySelectorAll<HTMLButtonElement>('.dpad button').forEach(button => {
       const set=(down:boolean) => {
         const x=button.dataset.dir==='left'?-1:button.dataset.dir==='right'?1:0;
@@ -338,7 +371,7 @@ class WorldScene extends Phaser.Scene {
     this.checkZoneTransition(time);
     const x=(this.cursors.left.isDown||this.keys.A.isDown?-1:0)+(this.cursors.right.isDown||this.keys.D.isDown?1:0)+this.mobileDirection.x;
     const y=(this.cursors.up.isDown||this.keys.W.isDown?-1:0)+(this.cursors.down.isDown||this.keys.S.isDown?1:0)+this.mobileDirection.y;
-    const velocity=new Phaser.Math.Vector2(x,y).normalize().scale(this.talking?0:PLAYER_SPEED);
+    const velocity=new Phaser.Math.Vector2(x,y).normalize().scale(this.talking||this.inventoryOpen?0:PLAYER_SPEED);
     this.player.setVelocity(velocity.x,velocity.y);
     if(velocity.lengthSq()>0){
       this.facing.copy(velocity).normalize();
@@ -413,6 +446,9 @@ class WorldScene extends Phaser.Scene {
       if(zone==='field') slime.enableBody(false,slime.getData('bornX'),slime.getData('bornY'),true,true);
       else slime.disableBody(true,true);
     });
+    this.pickups?.clear(true,true);
+    this.elder.setVisible(zone==='village').setActive(zone==='village');
+    ['quest-mark','elder-label','village-title','village-subtitle'].forEach(name=>(this.children.getByName(name) as Phaser.GameObjects.Text|null)?.setVisible(zone==='village'));
     const zoneLabel=document.querySelector<HTMLElement>('.zone strong');
     if(zoneLabel)zoneLabel.textContent=zone==='village'?'백운성 초보자 마을':'청운들판';
     this.cameras.main.flash(350,230,205,140);
@@ -424,7 +460,8 @@ class WorldScene extends Phaser.Scene {
       const slime=item as Phaser.Physics.Arcade.Sprite;
       if(!slime.active)return;
       const distance=Phaser.Math.Distance.Between(slime.x,slime.y,this.player.x,this.player.y);
-      const data=slime.data.values as {hp:number;maxHp:number;bornX:number;bornY:number;nextMove:number;dir:Phaser.Math.Vector2};
+      const data=slime.data.values as {hp:number;maxHp:number;damage:number;bornX:number;bornY:number;nextMove:number;dir:Phaser.Math.Vector2};
+      if(!this.isWalkable(slime.x,slime.y)){slime.setPosition(data.bornX,data.bornY).setVelocity(0,0);}
       if(distance<330&&!this.talking){ this.physics.moveToObject(slime,this.player,62); }
       else if(time>data.nextMove){ data.nextMove=time+Phaser.Math.Between(1100,2400); data.dir.setToPolar(Phaser.Math.FloatBetween(0,Math.PI*2),Phaser.Math.Between(20,48)); slime.setVelocity(data.dir.x,data.dir.y); }
       if(distance>520){ this.physics.moveTo(slime,data.bornX,data.bornY,85); }
@@ -439,21 +476,21 @@ class WorldScene extends Phaser.Scene {
     if(Phaser.Math.Distance.Between(this.player.x,this.player.y,this.elder.x,this.elder.y)>=115){ notify('촌장에게 조금 더 가까이 가야 한다.'); return; }
     this.player.setVelocity(0,0); this.talking=true; ui.dialogue.classList.remove('hidden');
     if(this.save.quest===0){
-      ui.dialogueText.textContent=`${this.save.name}, 잘 왔네. 동쪽 다리 너머 슬라임들이 마을 곡식을 훔치고 있다네. 세 마리만 처치해 주겠나?`;
+      ui.dialogueText.textContent=`${this.save.name}, 잘 왔네. 동문 밖 청운들판의 요괴들이 길을 막고 있다네. 세 마리만 처치해 주겠나?`;
       this.save.quest=1; persist(this.save); updateHud(this.save);
     } else if(this.save.quest===1){
       ui.dialogueText.textContent=this.save.kills>=3?'벌써 해치웠나? 참으로 대단한 솜씨로군!':'동쪽 다리 너머 야생 숲에 있네. 무리하지 말고 세 마리만 처치하게.';
       if(this.save.kills>=3)this.save.quest=2;
     } else if(this.save.quest===2){
       ui.dialogueText.textContent='단풍골을 지켜줘서 고맙네. 보답으로 경험치 120과 회복의 기운을 주겠네. 이제 자네도 진짜 모험가일세!';
-      this.save.quest=3; this.gainXp(120); this.save.hp=this.maxHp(); notify('임무 완료 · 경험치 +120 · 체력 회복');
+      this.save.quest=3; this.gainXp(120); this.save.hp=this.maxHp(); this.save.gold+=150; this.save.potions+=2; notify('임무 완료 · 경험치 +120 · 엽전 150 · 회복약 2개');
       const mark=this.children.getByName('quest-mark') as Phaser.GameObjects.Text | null; if(mark) mark.setVisible(false);
     } else ui.dialogueText.textContent='세상은 넓고 숨겨진 이야기는 많다네. 다음 업데이트에서 북쪽 성문이 열릴 걸세.';
     persist(this.save); updateHud(this.save);
   }
 
   attack() {
-    if(!this.player?.active||this.talking||this.time.now-this.lastAttack<430)return;
+    if(!this.player?.active||this.talking||this.inventoryOpen||this.time.now-this.lastAttack<430)return;
     this.lastAttack=this.time.now;
     const attackPoint=new Phaser.Math.Vector2(this.player.x,this.player.y).add(this.facing.clone().scale(56));
     const slash=this.add.arc(attackPoint.x,attackPoint.y,46,225,495,false,0xffe098,.35).setStrokeStyle(5,0xfff0b3,.9).setDepth(999).setRotation(this.facing.angle()+Math.PI/2);
@@ -465,37 +502,85 @@ class WorldScene extends Phaser.Scene {
     const damage=this.attackPower()+Phaser.Math.Between(-3,5);
     const slime=target as Phaser.Physics.Arcade.Sprite;
     slime.setData('hp',(slime.getData('hp') as number)-damage);
+    this.showMonsterStatus(slime);
     const number=this.add.text(slime.x,slime.y-38,`-${damage}`,{fontFamily:'Noto Sans KR',fontSize:'17px',fontStyle:'bold',color:'#fff0a8',stroke:'#6c291d',strokeThickness:4}).setOrigin(.5).setDepth(1100);
     this.tweens.add({targets:number,y:number.y-38,alpha:0,duration:650,onComplete:()=>number.destroy()});
-    slime.setTintFill(0xffffff); this.time.delayedCall(80,()=>slime.clearTint());
+    slime.setTintFill(0xffffff); this.time.delayedCall(80,()=>slime.setTint(slime.getData('tint') as number));
     const push=new Phaser.Math.Vector2(slime.x-this.player.x,slime.y-this.player.y).normalize().scale(180); slime.setVelocity(push.x,push.y);
     if((slime.getData('hp') as number)<=0)this.defeatSlime(slime);
   }
 
   private defeatSlime(slime:Phaser.Physics.Arcade.Sprite) {
     const x=slime.x,y=slime.y,bornX=slime.getData('bornX') as number,bornY=slime.getData('bornY') as number;
-    slime.disableBody(true,true); this.save.kills++; this.gainXp(35);
+    const xp=slime.getData('xp') as number;
+    const gold=slime.getData('gold') as number;
+    const monsterName=slime.getData('name') as string;
+    slime.disableBody(true,true); this.save.kills++; this.gainXp(xp);
+    this.dropLoot(x,y,gold);
     if(this.save.quest===1&&this.save.kills>=3){this.save.quest=2;notify('목표 달성! 촌장 백운에게 돌아가자.');}
-    else notify('초록 슬라임 처치 · 경험치 +35');
+    else notify(`${monsterName} 처치 · 경험치 +${xp}`);
     for(let i=0;i<9;i++){const p=this.add.circle(x,y,Phaser.Math.Between(3,7),0x8be07b).setDepth(1000);this.tweens.add({targets:p,x:x+Phaser.Math.Between(-60,60),y:y+Phaser.Math.Between(-60,40),alpha:0,duration:Phaser.Math.Between(350,650),onComplete:()=>p.destroy()});}
-    this.time.delayedCall(9000,()=>{if(!slime.scene)return;slime.enableBody(true,bornX+Phaser.Math.Between(-80,80),bornY+Phaser.Math.Between(-80,80),true,true);slime.setData('hp',54);});
+    this.time.delayedCall(9000,()=>{if(!slime.scene||this.zone!=='field')return;slime.enableBody(true,bornX+Phaser.Math.Between(-80,80),bornY+Phaser.Math.Between(-80,80),true,true);slime.setData('hp',slime.getData('maxHp'));});
     persist(this.save);updateHud(this.save);
   }
 
   private hurtPlayer(slime:Phaser.Physics.Arcade.Sprite) {
     if(this.time.now-this.lastHurt<900||this.talking)return;
-    this.lastHurt=this.time.now;this.save.hp-=9;this.player.setTintFill(0xff6f6f);this.time.delayedCall(120,()=>this.player.clearTint());this.cameras.main.shake(110,.006);
+    this.lastHurt=this.time.now;this.save.hp-=slime.getData('damage') as number;this.player.setTintFill(0xff6f6f);this.time.delayedCall(120,()=>this.player.clearTint());this.cameras.main.shake(110,.006);
     const push=new Phaser.Math.Vector2(this.player.x-slime.x,this.player.y-slime.y).normalize().scale(300);this.player.setVelocity(push.x,push.y);
     if(this.save.hp<=0)this.respawn();
     persist(this.save);updateHud(this.save);
   }
 
+  private showMonsterStatus(monster:Phaser.Physics.Arcade.Sprite){
+    const hp=monster.getData('hp') as number,max=monster.getData('maxHp') as number,name=monster.getData('name') as string;
+    const label=this.add.text(monster.x,monster.y-58,`${name}  ${Math.max(0,hp)}/${max}`,{fontFamily:'Noto Sans KR',fontSize:'10px',fontStyle:'bold',color:'#fff5dc',stroke:'#172027',strokeThickness:4}).setOrigin(.5).setDepth(2400);
+    const back=this.add.rectangle(monster.x,monster.y-43,62,5,0x1a2024,.9).setDepth(2399);
+    const bar=this.add.rectangle(monster.x-30,monster.y-43,60*Math.max(0,hp/max),3,0xd84b51).setOrigin(0,.5).setDepth(2400);
+    this.tweens.add({targets:[label,back,bar],alpha:0,duration:350,delay:700,onComplete:()=>{label.destroy();back.destroy();bar.destroy();}});
+  }
+
+  private dropLoot(x:number,y:number,gold:number){
+    const coin=this.pickups.create(x,y,'coin') as Phaser.Physics.Arcade.Sprite;
+    coin.setData({kind:'gold',amount:gold+Phaser.Math.Between(0,8)}).setDepth(y+30);
+    this.tweens.add({targets:coin,y:y-18,duration:220,yoyo:true,ease:'Quad.out'});
+    if(Math.random()<.32){
+      const potion=this.pickups.create(x+28,y,'potion') as Phaser.Physics.Arcade.Sprite;
+      potion.setData({kind:'potion',amount:1}).setDepth(y+31);
+      this.tweens.add({targets:potion,y:y-20,duration:240,yoyo:true,ease:'Quad.out'});
+    }
+  }
+
+  private collectPickup(item:Phaser.Physics.Arcade.Sprite){
+    const kind=item.getData('kind') as string,amount=item.getData('amount') as number;
+    if(kind==='gold'){this.save.gold+=amount;notify(`엽전 +${amount}`);}else{this.save.potions+=amount;notify('초급 회복약을 얻었다.');}
+    item.destroy();persist(this.save);updateHud(this.save);
+  }
+
+  toggleInventory(force?:boolean){
+    this.inventoryOpen=force??!this.inventoryOpen;
+    ui.inventoryPanel.classList.toggle('hidden',!this.inventoryOpen);
+    if(this.inventoryOpen)this.player?.setVelocity(0,0);
+  }
+
+  usePotion(){
+    if(this.save.potions<1){notify('회복약이 없다.');return;}
+    if(this.save.hp>=this.maxHp()){notify('이미 체력이 가득 차 있다.');return;}
+    this.save.potions--;this.save.hp=Math.min(this.maxHp(),this.save.hp+50);persist(this.save);updateHud(this.save);notify('체력이 50 회복됐다.');
+  }
+
+  upgradeWeapon(){
+    const cost=(this.save.weaponLevel+1)*100;
+    if(this.save.gold<cost){notify(`엽전이 ${cost-this.save.gold} 부족하다.`);return;}
+    this.save.gold-=cost;this.save.weaponLevel++;persist(this.save);updateHud(this.save);notify(`철검 +${this.save.weaponLevel} 강화 성공!`);
+  }
+
   private respawn(){
     this.player.disableBody(true,true);notify('기력이 다해 마을에서 깨어났다.');this.cameras.main.fadeOut(420,30,5,5);
-    this.time.delayedCall(500,()=>{this.save.hp=this.maxHp();this.player.enableBody(true,1160,780,true,true);this.cameras.main.fadeIn(650,8,18,28);persist(this.save);updateHud(this.save);});
+    this.time.delayedCall(500,()=>{this.save.hp=this.maxHp();this.player.enableBody(true,1160,780,true,true);this.enterZone('village',1160,780,'백운성');this.cameras.main.fadeIn(650,8,18,28);persist(this.save);updateHud(this.save);});
   }
   private maxHp(){return HERO_CLASSES[this.save.heroClass].maxHp+(this.save.level-1)*14;}
-  private attackPower(){return HERO_CLASSES[this.save.heroClass].attack+(this.save.level-1)*5;}
+  private attackPower(){return HERO_CLASSES[this.save.heroClass].attack+(this.save.level-1)*5+this.save.weaponLevel*3;}
   private gainXp(amount:number){
     this.save.xp+=amount;
     while(this.save.xp>=this.save.level*100){this.save.xp-=this.save.level*100;this.save.level++;this.save.hp=this.maxHp();notify(`레벨 업! Lv.${this.save.level} · 체력이 회복됐다.`);}

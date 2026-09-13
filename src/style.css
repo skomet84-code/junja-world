@@ -47,6 +47,8 @@ input:focus { border-color: #d5a650; box-shadow: 0 0 0 3px rgba(213,166,80,.13);
 .bar.xp i { width:0; background:linear-gradient(90deg,#286f9d,#56bbe2); }
 .stats { grid-column:1/-1; display:flex; justify-content:space-between; color:#91a5af; font-size:10px; }
 .stats b { color:#f5d58b; }
+.inventory-button { grid-column:1/-1; padding:7px 10px; color:#ead8a8; border:1px solid #4d6470; border-radius:7px; cursor:pointer; background:#122733; }
+.inventory-button kbd { float:right; height:18px; }
 .quest-panel { top:72px; right:16px; width:250px; padding:14px 16px; }
 .panel-title { display:flex; justify-content:space-between; color:#edc875; font-size:11px; font-weight:900; }
 .panel-title small { color:#607b88; font-size:8px; }
@@ -64,6 +66,16 @@ kbd { display:inline-grid; min-width:23px; height:21px; place-items:center; padd
 .dialogue strong { color:#f0cc76; }
 .dialogue p { margin:5px 0; color:#edf0e8; font-size:13px; line-height:1.6; }
 .dialogue small { color:#728791; font-size:9px; }
+.inventory-panel { position:fixed; z-index:11; top:50%; left:50%; width:min(410px,92vw); transform:translate(-50%,-50%); padding:18px; border:2px solid #96713c; border-radius:14px; background:linear-gradient(145deg,rgba(13,31,40,.98),rgba(7,15,25,.98)); box-shadow:0 24px 80px rgba(0,0,0,.72); }
+.inventory-head { display:flex; align-items:center; justify-content:space-between; padding-bottom:11px; border-bottom:1px solid #344650; color:#f0cc76; }
+.inventory-head button { width:30px; height:30px; color:#dce3df; border:0; border-radius:6px; cursor:pointer; background:#243741; }
+.currency { margin:12px 0; padding:9px 12px; color:#b9c5c7; border-radius:7px; background:#0b1b25; }
+.currency b { float:right; color:#ffd66f; }
+.item-row { display:grid; grid-template-columns:46px 1fr auto; align-items:center; gap:10px; margin-top:9px; padding:10px; border:1px solid #334852; border-radius:9px; background:#10232e; }
+.item-icon { width:42px; height:42px; display:grid; place-items:center; color:#34210d; font:900 20px serif; border-radius:8px; background:linear-gradient(#f0cf7a,#b97b30); }
+.item-row b,.item-row small { display:block; }.item-row small { margin-top:3px; color:#83979f; font-size:9px; }.item-row em { color:#efd081; font-style:normal; }
+.item-row button { padding:7px 9px; color:#24180a; font-weight:900; border:0; border-radius:6px; cursor:pointer; background:#d7a84e; }
+.inventory-note { margin:12px 2px 0; color:#81949d; font-size:9px; text-align:right; }
 .mobile-controls { display:none; }
 @media(max-width:720px),(pointer:coarse) {
   .screen-layer { padding:12px; }
