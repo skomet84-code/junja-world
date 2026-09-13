@@ -183,7 +183,7 @@ class WorldScene extends Phaser.Scene {
     this.bindControls();
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.startFollow(this.player, true, .08, .08);
-    this.cameras.main.setZoom(1.08);
+    this.cameras.main.setZoom(1);
     this.cameras.main.fadeIn(700, 8, 18, 28);
     this.time.delayedCall(650, () => notify(`단풍골에 온 것을 환영한다, ${this.save.name}!`));
     persist(this.save);
@@ -283,21 +283,21 @@ class WorldScene extends Phaser.Scene {
   }
 
   private createActors() {
-    this.elder = this.physics.add.staticSprite(1070,645,'elder-art').setScale(.105).setDepth(646);
+    this.elder = this.physics.add.staticSprite(1070,645,'elder-art').setScale(.058).setDepth(646);
     this.elder.setSize(430,260).setOffset(380,990).refreshBody();
     this.add.text(1070,555,'!',{fontFamily:'serif',fontSize:'28px',fontStyle:'bold',color:'#ffd65c',stroke:'#4e3308',strokeThickness:6}).setOrigin(.5).setDepth(2100).setName('quest-mark');
     this.add.text(1070,710,'촌장 백운',{fontFamily:'Noto Sans KR',fontSize:'12px',fontStyle:'bold',color:'#fff3c8',stroke:'#13212a',strokeThickness:5}).setOrigin(.5).setDepth(2100);
 
-    this.playerShadow=this.add.ellipse(1160,815,54,17,0x10251d,.34).setDepth(800);
-    this.player=this.physics.add.sprite(1160,780,`hero-${this.save.heroClass}`,1).setScale(.4).setDepth(821).setCollideWorldBounds(true);
+    this.playerShadow=this.add.ellipse(1160,805,36,11,0x10251d,.34).setDepth(800);
+    this.player=this.physics.add.sprite(1160,780,`hero-${this.save.heroClass}`,1).setScale(.24).setDepth(821).setCollideWorldBounds(true);
     this.player.setSize(72,88).setOffset(114,196);
-    this.playerName=this.add.text(1160,705,this.save.name,{fontFamily:'Noto Sans KR',fontSize:'12px',fontStyle:'bold',color:'#ffffff',stroke:'#14232b',strokeThickness:5}).setOrigin(.5).setDepth(2200);
+    this.playerName=this.add.text(1160,728,this.save.name,{fontFamily:'Noto Sans KR',fontSize:'11px',fontStyle:'bold',color:'#ffffff',stroke:'#14232b',strokeThickness:4}).setOrigin(.5).setDepth(2200);
     this.physics.add.collider(this.player,this.obstacles);
 
     this.slimes=this.physics.add.group();
     [[2050,260],[2210,330],[2130,480],[2280,560],[1980,1040],[2180,1130],[2290,1230]].forEach(([x,y],i) => {
       const slime=this.slimes.create(x,y,'slime') as Phaser.Physics.Arcade.Sprite;
-      slime.setScale(.18).setDepth(y).setSize(280,190).setOffset(110,290).setCollideWorldBounds(true).setBounce(.4).play('slime-idle');
+      slime.setScale(.1).setDepth(y).setSize(280,190).setOffset(110,290).setCollideWorldBounds(true).setBounce(.4).play('slime-idle');
       slime.setData({ hp: 54, maxHp: 54, bornX:x, bornY:y, nextMove:i*420, dir: new Phaser.Math.Vector2() });
     });
     this.physics.add.collider(this.slimes,this.obstacles);
@@ -338,8 +338,8 @@ class WorldScene extends Phaser.Scene {
       this.player.setFrame(({down:1,left:4,right:7,up:10} as Record<string,number>)[direction]);
     }
     this.player.setDepth(this.player.y+20);
-    this.playerName.setPosition(this.player.x,this.player.y-72);
-    this.playerShadow.setPosition(this.player.x,this.player.y+39).setDepth(this.player.y-2);
+    this.playerName.setPosition(this.player.x,this.player.y-52);
+    this.playerShadow.setPosition(this.player.x,this.player.y+25).setDepth(this.player.y-2);
     const near=Phaser.Math.Distance.Between(this.player.x,this.player.y,this.elder.x,this.elder.y)<105;
     ui.hint.classList.toggle('hidden',!near||this.talking);
     this.updateSlimes(time);
