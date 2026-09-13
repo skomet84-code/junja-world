@@ -157,6 +157,10 @@ class WorldScene extends Phaser.Scene {
   private lastHurt = 0;
   private talking = false;
   private mobileDirection = new Phaser.Math.Vector2();
+  private zone: 'village' | 'field' = 'village';
+  private worldMap!: Phaser.GameObjects.Image;
+  private lastValid = new Phaser.Math.Vector2(1160, 780);
+  private transitionLock = 0;
 
   constructor() { super('world'); }
 
@@ -167,6 +171,7 @@ class WorldScene extends Phaser.Scene {
 
   preload() {
     this.load.image('world-map', '/assets/baegun-village.webp');
+    this.load.image('field-map', '/assets/cheongun-field-v1.webp');
     this.load.spritesheet('hero-warrior', '/assets/hero-warrior-sheet.webp', { frameWidth: 300, frameHeight: 300 });
     this.load.spritesheet('hero-mage', '/assets/hero-mage-sheet.webp', { frameWidth: 300, frameHeight: 300 });
     this.load.spritesheet('hero-ranger', '/assets/hero-ranger-sheet.webp', { frameWidth: 300, frameHeight: 300 });
@@ -249,7 +254,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   private buildWorld() {
-    this.add.image(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'world-map').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(-20);
+    this.worldMap=this.add.image(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'world-map').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(-20);
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x081a16, .04).setDepth(-19);
     this.obstacles = this.physics.add.staticGroup();
     const boundary = [[-20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH+20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH/2,-20,WORLD_WIDTH,40],[WORLD_WIDTH/2,WORLD_HEIGHT+20,WORLD_WIDTH,40]];
@@ -295,7 +300,7 @@ class WorldScene extends Phaser.Scene {
     this.player=this.physics.add.sprite(1160,780,`hero-${this.save.heroClass}`,1).setScale(.24).setDepth(821).setCollideWorldBounds(true);
     this.player.setSize(72,88).setOffset(114,196);
     this.playerName=this.add.text(1160,728,this.save.name,{fontFamily:'Noto Sans KR',fontSize:'11px',fontStyle:'bold',color:'#ffffff',stroke:'#14232b',strokeThickness:4}).setOrigin(.5).setDepth(2200);
-    this.physics.add.collider(this.player,this.obstacles);
+    this.lastValid.set(this.player.x,this.player.y);
 
     this.slimes=this.physics.add.group();
     [[2050,260],[2210,330],[2130,480],[2280,560],[1980,1040],[2180,1130],[2290,1230]].forEach(([x,y],i) => {
@@ -303,7 +308,7 @@ class WorldScene extends Phaser.Scene {
       slime.setScale(.1).setDepth(y).setSize(280,190).setOffset(110,290).setCollideWorldBounds(true).setBounce(.4).play('slime-idle');
       slime.setData({ hp: 54, maxHp: 54, bornX:x, bornY:y, nextMove:i*420, dir: new Phaser.Math.Vector2() });
     });
-    this.physics.add.collider(this.slimes,this.obstacles);
+    this.slimes.getChildren().forEach(item=>(item as Phaser.Physics.Arcade.Sprite).disableBody(true,true));
     this.physics.add.collider(this.slimes,this.slimes);
     this.physics.add.overlap(this.player,this.slimes,(_p,s) => this.hurtPlayer(s as Phaser.Physics.Arcade.Sprite));
   }
@@ -327,6 +332,10 @@ class WorldScene extends Phaser.Scene {
 
   update(time:number) {
     if(!this.player?.active) return;
+    if(!this.isWalkable(this.player.x,this.player.y)){
+      this.player.setPosition(this.lastValid.x,this.lastValid.y).setVelocity(0,0);
+    } else this.lastValid.set(this.player.x,this.player.y);
+    this.checkZoneTransition(time);
     const x=(this.cursors.left.isDown||this.keys.A.isDown?-1:0)+(this.cursors.right.isDown||this.keys.D.isDown?1:0)+this.mobileDirection.x;
     const y=(this.cursors.up.isDown||this.keys.W.isDown?-1:0)+(this.cursors.down.isDown||this.keys.S.isDown?1:0)+this.mobileDirection.y;
     const velocity=new Phaser.Math.Vector2(x,y).normalize().scale(this.talking?0:PLAYER_SPEED);
@@ -341,11 +350,16 @@ class WorldScene extends Phaser.Scene {
       } else {
         this.player.setFrame(direction==='up'?2:1).setFlipX(false);
       }
+      const pulse=Math.sin(time*.018);
+      this.player.setScale(.24, .24 + Math.abs(pulse)*.012);
+      this.playerShadow.setScale(1-Math.abs(pulse)*.08,1);
     } else {
       this.player.stop();
       const direction=Math.abs(this.facing.x)>Math.abs(this.facing.y)?(this.facing.x<0?'left':'right'):(this.facing.y<0?'up':'down');
       if(direction==='left'||direction==='right') this.player.setFrame(7).setFlipX(direction==='right');
       else this.player.setFrame(direction==='up'?2:1).setFlipX(false);
+      this.player.setScale(.24);
+      this.playerShadow.setScale(1);
     }
     this.player.setDepth(this.player.y+20);
     this.playerName.setPosition(this.player.x,this.player.y-52);
@@ -353,6 +367,56 @@ class WorldScene extends Phaser.Scene {
     const near=Phaser.Math.Distance.Between(this.player.x,this.player.y,this.elder.x,this.elder.y)<105;
     ui.hint.classList.toggle('hidden',!near||this.talking);
     this.updateSlimes(time);
+  }
+
+  private isWalkable(x:number,y:number) {
+    const inside=(r:[number,number,number,number])=>x>=r[0]&&x<=r[0]+r[2]&&y>=r[1]&&y<=r[1]+r[3];
+    if(this.zone==='village'){
+      const roads:[number,number,number,number][]=[
+        [820,260,470,1080],[320,515,1900,270],[540,420,1040,650],
+        [1450,360,900,300],[620,925,1280,300]
+      ];
+      const blocked:[number,number,number,number][]=[
+        [1390,640,650,350],[1540,1040,500,300],[460,1030,650,300]
+      ];
+      return roads.some(inside)&&!blocked.some(inside);
+    }
+    const fieldBounds:[number,number,number,number]=[100,110,2200,1190];
+    const water:[number,number,number,number][]=[
+      [720,0,330,570],[530,720,430,680]
+    ];
+    const bridge:[number,number,number,number]=[610,600,520,170];
+    return inside(fieldBounds)&&(!water.some(inside)||inside(bridge));
+  }
+
+  private checkZoneTransition(time:number) {
+    if(time<this.transitionLock)return;
+    if(this.zone==='village'&&this.player.x>2240&&this.player.y>360&&this.player.y<700){
+      this.enterZone('field',210,470,'청운들판');
+    } else if(this.zone==='field'&&this.player.x<150&&this.player.y>300&&this.player.y<720){
+      this.enterZone('village',2200,520,'백운성');
+    }
+  }
+
+  private enterZone(zone:'village'|'field',x:number,y:number,label:string) {
+    this.zone=zone;
+    this.transitionLock=this.time.now+1200;
+    this.worldMap.setTexture(zone==='village'?'world-map':'field-map');
+    this.obstacles.getChildren().forEach(item=>{
+      const body=(item as Phaser.Physics.Arcade.Image).body as Phaser.Physics.Arcade.StaticBody;
+      body.enable=zone==='village';
+    });
+    this.player.setPosition(x,y).setVelocity(0,0);
+    this.lastValid.set(x,y);
+    this.slimes.getChildren().forEach(item=>{
+      const slime=item as Phaser.Physics.Arcade.Sprite;
+      if(zone==='field') slime.enableBody(false,slime.getData('bornX'),slime.getData('bornY'),true,true);
+      else slime.disableBody(true,true);
+    });
+    const zoneLabel=document.querySelector<HTMLElement>('.zone strong');
+    if(zoneLabel)zoneLabel.textContent=zone==='village'?'백운성 초보자 마을':'청운들판';
+    this.cameras.main.flash(350,230,205,140);
+    notify(`${label}에 도착했다.`);
   }
 
   private updateSlimes(time:number) {
