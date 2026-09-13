@@ -180,6 +180,7 @@ class WorldScene extends Phaser.Scene {
   private talking = false;
   private inventoryOpen = false;
   private mobileDirection = new Phaser.Math.Vector2();
+  private mobileHeld = new Set<string>();
   private zone: 'village' | 'field' = 'village';
   private worldMap!: Phaser.GameObjects.Image;
   private lastValid = new Phaser.Math.Vector2(1160, 780);
@@ -270,6 +271,13 @@ class WorldScene extends Phaser.Scene {
   }
 
   private createAnimations() {
+    const frames={down:[1,4,1],up:[2,3,2],side:[7,9,7]};
+    (Object.keys(HERO_CLASSES) as HeroClass[]).forEach(heroClass=>{
+      Object.entries(frames).forEach(([direction,numbers])=>{
+        const key=`walk-${heroClass}-${direction}`;
+        if(!this.anims.exists(key))this.anims.create({key,frames:this.anims.generateFrameNumbers(`hero-${heroClass}`,{frames:numbers}),frameRate:6,repeat:-1});
+      });
+    });
     if (!this.anims.exists('slime-idle')) this.anims.create({
       key: 'slime-idle',
       frames: this.anims.generateFrameNumbers('slime', { frames: [0, 1, 2, 1] }),
@@ -353,9 +361,9 @@ class WorldScene extends Phaser.Scene {
     this.keys.I.on('down',()=>this.toggleInventory());
     document.querySelectorAll<HTMLButtonElement>('.dpad button').forEach(button => {
       const set=(down:boolean) => {
-        const x=button.dataset.dir==='left'?-1:button.dataset.dir==='right'?1:0;
-        const y=button.dataset.dir==='up'?-1:button.dataset.dir==='down'?1:0;
-        if(down) this.mobileDirection.set(x,y); else if(this.mobileDirection.x===x&&this.mobileDirection.y===y) this.mobileDirection.set(0,0);
+        const direction=button.dataset.dir!;
+        if(down)this.mobileHeld.add(direction);else this.mobileHeld.delete(direction);
+        this.mobileDirection.set((this.mobileHeld.has('left')?-1:0)+(this.mobileHeld.has('right')?1:0),(this.mobileHeld.has('up')?-1:0)+(this.mobileHeld.has('down')?1:0));
       };
       button.addEventListener('pointerdown',e=>{e.preventDefault();set(true)});
       button.addEventListener('pointerup',()=>set(false));
@@ -366,7 +374,9 @@ class WorldScene extends Phaser.Scene {
   update(time:number) {
     if(!this.player?.active) return;
     if(!this.isWalkable(this.player.x,this.player.y)){
-      this.player.setPosition(this.lastValid.x,this.lastValid.y).setVelocity(0,0);
+      if(this.isWalkable(this.player.x,this.lastValid.y))this.player.setY(this.lastValid.y);
+      else if(this.isWalkable(this.lastValid.x,this.player.y))this.player.setX(this.lastValid.x);
+      else this.player.setPosition(this.lastValid.x,this.lastValid.y);
     } else this.lastValid.set(this.player.x,this.player.y);
     this.checkZoneTransition(time);
     const x=(this.cursors.left.isDown||this.keys.A.isDown?-1:0)+(this.cursors.right.isDown||this.keys.D.isDown?1:0)+this.mobileDirection.x;
@@ -376,16 +386,15 @@ class WorldScene extends Phaser.Scene {
     if(velocity.lengthSq()>0){
       this.facing.copy(velocity).normalize();
       const direction=Math.abs(velocity.x)>Math.abs(velocity.y)?(velocity.x<0?'left':'right'):(velocity.y<0?'up':'down');
-      this.player.stop();
       this.player.setRotation(0);
       if(direction==='left'||direction==='right'){
-        this.player.setFrame(7).setFlipX(direction==='right');
+        this.player.setFlipX(direction==='right').play(`walk-${this.save.heroClass}-side`,true);
       } else {
-        this.player.setFrame(direction==='up'?2:1).setFlipX(false);
+        this.player.setFlipX(false).play(`walk-${this.save.heroClass}-${direction}`,true);
       }
-      const pulse=Math.sin(time*.018);
-      this.player.setScale(.24, .24 + Math.abs(pulse)*.012);
-      this.playerShadow.setScale(1-Math.abs(pulse)*.08,1);
+      const pulse=Math.abs(Math.sin(time*.018));
+      this.player.setScale(.24);
+      this.playerShadow.setScale(1-pulse*.08,1);
     } else {
       this.player.stop();
       const direction=Math.abs(this.facing.x)>Math.abs(this.facing.y)?(this.facing.x<0?'left':'right'):(this.facing.y<0?'up':'down');
@@ -397,29 +406,37 @@ class WorldScene extends Phaser.Scene {
     this.player.setDepth(this.player.y+20);
     this.playerName.setPosition(this.player.x,this.player.y-52);
     this.playerShadow.setPosition(this.player.x,this.player.y+25).setDepth(this.player.y-2);
+    document.body.dataset.player=`${Math.round(this.player.x)},${Math.round(this.player.y)},${this.zone}`;
     const near=Phaser.Math.Distance.Between(this.player.x,this.player.y,this.elder.x,this.elder.y)<105;
     ui.hint.classList.toggle('hidden',!near||this.talking);
     this.updateSlimes(time);
   }
 
   private isWalkable(x:number,y:number) {
-    const inside=(r:[number,number,number,number])=>x>=r[0]&&x<=r[0]+r[2]&&y>=r[1]&&y<=r[1]+r[3];
+    const inRect=(r:[number,number,number,number])=>x>=r[0]&&x<=r[0]+r[2]&&y>=r[1]&&y<=r[1]+r[3];
+    const inPoly=(points:number[])=>Phaser.Geom.Polygon.Contains(new Phaser.Geom.Polygon(points),x,y);
     if(this.zone==='village'){
-      const roads:[number,number,number,number][]=[
-        [820,260,470,1080],[320,515,1900,270],[540,420,1040,650],
-        [1450,360,900,300],[620,925,1280,300]
+      const roads:number[][]=[
+        [540,590,760,430,1130,390,1470,470,1660,650,1600,900,1390,1080,1040,1120,720,1010,520,820],
+        [860,0,1240,0,1330,580,1110,720,930,600],
+        [0,650,650,570,1040,670,980,930,560,990,0,1060],
+        [1320,480,1780,350,2350,300,2390,650,1900,760,1430,790],
+        [1030,880,1350,820,1890,1350,1270,1350]
       ];
-      const blocked:[number,number,number,number][]=[
-        [1390,640,650,350],[1540,1040,500,300],[460,1030,650,300]
+      const blocked:number[][]=[
+        [1480,650,1850,610,2080,760,2020,1010,1690,1040,1450,900],
+        [560,520,820,470,930,620,850,820,610,850,470,700],
+        [0,1060,720,1000,1050,1190,1050,1350,0,1350],
+        [1870,0,2400,0,2400,290,2100,330]
       ];
-      return roads.some(inside)&&!blocked.some(inside);
+      return roads.some(inPoly)&&!blocked.some(inPoly);
     }
     const fieldBounds:[number,number,number,number]=[100,110,2200,1190];
     const water:[number,number,number,number][]=[
       [720,0,330,570],[530,720,430,680]
     ];
     const bridge:[number,number,number,number]=[610,600,520,170];
-    return inside(fieldBounds)&&(!water.some(inside)||inside(bridge));
+    return inRect(fieldBounds)&&(!water.some(inRect)||inRect(bridge));
   }
 
   private checkZoneTransition(time:number) {

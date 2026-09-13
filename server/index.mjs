@@ -8,7 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 app.disable('x-powered-by');
 app.use(express.json());
-app.get('/api/health', (_req, res) => res.json({ ok: true, game: 'JUNJA WORLD', version: '0.4.0' }));
+app.get('/api/health', (_req, res) => res.json({ ok: true, game: 'JUNJA WORLD', version: '0.4.1' }));
 app.use(express.static(path.join(root, 'dist'), { maxAge: '1h' }));
 app.get('/{*splat}', (_req, res) => res.sendFile(path.join(root, 'dist', 'index.html')));
 
