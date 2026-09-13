@@ -104,12 +104,12 @@ function startGame(save: SaveData) {
   game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game-container',
-    width: 1280,
-    height: 720,
+    width: window.innerWidth,
+    height: window.innerHeight,
     backgroundColor: '#6e9a62',
     pixelArt: false,
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: [WorldScene]
   });
 }
@@ -165,8 +165,18 @@ class WorldScene extends Phaser.Scene {
     sceneRef = this;
   }
 
+  preload() {
+    this.load.image('world-map', '/assets/baegun-village.webp');
+    this.load.spritesheet('hero-warrior', '/assets/hero-warrior-sheet.webp', { frameWidth: 300, frameHeight: 300 });
+    this.load.spritesheet('hero-mage', '/assets/hero-mage-sheet.webp', { frameWidth: 300, frameHeight: 300 });
+    this.load.spritesheet('hero-ranger', '/assets/hero-ranger-sheet.webp', { frameWidth: 300, frameHeight: 300 });
+    this.load.spritesheet('slime', '/assets/dokkaebi-slime-sheet.webp', { frameWidth: 500, frameHeight: 500 });
+    this.load.image('elder-art', '/assets/elder-baegun-trim.webp');
+  }
+
   create() {
     this.createTextures();
+    this.createAnimations();
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.buildWorld();
     this.createActors();
@@ -229,38 +239,35 @@ class WorldScene extends Phaser.Scene {
     });
   }
 
+  private createAnimations() {
+    const directions = ['down', 'left', 'right', 'up'];
+    (Object.keys(HERO_CLASSES) as HeroClass[]).forEach(heroClass => {
+      directions.forEach((direction, row) => {
+        const key = `walk-${heroClass}-${direction}`;
+        if (!this.anims.exists(key)) this.anims.create({
+          key,
+          frames: this.anims.generateFrameNumbers(`hero-${heroClass}`, { start: row * 3, end: row * 3 + 2 }),
+          frameRate: 7,
+          repeat: -1
+        });
+      });
+    });
+    if (!this.anims.exists('slime-idle')) this.anims.create({
+      key: 'slime-idle',
+      frames: this.anims.generateFrameNumbers('slime', { frames: [0, 1, 2, 1] }),
+      frameRate: 4,
+      repeat: -1
+    });
+  }
+
   private buildWorld() {
-    this.add.tileSprite(WORLD_WIDTH/2, WORLD_HEIGHT/2, WORLD_WIDTH, WORLD_HEIGHT, 'grass').setDepth(-20);
-    const scenery = this.add.graphics().setDepth(-18);
-    scenery.fillStyle(0xc7ad72).fillRoundedRect(0, 730, 1500, 180, 45).fillRoundedRect(430, 0, 175, 1100, 40);
-    scenery.fillStyle(0xb89961).fillRoundedRect(0, 792, 1500, 55, 26).fillRoundedRect(490, 0, 55, 1100, 26);
-    scenery.fillStyle(0x739f61).fillCircle(500,800,230);
-    scenery.lineStyle(3,0xe4cc91,.34).strokeCircle(500,800,224);
-    this.add.tileSprite(1690, WORLD_HEIGHT/2, 260, WORLD_HEIGHT, 'water').setDepth(-17);
-    scenery.fillStyle(0xd0b776).fillRect(1560,760,260,105);
-    scenery.fillStyle(0x766246).fillRect(1560,760,260,15).fillRect(1560,850,260,15);
-    scenery.lineStyle(3,0x8b724f,.55); for(let x=1570;x<1820;x+=28) scenery.lineBetween(x,775,x,850);
-
+    this.add.image(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'world-map').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(-20);
+    this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x081a16, .04).setDepth(-19);
     this.obstacles = this.physics.add.staticGroup();
-    const trees = [[100,120],[220,190],[335,90],[740,130],[870,80],[1040,160],[1200,90],[1390,170],[120,520],[1260,470],[1420,560],[130,1110],[280,1290],[430,1430],[760,1330],[1020,1450],[1280,1280],[1430,1430],[1930,120],[2090,230],[2250,110],[1990,570],[2210,680],[2010,1120],[2210,1340],[1920,1480]];
-    trees.forEach(([x,y],i) => {
-      const tree=this.add.image(x,y,'tree').setDepth(y); tree.setScale(.92+(i%3)*.08);
-      const body=this.obstacles.create(x,y+20,'tree') as Phaser.Physics.Arcade.Image; body.setVisible(false).setSize(38,44).refreshBody();
-    });
-    [[1120,610],[1200,1080],[2100,920],[1940,910],[300,410],[1320,300]].forEach(([x,y]) => {
-      this.add.image(x,y,'rock').setDepth(y); const body=this.obstacles.create(x,y+8,'rock') as Phaser.Physics.Arcade.Image; body.setVisible(false).setSize(52,34).refreshBody();
-    });
-    this.createHouse(240,610,'여관',0xb54f3f);
-    this.createHouse(860,590,'대장간',0x3c6276);
-    this.createHouse(900,1030,'잡화점',0x7a5a9a);
-    this.createHouse(210,1020,'무예관',0x8e713d);
-
-    const boundary = [[-20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH+20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH/2,-20,WORLD_WIDTH,40],[WORLD_WIDTH/2,WORLD_HEIGHT+20,WORLD_WIDTH,40],[1690,350,260,700],[1690,1230,260,740]];
+    const boundary = [[-20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH+20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH/2,-20,WORLD_WIDTH,40],[WORLD_WIDTH/2,WORLD_HEIGHT+20,WORLD_WIDTH,40]];
     boundary.forEach(([x,y,w,h]) => { const b=this.obstacles.create(x,y,'rock') as Phaser.Physics.Arcade.Image; b.setVisible(false).setDisplaySize(w,h).refreshBody(); });
-
-    this.add.text(500,405,'단풍골', {fontFamily:'serif',fontSize:'30px',fontStyle:'bold',color:'#fff2c1',stroke:'#4b3420',strokeThickness:6}).setOrigin(.5).setDepth(200);
-    this.add.text(500,440,'초보자 마을', {fontFamily:'Noto Sans KR',fontSize:'12px',color:'#e4d6aa',stroke:'#3a2a1b',strokeThickness:4}).setOrigin(.5).setDepth(200);
-    this.add.text(2060,370,'야생 숲', {fontFamily:'serif',fontSize:'24px',fontStyle:'bold',color:'#e9e1bd',stroke:'#243a2a',strokeThickness:5}).setOrigin(.5).setDepth(200);
+    this.add.text(1120,505,'백운성', {fontFamily:'serif',fontSize:'30px',fontStyle:'bold',color:'#fff0b5',stroke:'#2b1c13',strokeThickness:7}).setOrigin(.5).setDepth(2000).setAlpha(.9);
+    this.add.text(1120,540,'초보자 마을', {fontFamily:'Noto Sans KR',fontSize:'12px',color:'#fff1ca',stroke:'#2b1c13',strokeThickness:5}).setOrigin(.5).setDepth(2000);
   }
 
   private createHouse(x:number,y:number,label:string,roofColor:number) {
@@ -276,20 +283,21 @@ class WorldScene extends Phaser.Scene {
   }
 
   private createActors() {
-    this.elder = this.physics.add.staticSprite(635,680,'elder').setDepth(681);
-    this.add.text(635,620,'!',{fontFamily:'serif',fontSize:'25px',fontStyle:'bold',color:'#ffd65c',stroke:'#4e3308',strokeThickness:5}).setOrigin(.5).setDepth(900).setName('quest-mark');
-    this.add.text(635,724,'촌장 백운',{fontFamily:'Noto Sans KR',fontSize:'11px',color:'#fff3c8',stroke:'#13212a',strokeThickness:4}).setOrigin(.5).setDepth(900);
+    this.elder = this.physics.add.staticSprite(1070,645,'elder-art').setScale(.105).setDepth(646);
+    this.elder.setSize(430,260).setOffset(380,990).refreshBody();
+    this.add.text(1070,555,'!',{fontFamily:'serif',fontSize:'28px',fontStyle:'bold',color:'#ffd65c',stroke:'#4e3308',strokeThickness:6}).setOrigin(.5).setDepth(2100).setName('quest-mark');
+    this.add.text(1070,710,'촌장 백운',{fontFamily:'Noto Sans KR',fontSize:'12px',fontStyle:'bold',color:'#fff3c8',stroke:'#13212a',strokeThickness:5}).setOrigin(.5).setDepth(2100);
 
-    this.playerShadow=this.add.ellipse(500,850,42,15,0x10251d,.22).setDepth(800);
-    this.player=this.physics.add.sprite(500,820,`hero-${this.save.heroClass}`).setDepth(821).setCollideWorldBounds(true);
-    this.player.setSize(31,35).setOffset(13,38);
-    this.playerName=this.add.text(500,770,this.save.name,{fontFamily:'Noto Sans KR',fontSize:'11px',fontStyle:'bold',color:'#ffffff',stroke:'#14232b',strokeThickness:4}).setOrigin(.5).setDepth(950);
+    this.playerShadow=this.add.ellipse(1160,815,54,17,0x10251d,.34).setDepth(800);
+    this.player=this.physics.add.sprite(1160,780,`hero-${this.save.heroClass}`,1).setScale(.4).setDepth(821).setCollideWorldBounds(true);
+    this.player.setSize(72,88).setOffset(114,196);
+    this.playerName=this.add.text(1160,705,this.save.name,{fontFamily:'Noto Sans KR',fontSize:'12px',fontStyle:'bold',color:'#ffffff',stroke:'#14232b',strokeThickness:5}).setOrigin(.5).setDepth(2200);
     this.physics.add.collider(this.player,this.obstacles);
 
     this.slimes=this.physics.add.group();
-    [[1940,470],[2130,560],[2010,760],[2210,850],[1930,1040],[2150,1190],[2050,1400]].forEach(([x,y],i) => {
+    [[2050,260],[2210,330],[2130,480],[2280,560],[1980,1040],[2180,1130],[2290,1230]].forEach(([x,y],i) => {
       const slime=this.slimes.create(x,y,'slime') as Phaser.Physics.Arcade.Sprite;
-      slime.setDepth(y).setSize(46,30).setOffset(9,20).setCollideWorldBounds(true).setBounce(.4);
+      slime.setScale(.18).setDepth(y).setSize(280,190).setOffset(110,290).setCollideWorldBounds(true).setBounce(.4).play('slime-idle');
       slime.setData({ hp: 54, maxHp: 54, bornX:x, bornY:y, nextMove:i*420, dir: new Phaser.Math.Vector2() });
     });
     this.physics.add.collider(this.slimes,this.obstacles);
@@ -320,11 +328,18 @@ class WorldScene extends Phaser.Scene {
     const y=(this.cursors.up.isDown||this.keys.W.isDown?-1:0)+(this.cursors.down.isDown||this.keys.S.isDown?1:0)+this.mobileDirection.y;
     const velocity=new Phaser.Math.Vector2(x,y).normalize().scale(this.talking?0:PLAYER_SPEED);
     this.player.setVelocity(velocity.x,velocity.y);
-    if(velocity.lengthSq()>0){ this.facing.copy(velocity).normalize(); this.player.setFlipX(velocity.x<0); this.player.setAngle(Math.sin(time/70)*1.4); }
-    else this.player.setAngle(0);
+    if(velocity.lengthSq()>0){
+      this.facing.copy(velocity).normalize();
+      const direction=Math.abs(velocity.x)>Math.abs(velocity.y)?(velocity.x<0?'left':'right'):(velocity.y<0?'up':'down');
+      this.player.play(`walk-${this.save.heroClass}-${direction}`,true);
+    } else {
+      this.player.stop();
+      const direction=Math.abs(this.facing.x)>Math.abs(this.facing.y)?(this.facing.x<0?'left':'right'):(this.facing.y<0?'up':'down');
+      this.player.setFrame(({down:1,left:4,right:7,up:10} as Record<string,number>)[direction]);
+    }
     this.player.setDepth(this.player.y+20);
-    this.playerName.setPosition(this.player.x,this.player.y-48);
-    this.playerShadow.setPosition(this.player.x,this.player.y+29).setDepth(this.player.y-2);
+    this.playerName.setPosition(this.player.x,this.player.y-72);
+    this.playerShadow.setPosition(this.player.x,this.player.y+39).setDepth(this.player.y-2);
     const near=Phaser.Math.Distance.Between(this.player.x,this.player.y,this.elder.x,this.elder.y)<105;
     ui.hint.classList.toggle('hidden',!near||this.talking);
     this.updateSlimes(time);
@@ -403,7 +418,7 @@ class WorldScene extends Phaser.Scene {
 
   private respawn(){
     this.player.disableBody(true,true);notify('기력이 다해 마을에서 깨어났다.');this.cameras.main.fadeOut(420,30,5,5);
-    this.time.delayedCall(500,()=>{this.save.hp=this.maxHp();this.player.enableBody(true,500,820,true,true);this.cameras.main.fadeIn(650,8,18,28);persist(this.save);updateHud(this.save);});
+    this.time.delayedCall(500,()=>{this.save.hp=this.maxHp();this.player.enableBody(true,1160,780,true,true);this.cameras.main.fadeIn(650,8,18,28);persist(this.save);updateHud(this.save);});
   }
   private maxHp(){return HERO_CLASSES[this.save.heroClass].maxHp+(this.save.level-1)*14;}
   private attackPower(){return HERO_CLASSES[this.save.heroClass].attack+(this.save.level-1)*5;}
