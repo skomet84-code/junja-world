@@ -240,18 +240,6 @@ class WorldScene extends Phaser.Scene {
   }
 
   private createAnimations() {
-    const directions = ['down', 'left', 'right', 'up'];
-    (Object.keys(HERO_CLASSES) as HeroClass[]).forEach(heroClass => {
-      directions.forEach((direction, row) => {
-        const key = `walk-${heroClass}-${direction}`;
-        if (!this.anims.exists(key)) this.anims.create({
-          key,
-          frames: this.anims.generateFrameNumbers(`hero-${heroClass}`, { start: row * 3, end: row * 3 + 2 }),
-          frameRate: 7,
-          repeat: -1
-        });
-      });
-    });
     if (!this.anims.exists('slime-idle')) this.anims.create({
       key: 'slime-idle',
       frames: this.anims.generateFrameNumbers('slime', { frames: [0, 1, 2, 1] }),
@@ -266,6 +254,21 @@ class WorldScene extends Phaser.Scene {
     this.obstacles = this.physics.add.staticGroup();
     const boundary = [[-20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH+20,WORLD_HEIGHT/2,40,WORLD_HEIGHT],[WORLD_WIDTH/2,-20,WORLD_WIDTH,40],[WORLD_WIDTH/2,WORLD_HEIGHT+20,WORLD_WIDTH,40]];
     boundary.forEach(([x,y,w,h]) => { const b=this.obstacles.create(x,y,'rock') as Phaser.Physics.Arcade.Image; b.setVisible(false).setDisplaySize(w,h).refreshBody(); });
+    const block = (x:number,y:number,w:number,h:number) => {
+      const body=this.obstacles.create(x,y,'rock') as Phaser.Physics.Arcade.Image;
+      body.setVisible(false).setDisplaySize(w,h).refreshBody();
+    };
+    // 백운성 원화의 성벽·건물·연못·정원에 맞춘 1차 충돌 지도.
+    // 길, 광장, 성문 통로와 다리는 열어 두고 장식물 내부 진입을 막는다.
+    [
+      [300,155,600,250],[830,150,390,250],
+      [1500,285,650,85],[2215,300,370,100],
+      [260,600,470,390],[725,610,330,260],
+      [1645,790,520,330],[2090,715,250,220],
+      [2200,1050,390,440],[420,1240,840,310],
+      [1130,1265,500,230],[1640,1280,430,210],
+      [1215,740,150,235],[1350,915,210,150]
+    ].forEach(([x,y,w,h])=>block(x,y,w,h));
     this.add.text(1120,505,'백운성', {fontFamily:'serif',fontSize:'30px',fontStyle:'bold',color:'#fff0b5',stroke:'#2b1c13',strokeThickness:7}).setOrigin(.5).setDepth(2000).setAlpha(.9);
     this.add.text(1120,540,'초보자 마을', {fontFamily:'Noto Sans KR',fontSize:'12px',color:'#fff1ca',stroke:'#2b1c13',strokeThickness:5}).setOrigin(.5).setDepth(2000);
   }
@@ -331,11 +334,18 @@ class WorldScene extends Phaser.Scene {
     if(velocity.lengthSq()>0){
       this.facing.copy(velocity).normalize();
       const direction=Math.abs(velocity.x)>Math.abs(velocity.y)?(velocity.x<0?'left':'right'):(velocity.y<0?'up':'down');
-      this.player.play(`walk-${this.save.heroClass}-${direction}`,true);
+      this.player.stop();
+      this.player.setRotation(0);
+      if(direction==='left'||direction==='right'){
+        this.player.setFrame(7).setFlipX(direction==='right');
+      } else {
+        this.player.setFrame(direction==='up'?2:1).setFlipX(false);
+      }
     } else {
       this.player.stop();
       const direction=Math.abs(this.facing.x)>Math.abs(this.facing.y)?(this.facing.x<0?'left':'right'):(this.facing.y<0?'up':'down');
-      this.player.setFrame(({down:1,left:4,right:7,up:10} as Record<string,number>)[direction]);
+      if(direction==='left'||direction==='right') this.player.setFrame(7).setFlipX(direction==='right');
+      else this.player.setFrame(direction==='up'?2:1).setFlipX(false);
     }
     this.player.setDepth(this.player.y+20);
     this.playerName.setPosition(this.player.x,this.player.y-52);
