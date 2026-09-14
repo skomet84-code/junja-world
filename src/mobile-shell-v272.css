@@ -66,25 +66,27 @@
   #game-ui .status-panel .stats,#game-ui .status-panel #inventory-button{display:none!important}
 
   /* Existing combat strip stays usable but takes only one thin row. */
-  .jw-combat-dock{
+  body.jw272-mobile .jw-combat-dock{
     display:flex!important;position:fixed!important;left:7px!important;right:116px!important;
     bottom:calc(61px + var(--jw272-safe))!important;width:auto!important;height:36px!important;transform:none!important;
     padding:2px!important;margin:0!important;gap:3px!important;z-index:10010!important;
     border-radius:11px!important;background:rgba(5,12,16,.76)!important;border:1px solid rgba(230,199,126,.14)!important;
     box-shadow:none!important;backdrop-filter:blur(5px)!important;
   }
-  .jw-combat-dock>.jw-auto-hunt,.jw-combat-dock>#jw-skill-button,.jw-combat-dock>#jw-secondary-skill{
+  body.jw272-mobile .jw-combat-dock>.jw-auto-hunt,
+  body.jw272-mobile .jw-combat-dock>#jw-skill-button,
+  body.jw272-mobile .jw-combat-dock>#jw-secondary-skill{
     min-height:30px!important;height:30px!important;padding:2px 5px!important;margin:0!important;border-radius:8px!important;
   }
-  .jw-combat-dock button strong{font-size:7px!important;line-height:1!important;white-space:nowrap!important}
-  .jw-combat-dock button small{display:none!important}
+  body.jw272-mobile .jw-combat-dock button strong{font-size:7px!important;line-height:1!important;white-space:nowrap!important}
+  body.jw272-mobile .jw-combat-dock button small{display:none!important}
 
   /* Action / attack are two compact buttons, not giant blocks. */
-  .mobile-actions{
+  body.jw272-mobile .mobile-actions{
     display:flex!important;position:fixed!important;right:7px!important;left:auto!important;
     bottom:calc(61px + var(--jw272-safe))!important;gap:5px!important;z-index:10012!important;
   }
-  .mobile-actions button{
+  body.jw272-mobile .mobile-actions button{
     width:50px!important;height:36px!important;min-width:50px!important;min-height:36px!important;padding:0!important;margin:0!important;
     border-radius:11px!important;font-size:9px!important;font-weight:900!important;
     background:rgba(5,14,17,.84)!important;border:1px solid rgba(232,202,130,.2)!important;box-shadow:none!important;
@@ -185,6 +187,6 @@
   #game-ui .status-panel{width:98px!important;max-width:98px!important}
   body.jw272-open-map .jw16-world-panel,body.jw272-open-map .zone-dock{width:180px!important;max-width:180px!important}
   body.jw272-open-map .zone-dock{top:184px!important}
-  .jw-combat-dock{right:108px!important}
-  .mobile-actions button{width:47px!important;min-width:47px!important}
+  body.jw272-mobile .jw-combat-dock{right:108px!important}
+  body.jw272-mobile .mobile-actions button{width:47px!important;min-width:47px!important}
 }
