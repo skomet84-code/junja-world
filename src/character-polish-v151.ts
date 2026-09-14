@@ -14,7 +14,7 @@ function createGearTextures(s:any){
  make(s,'jw15-armor-ranger',72,58,g=>{g.fillStyle(0x263529,.98).fillRoundedRect(20,13,32,36,8);g.fillStyle(0x5c764c).fillRoundedRect(24,17,24,28,5);g.fillStyle(0x8c6840).fillRect(18,20,5,28).fillRect(49,20,5,28);g.lineStyle(3,0xb68c59,.85).lineBetween(25,18,48,43).lineBetween(47,18,26,43);g.fillStyle(0x7d5634).fillTriangle(52,13,67,18,54,24);g.fillStyle(0xd7bf78).fillRect(33,17,5,28);});
  make(s,'jw15-weapon-warrior',30,84,g=>{g.fillStyle(0x4a311c).fillRoundedRect(12,58,6,22,2);g.fillStyle(0xd4a84d).fillRect(5,55,20,5);g.fillStyle(0xcdd9e4).fillTriangle(15,2,25,54,5,54);g.fillStyle(0xffffff,.75).fillTriangle(15,7,18,49,11,49);g.lineStyle(2,0x8092a2,.65).lineBetween(7,52,23,52);});
  make(s,'jw15-weapon-mage',36,88,g=>{g.fillStyle(0x5c3b28).fillRoundedRect(16,20,5,66,2);g.fillStyle(0x9a7558).fillRoundedRect(17,22,2,61,1);g.fillStyle(0x7455a5,.75).fillCircle(18,14,12);g.lineStyle(3,0xd2baf5,.9).strokeCircle(18,14,9);g.fillStyle(0xf5de80).fillCircle(18,14,4);g.fillStyle(0xa682d0,.8).fillCircle(6,22,3).fillCircle(30,25,3);});
- make(s,'jw15-weapon-ranger',68,86,g=>{g.lineStyle(5,0x8d5d34,1).beginPath().moveTo(20,7).quadraticCurveTo(2,43,20,79).strokePath();g.lineStyle(3,0xcca96e,.95).beginPath().moveTo(21,8).lineTo(48,43).lineTo(21,78).strokePath();g.lineStyle(1,0xe6dfc5,.9).lineBetween(21,8,48,43).lineBetween(48,43,21,78);g.fillStyle(0xb7c5d0).fillTriangle(48,40,65,43,48,46);g.fillStyle(0xead9a7).fillRect(46,42,14,2);});
+ make(s,'jw15-weapon-ranger',68,86,g=>{g.lineStyle(5,0x8d5d34,1).beginPath().moveTo(20,7).lineTo(11,23).lineTo(6,43).lineTo(11,63).lineTo(20,79).strokePath();g.lineStyle(3,0xcca96e,.95).beginPath().moveTo(21,8).lineTo(48,43).lineTo(21,78).strokePath();g.lineStyle(1,0xe6dfc5,.9).lineBetween(21,8,48,43).lineBetween(48,43,21,78);g.fillStyle(0xb7c5d0).fillTriangle(48,40,65,43,48,46);g.fillStyle(0xead9a7).fillRect(46,42,14,2);});
 }
 function tierTint(level:number,rare:boolean){if(rare)return 0xe6b2ff;if(level>=8)return 0xffe082;if(level>=5)return 0xa6d8ff;if(level>=3)return 0xc1b0ef;return 0xffffff;}
 function classKeys(hero:string){if(hero==='mage')return {armor:'jw15-armor-mage',weapon:'jw15-weapon-mage'};if(hero==='ranger')return {armor:'jw15-armor-ranger',weapon:'jw15-weapon-ranger'};return {armor:'jw15-armor-warrior',weapon:'jw15-weapon-warrior'};}
@@ -32,7 +32,7 @@ function patchScene(s:any){
   this.gearWeapon?.setScale(weaponBase+Math.min(8,weaponLv)*.018);
  };
  s.updateGearVisual=function(time:number){
-  if(!this.player)return;const facing=this.facing||{x:0,y:1},vx=Number(this.player?.body?.velocity?.x||0),vy=Number(this.player?.body?.velocity?.y||0),moving=Math.hypot(vx,vy)>8;const bob=moving?Math.sin(time*.018)*1.8:Math.sin(time*.004)*.45;const hero=String(this.save?.heroClass||'warrior');const x=Number(this.player.x),y=Number(this.player.y);let side=facing.x<0?-1:1;const vertical=Math.abs(facing.y)>Math.abs(facing.x);
+  if(!this.player)return;const facing=this.facing||{x:0,y:1},vx=Number(this.player?.body?.velocity?.x||0),vy=Number(this.player?.body?.velocity?.y||0),moving=Math.hypot(vx,vy)>8;const bob=moving?Math.sin(time*.018)*1.8:Math.sin(time*.004)*.45;const hero=String(this.save?.heroClass||'warrior');const x=Number(this.player.x),y=Number(this.player.y);const side=facing.x<0?-1:1;const vertical=Math.abs(facing.y)>Math.abs(facing.x);
   this.gearArmor?.setFlipX(false).setRotation(0);
   if(vertical&&facing.y<0){
    this.gearArmor?.setPosition(x,y+2+bob).setDepth(y-3);
