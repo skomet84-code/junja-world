@@ -1,0 +1,45 @@
+/* JUNJA WORLD v0.9.1 - combat readability */
+.jw-skill-button{
+  position:fixed;
+  right:180px;
+  bottom:96px;
+  z-index:52;
+  min-width:132px;
+  padding:10px 12px 9px;
+  border:1px solid rgba(124,188,216,.48);
+  border-radius:6px;
+  background:linear-gradient(180deg,rgba(33,58,67,.97),rgba(15,28,32,.97));
+  color:#d9f2f6;
+  text-align:left;
+  box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.06);
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.jw-skill-button strong,.jw-skill-button small{display:block}
+.jw-skill-button strong{font-size:12px}
+.jw-skill-button small{margin-top:3px;color:#8eb6c0;font-size:9px}
+.jw-skill-button.cooldown{filter:saturate(.5);opacity:.72}
+.jw-skill-button.ready{border-color:rgba(148,220,238,.72);box-shadow:0 0 16px rgba(102,186,210,.12),0 8px 24px rgba(0,0,0,.35)}
+
+.jw-combat-flash{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:7;
+  opacity:0;
+  background:radial-gradient(circle at center,rgba(255,237,173,.12),transparent 28%);
+}
+.jw-combat-flash.show{animation:jwCombatFlash .22s ease-out}
+@keyframes jwCombatFlash{0%{opacity:.9}100%{opacity:0}}
+
+@media(max-width:760px){
+  .jw-skill-button{
+    right:auto;
+    left:10px;
+    bottom:164px;
+    min-width:122px;
+    padding:9px 10px;
+  }
+  .jw-skill-button strong{font-size:11px}
+  .jw-skill-button small{font-size:8px}
+}
