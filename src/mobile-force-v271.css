@@ -1,0 +1,155 @@
+/* JUNJA WORLD v2.7.1 - hard mobile declutter hotfix */
+@media(max-width:760px),(pointer:coarse){
+  body.jw271-mobile{--jw271-safe:env(safe-area-inset-bottom,0px)}
+
+  /* Hide every legacy always-on widget on phones. */
+  body.jw271-mobile .help-note,
+  body.jw271-mobile .quest-panel,
+  body.jw271-mobile .boss-panel,
+  body.jw271-mobile .jw16-world-panel,
+  body.jw271-mobile .jw16-compass,
+  body.jw271-mobile .jw16-patrol-badge,
+  body.jw271-mobile .zone-dock,
+  body.jw271-mobile .jw-growth,
+  body.jw271-mobile .jw-minimap,
+  body.jw271-mobile .jw-stage-chip,
+  body.jw271-mobile .jw19-mood,
+  body.jw271-mobile .jw20-target-hud,
+  body.jw271-mobile .jw20-target-button,
+  body.jw271-mobile .jw21-class-meter,
+  body.jw271-mobile .jw22-gear-status,
+  body.jw271-mobile .jw23-nearby,
+  body.jw271-mobile .jw-adventure-button,
+  body.jw271-mobile .jw-shop-button,
+  body.jw271-mobile .jw15-guide-button,
+  body.jw271-mobile .jw24-wallet-chip,
+  body.jw271-mobile .jw25-shop-button,
+  body.jw271-mobile .jw25-admin-button,
+  body.jw271-mobile .jw26-account-chip,
+  body.jw271-mobile .jw26-ops-btn{display:none!important}
+
+  /* Keep only a tiny region bar. */
+  body.jw271-mobile .top-bar{
+    height:36px!important;min-height:36px!important;padding:2px 8px!important;
+    background:rgba(5,12,15,.72)!important;border-bottom:1px solid rgba(232,203,132,.14)!important;
+    backdrop-filter:blur(6px)!important;z-index:70!important;
+  }
+  body.jw271-mobile .top-bar .brand,
+  body.jw271-mobile #reset-save{display:none!important}
+  body.jw271-mobile .top-bar .zone{
+    position:absolute!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;
+    transform:none!important;text-align:center!important;max-width:none!important;pointer-events:none!important;
+  }
+  body.jw271-mobile .top-bar .zone small{display:none!important}
+  body.jw271-mobile .top-bar .zone strong{font-size:10px!important;color:#f0deb0!important;letter-spacing:.2px!important}
+
+  /* Tiny character card: name + HP/XP only. */
+  body.jw271-mobile .status-panel{
+    display:block!important;position:fixed!important;top:43px!important;left:7px!important;width:112px!important;max-width:112px!important;
+    padding:6px!important;margin:0!important;border-radius:10px!important;z-index:72!important;
+    background:rgba(5,13,16,.72)!important;border:1px solid rgba(231,203,134,.16)!important;
+    box-shadow:0 6px 18px rgba(0,0,0,.2)!important;backdrop-filter:blur(5px)!important;
+  }
+  body.jw271-mobile .status-panel .identity{margin-bottom:3px!important}
+  body.jw271-mobile .status-panel .identity strong{font-size:10px!important;line-height:1.1!important}
+  body.jw271-mobile .status-panel .identity span{font-size:7px!important}
+  body.jw271-mobile .status-panel .bar{height:9px!important;margin-top:3px!important;border-radius:5px!important}
+  body.jw271-mobile .status-panel .bar span{font-size:6px!important;line-height:9px!important}
+  body.jw271-mobile .status-panel .stats,
+  body.jw271-mobile .status-panel #inventory-button{display:none!important}
+
+  /* Bottom icon navigation only appears while actually playing. */
+  body.jw271-mobile .jw27-mobile-dock{display:none!important}
+  body.jw271-mobile.jw271-game-on .jw27-mobile-dock{
+    display:grid!important;grid-template-columns:repeat(5,1fr)!important;position:fixed!important;
+    left:7px!important;right:7px!important;bottom:calc(6px + var(--jw271-safe))!important;height:52px!important;
+    padding:3px!important;gap:2px!important;z-index:10020!important;border-radius:15px!important;
+    border:1px solid rgba(232,203,132,.22)!important;background:rgba(5,12,16,.94)!important;
+    box-shadow:0 10px 26px rgba(0,0,0,.42)!important;backdrop-filter:blur(12px)!important;
+  }
+  body.jw271-mobile .jw27-mobile-dock button{
+    border:0!important;background:transparent!important;color:#c9c6ba!important;border-radius:11px!important;
+    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0!important;
+    padding:2px!important;min-width:0!important;font-family:inherit!important;
+  }
+  body.jw271-mobile .jw27-mobile-dock button i{font-style:normal!important;font-size:18px!important;line-height:18px!important;color:#ead79e!important}
+  body.jw271-mobile .jw27-mobile-dock button span{font-size:7px!important;margin-top:2px!important}
+  body.jw271-mobile .jw27-mobile-dock button.active{background:rgba(231,197,111,.14)!important;color:#fff!important}
+
+  /* Compact skills row. */
+  body.jw271-mobile .jw-combat-dock{
+    display:flex!important;position:fixed!important;left:7px!important;right:7px!important;bottom:calc(63px + var(--jw271-safe))!important;
+    width:auto!important;height:36px!important;transform:none!important;padding:2px!important;gap:3px!important;z-index:10010!important;
+    border-radius:11px!important;background:rgba(5,12,16,.78)!important;border:1px solid rgba(231,200,126,.14)!important;
+    box-shadow:none!important;backdrop-filter:blur(6px)!important;
+  }
+  body.jw271-mobile .jw-combat-dock>.jw-auto-hunt,
+  body.jw271-mobile .jw-combat-dock>#jw-skill-button,
+  body.jw271-mobile .jw-combat-dock>#jw-secondary-skill{
+    min-height:30px!important;height:30px!important;padding:3px 5px!important;border-radius:8px!important;margin:0!important;
+  }
+  body.jw271-mobile .jw-combat-dock button strong{font-size:7px!important;line-height:1!important}
+  body.jw271-mobile .jw-combat-dock button small{display:none!important}
+
+  /* Basic action/attack become two small floating buttons instead of huge blocks. */
+  body.jw271-mobile .mobile-actions{
+    display:flex!important;position:fixed!important;right:8px!important;bottom:calc(104px + var(--jw271-safe))!important;
+    gap:6px!important;z-index:10012!important;
+  }
+  body.jw271-mobile .mobile-actions button{
+    width:50px!important;height:42px!important;min-width:50px!important;padding:0!important;border-radius:13px!important;
+    font-size:10px!important;font-weight:800!important;background:rgba(6,16,18,.86)!important;border:1px solid rgba(232,203,132,.22)!important;
+    box-shadow:0 6px 16px rgba(0,0,0,.28)!important;
+  }
+
+  /* Open panels are true sheets; closed state is completely absent. */
+  body.jw271-mobile.jw27-open-mission .quest-panel,
+  body.jw271-mobile.jw27-open-boss .boss-panel,
+  body.jw271-mobile.jw27-open-map .jw16-world-panel{
+    display:block!important;position:fixed!important;left:8px!important;right:8px!important;top:44px!important;
+    width:auto!important;max-width:none!important;transform:none!important;margin:0!important;padding:14px!important;
+    border-radius:16px!important;z-index:10030!important;background:rgba(5,14,17,.97)!important;
+    box-shadow:0 18px 50px rgba(0,0,0,.5)!important;backdrop-filter:blur(12px)!important;
+  }
+  body.jw271-mobile.jw27-open-mission .quest-panel{pointer-events:auto!important}
+  body.jw271-mobile.jw27-open-mission .quest-panel *{pointer-events:none!important}
+  body.jw271-mobile.jw27-open-mission .quest-panel::after{
+    content:'여기를 누르면 임무 자동 진행';display:block;margin-top:10px;padding:9px;border-radius:9px;
+    background:rgba(230,194,100,.13);color:#f3dda2;font-size:10px;font-weight:800;text-align:center;
+  }
+  body.jw271-mobile.jw27-open-mission .jw16-compass{display:none!important}
+
+  body.jw271-mobile.jw27-open-map .jw16-world-panel canvas{width:100%!important;height:auto!important;max-height:30vh!important}
+  body.jw271-mobile.jw27-open-map .zone-dock{
+    display:flex!important;position:fixed!important;left:8px!important;right:8px!important;top:auto!important;
+    bottom:calc(104px + var(--jw271-safe))!important;width:auto!important;max-width:none!important;
+    padding:6px!important;gap:4px!important;flex-wrap:wrap!important;justify-content:center!important;z-index:10031!important;
+    border-radius:12px!important;background:rgba(5,14,17,.97)!important;
+  }
+  body.jw271-mobile.jw27-open-map .zone-dock button{font-size:8px!important;padding:7px 8px!important;min-height:30px!important}
+
+  body.jw271-mobile.jw27-open-bag #inventory-panel{
+    display:block!important;position:fixed!important;left:7px!important;right:7px!important;top:44px!important;
+    bottom:calc(104px + var(--jw271-safe))!important;width:auto!important;max-width:none!important;max-height:none!important;
+    overflow:auto!important;z-index:10030!important;border-radius:16px!important;background:rgba(5,14,17,.98)!important;
+    box-shadow:0 18px 50px rgba(0,0,0,.5)!important;
+  }
+
+  body.jw271-mobile .jw27-more-sheet{display:none!important}
+  body.jw271-mobile.jw27-open-more .jw27-more-sheet{
+    display:block!important;position:fixed!important;left:8px!important;right:8px!important;bottom:calc(63px + var(--jw271-safe))!important;
+    z-index:10032!important;padding:12px!important;border-radius:16px!important;background:rgba(5,14,17,.98)!important;
+    border:1px solid rgba(231,201,129,.2)!important;box-shadow:0 18px 50px rgba(0,0,0,.5)!important;
+  }
+
+  body.jw271-mobile #jw25-shop-layer,
+  body.jw271-mobile #jw25-admin-layer,
+  body.jw271-mobile .jw26-ops-layer,
+  body.jw271-mobile .jw15-guide-panel,
+  body.jw271-mobile .jw24-link-panel{z-index:11000!important}
+}
+
+@media(max-width:390px){
+  body.jw271-mobile .status-panel{width:104px!important;max-width:104px!important}
+  body.jw271-mobile .mobile-actions button{width:46px!important;min-width:46px!important;height:40px!important;font-size:9px!important}
+}
