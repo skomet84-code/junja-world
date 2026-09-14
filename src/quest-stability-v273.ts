@@ -5,7 +5,10 @@ const SAVE_KEY='junja-world-v01';
 let assistTimer=0;
 let assistRunning=false;
 let lastQuest=-1;
-let lastChapter=-1;
+let lastChapter2=-1;
+let lastChapter3=-1;
+
+type ChapterState={state:number};
 
 function scene():any|null{
   for(const game of (((Phaser as any).GAMES||[]) as any[])){
@@ -22,9 +25,10 @@ function persist(save:any,s=scene()){
   if(s?.save&&s.save!==save)Object.assign(s.save,save);
 }
 function toast(text:string){const el=document.querySelector<HTMLElement>('#toast');if(!el)return;el.textContent=text;el.classList.remove('hidden');window.setTimeout(()=>el.classList.add('hidden'),2300);}
-function chapterState(save:any){return Number(save?.chapter2?.state||0);}
-function playerLevel(save:any){return Number(save?.level||1);}
 function questNo(save:any){return Number(save?.quest||0);}
+function chapter2(save:any){return Number(save?.chapter2?.state||0);}
+function chapter3(save:any){return Number(save?.chapter3?.state||0);}
+function playerLevel(save:any){return Number(save?.level||1);}
 function distance(s:any,t:any){return s?.player&&t?Phaser.Math.Distance.Between(s.player.x,s.player.y,t.x,t.y):99999;}
 function alive(m:any){return !!m&&m.active!==false&&m.visible!==false&&!m.destroyed&&Number(m.getData?.('hp')||1)>0;}
 
@@ -39,18 +43,19 @@ function moveTarget(s:any,x:number,y:number,range=100){
   s.autoTarget=new Phaser.Math.Vector2(x,y);return false;
 }
 function travel(s:any,zone:string){try{s?.travel?.(zone);}catch{}}
-function nearestMonster(s:any,preferElite=false){
+function nearestMonster(s:any,preferElite=false,preferGuardian=false){
   if(!s?.player)return null;
   const list=(s.monsters?.getChildren?.()||[]).filter((m:any)=>alive(m));
   list.sort((a:any,b:any)=>{
+    if(preferGuardian){const ag=!!a.getData?.('jw13Boss'),bg=!!b.getData?.('jw13Boss');if(ag!==bg)return ag?-1:1;}
     if(preferElite){const ae=!!a.getData?.('jwElite'),be=!!b.getData?.('jwElite');if(ae!==be)return ae?-1:1;}
     return distance(s,a)-distance(s,b);
   });
   return list[0]||null;
 }
-function nearestOre(s:any){
+function nearestNode(s:any,kind:string){
   if(!s?.player)return null;
-  const list=(s.nodes?.getChildren?.()||[]).filter((n:any)=>n?.active!==false&&n?.getData?.('ready')!==false&&String(n.getData?.('kind'))==='ore');
+  const list=(s.nodes?.getChildren?.()||[]).filter((n:any)=>n?.active!==false&&n?.getData?.('ready')!==false&&String(n.getData?.('kind'))===kind);
   list.sort((a:any,b:any)=>distance(s,a)-distance(s,b));return list[0]||null;
 }
 function rewardRepair(s:any,title:string,xp:number,gold:number,potions:number){
@@ -63,7 +68,7 @@ function repairBaseQuest(){
   let changed=false;
   if(Number(save.quest)===1&&Number(save.kills||0)>=5){save.quest=2;rewardRepair(s,'청운들판 토벌',100,120,1);changed=true;}
   if(Number(save.quest)===3&&Number(save.resources?.ore||0)>=5){save.quest=4;rewardRepair(s,'흑철광산 조사',300,180,1);changed=true;}
-  if(changed){persist(save,s);toast('완료된 임무 상태를 복구했어. 다음 임무를 진행할 수 있어.');}
+  if(changed)persist(save,s);
 }
 
 function actionLabel(save:any){
@@ -74,29 +79,50 @@ function actionLabel(save:any){
   if(q===2)return '촌장에게 이동 · 보상 받기';
   if(q===3)return Number(save.resources?.ore||0)>=5?'완료 처리 · 다음 임무':'흑철광석 자동 채집';
   if(q===4)return playerLevel(save)>=10?'월영숲 입장 · 임무 완료':'Lv.10까지 자동 성장';
-  const ch=chapterState(save);
-  if(ch===0)return '경비 무진에게 이동 · 2장 시작';
-  if(ch===1)return '청운들판 자동 토벌';
-  if(ch===2)return '흑철광석 자동 채집';
-  if(ch===3)return '월영숲 정예 자동 사냥';
-  if(ch===4)return '촌장에게 이동 · 2장 보상';
-  return '2장 완료 · 모험 계속';
+  const c2=chapter2(save);
+  if(c2<5){
+    if(c2===0)return '경비 무진에게 이동 · 2장 시작';
+    if(c2===1)return '청운들판 자동 토벌';
+    if(c2===2)return '흑철광석 자동 채집';
+    if(c2===3)return '월영숲 정예 자동 사냥';
+    if(c2===4)return '촌장에게 이동 · 2장 보상';
+  }
+  const c3=chapter3(save);
+  if(c3===0)return '촌장에게 이동 · 3장 시작';
+  if(c3===1)return '월영숲 자동 토벌';
+  if(c3===2)return '월광결정 자동 채집';
+  if(c3===3)return '봉인수호자 자동 전투';
+  if(c3===4)return '촌장에게 이동 · 3장 보상';
+  return '메인 임무 완료 · 모험 계속';
 }
 function ensureActionButton(){
-  const panel=document.querySelector<HTMLElement>('#quest-panel');if(!panel)return;
-  let btn=panel.querySelector<HTMLButtonElement>('.jw273-quest-action');
-  if(!btn){btn=document.createElement('button');btn.type='button';btn.className='jw273-quest-action';panel.appendChild(btn);btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();runQuestAction();});}
+  const game=document.querySelector('#game-ui');if(!game)return;
+  const duplicates=Array.from(document.querySelectorAll<HTMLButtonElement>('.jw273-quest-action'));
+  let btn=document.querySelector<HTMLButtonElement>('#jw-quest-action');
+  if(!btn){
+    btn=duplicates.shift()||document.createElement('button');
+    btn.id='jw-quest-action';btn.type='button';btn.className='jw273-quest-action';
+    if(btn.parentElement!==document.body)document.body.appendChild(btn);
+  }
+  for(const extra of duplicates)if(extra!==btn)extra.remove();
+  if(btn.dataset.bound!=='1'){
+    btn.dataset.bound='1';
+    btn.addEventListener('pointerdown',e=>e.stopPropagation());
+    btn.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+    btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();runQuestAction();});
+  }
 }
 function updateActionButton(){
-  ensureActionButton();const btn=document.querySelector<HTMLButtonElement>('.jw273-quest-action');const save=saveNow();if(!btn||!save)return;
-  btn.textContent=assistRunning?'자동 진행 중 · 누르면 중지':actionLabel(save);
-  btn.classList.toggle('running',assistRunning);btn.classList.toggle('complete',questNo(save)>=5&&chapterState(save)>=5&&!assistRunning);
+  ensureActionButton();const btn=document.querySelector<HTMLButtonElement>('#jw-quest-action');const save=saveNow();if(!btn||!save)return;
+  btn.textContent=assistRunning?'자동 임무 진행 중 · 누르면 중지':actionLabel(save);
+  btn.classList.toggle('running',assistRunning);
+  btn.classList.toggle('complete',questNo(save)>=5&&chapter2(save)>=5&&chapter3(save)>=5&&!assistRunning);
 }
 
 function runQuestAction(){
   if(assistRunning){stopAssist('임무 자동 진행을 중지했어.');return;}
   repairBaseQuest();const save=saveNow(),s=scene();if(!save||!s){toast('게임이 아직 준비 중이야. 잠시 후 다시 눌러줘.');return;}
-  if(questNo(save)>=5&&chapterState(save)>=5){document.body.classList.remove('jw272-open-mission');toast('메인 임무 2장 완료. 사냥·제작·보스 콘텐츠를 진행하면 돼.');return;}
+  if(questNo(save)>=5&&chapter2(save)>=5&&chapter3(save)>=5){document.body.classList.remove('jw272-open-mission');toast('현재 메인 임무를 완료했어. 성장·제작·보스 콘텐츠를 진행하면 돼.');return;}
   assistRunning=true;document.body.classList.add('jw273-quest-running');updateActionButton();assistStep();
 }
 
@@ -106,63 +132,38 @@ function assistStep(){
   repairBaseQuest();
   const q=questNo(save);
   try{
-    if(q===0){
-      if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}
-      if(moveTarget(s,1070,645,120)){s.autoTarget=undefined;s.contextAction?.();schedule(700);}else schedule();return;
+    if(q===0){if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}if(moveTarget(s,1070,645,120)){s.autoTarget=undefined;s.contextAction?.();schedule(700);}else schedule();return;}
+    if(q===1){if(Number(save.kills||0)>=5){repairBaseQuest();schedule(250);return;}if(String(s.zone)!=='field'){travel(s,'field');schedule(800);return;}const m=nearestMonster(s);if(!m){schedule(700);return;}if(moveTarget(s,m.x,m.y,100)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;}
+    if(q===2){if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}if(moveTarget(s,1070,645,120)){s.autoTarget=undefined;s.contextAction?.();schedule(700);}else schedule();return;}
+    if(q===3){if(Number(save.resources?.ore||0)>=5){repairBaseQuest();schedule(250);return;}if(String(s.zone)!=='mine'){travel(s,'mine');schedule(800);return;}const n=nearestNode(s,'ore');if(!n){schedule(800);return;}if(moveTarget(s,n.x,n.y,95)){s.autoTarget=undefined;s.contextAction?.();schedule(700);}else schedule();return;}
+    if(q===4){if(playerLevel(save)>=10){if(String(s.zone)!=='forest')travel(s,'forest');schedule(800);return;}const targetZone=playerLevel(save)>=5?'mine':'field';if(String(s.zone)!==targetZone){travel(s,targetZone);schedule(800);return;}const m=nearestMonster(s);if(!m){schedule(700);return;}if(moveTarget(s,m.x,m.y,100)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;}
+
+    const c2=chapter2(save);
+    if(c2<5){
+      if(c2===0){if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}if(moveTarget(s,1310,725,125)){s.autoTarget=undefined;s.contextAction?.();schedule(800);}else schedule();return;}
+      if(c2===1){if(String(s.zone)!=='field'){travel(s,'field');schedule(800);return;}const m=nearestMonster(s);if(!m){schedule(700);return;}if(moveTarget(s,m.x,m.y,100)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;}
+      if(c2===2){if(String(s.zone)!=='mine'){travel(s,'mine');schedule(800);return;}const n=nearestNode(s,'ore');if(!n){schedule(800);return;}if(moveTarget(s,n.x,n.y,95)){s.autoTarget=undefined;s.contextAction?.();schedule(700);}else schedule();return;}
+      if(c2===3){if(String(s.zone)!=='forest'){travel(s,'forest');schedule(850);return;}const m=nearestMonster(s,true);if(!m){schedule(750);return;}if(moveTarget(s,m.x,m.y,100)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;}
+      if(c2===4){if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}if(moveTarget(s,1070,645,120)){s.autoTarget=undefined;s.contextAction?.();schedule(850);}else schedule();return;}
     }
-    if(q===1){
-      if(Number(save.kills||0)>=5){repairBaseQuest();schedule(250);return;}
-      if(String(s.zone)!=='field'){travel(s,'field');schedule(800);return;}
-      const m=nearestMonster(s);if(!m){schedule(700);return;}
-      if(moveTarget(s,m.x,m.y,100)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;
-    }
-    if(q===2){
-      if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}
-      if(moveTarget(s,1070,645,120)){s.autoTarget=undefined;s.contextAction?.();schedule(700);}else schedule();return;
-    }
-    if(q===3){
-      if(Number(save.resources?.ore||0)>=5){repairBaseQuest();schedule(250);return;}
-      if(String(s.zone)!=='mine'){travel(s,'mine');schedule(800);return;}
-      const n=nearestOre(s);if(!n){schedule(800);return;}
-      if(moveTarget(s,n.x,n.y,95)){s.autoTarget=undefined;s.contextAction?.();schedule(700);}else schedule();return;
-    }
-    if(q===4){
-      if(playerLevel(save)>=10){if(String(s.zone)!=='forest')travel(s,'forest');schedule(800);return;}
-      const targetZone=playerLevel(save)>=5?'mine':'field';if(String(s.zone)!==targetZone){travel(s,targetZone);schedule(800);return;}
-      const m=nearestMonster(s);if(!m){schedule(700);return;}if(moveTarget(s,m.x,m.y,100)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;
-    }
-    const ch=chapterState(save);
-    if(ch===0){
-      if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}
-      if(moveTarget(s,1310,725,125)){s.autoTarget=undefined;s.contextAction?.();schedule(800);}else schedule();return;
-    }
-    if(ch===1){
-      if(String(s.zone)!=='field'){travel(s,'field');schedule(800);return;}
-      const m=nearestMonster(s);if(!m){schedule(700);return;}if(moveTarget(s,m.x,m.y,100)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;
-    }
-    if(ch===2){
-      if(String(s.zone)!=='mine'){travel(s,'mine');schedule(800);return;}
-      const n=nearestOre(s);if(!n){schedule(800);return;}if(moveTarget(s,n.x,n.y,95)){s.autoTarget=undefined;s.contextAction?.();schedule(700);}else schedule();return;
-    }
-    if(ch===3){
-      if(String(s.zone)!=='forest'){travel(s,'forest');schedule(850);return;}
-      const m=nearestMonster(s,true);if(!m){schedule(750);return;}if(moveTarget(s,m.x,m.y,100)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;
-    }
-    if(ch===4){
-      if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}
-      if(moveTarget(s,1070,645,120)){s.autoTarget=undefined;s.contextAction?.();schedule(850);}else schedule();return;
-    }
+
+    const c3=chapter3(save);
+    if(c3===0){if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}if(moveTarget(s,1070,645,120)){s.autoTarget=undefined;s.contextAction?.();schedule(850);}else schedule();return;}
+    if(c3===1){if(String(s.zone)!=='forest'){travel(s,'forest');schedule(850);return;}const m=nearestMonster(s);if(!m){schedule(700);return;}if(moveTarget(s,m.x,m.y,100)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;}
+    if(c3===2){if(String(s.zone)!=='forest'){travel(s,'forest');schedule(850);return;}const n=nearestNode(s,'crystal');if(!n){schedule(800);return;}if(moveTarget(s,n.x,n.y,95)){s.autoTarget=undefined;s.contextAction?.();schedule(700);}else schedule();return;}
+    if(c3===3){if(String(s.zone)!=='forest'){travel(s,'forest');schedule(850);return;}const m=nearestMonster(s,true,true);if(!m){schedule(750);return;}if(moveTarget(s,m.x,m.y,105)){s.autoTarget=undefined;s.attack?.();schedule(430);}else schedule();return;}
+    if(c3===4){if(String(s.zone)!=='village'){travel(s,'village');schedule(800);return;}if(moveTarget(s,1070,645,120)){s.autoTarget=undefined;s.contextAction?.();schedule(850);}else schedule();return;}
     stopAssist('현재 메인 임무를 모두 완료했어.');
   }catch{schedule(650);}
 }
 
 function watchProgress(){
   repairBaseQuest();const save=saveNow();if(!save){updateActionButton();return;}
-  const q=questNo(save),ch=chapterState(save);
-  if(assistRunning&&(lastQuest!==-1)&&(q!==lastQuest||ch!==lastChapter)){
-    stopAssist('임무 단계가 완료됐어. 다음 목표 버튼을 눌러 이어가면 돼.');
+  const q=questNo(save),c2=chapter2(save),c3=chapter3(save);
+  if(assistRunning&&lastQuest!==-1&&(q!==lastQuest||c2!==lastChapter2||c3!==lastChapter3)){
+    toast('임무 단계 완료 · 다음 목표로 자동 진행할게.');schedule(250);
   }
-  lastQuest=q;lastChapter=ch;updateActionButton();
+  lastQuest=q;lastChapter2=c2;lastChapter3=c3;updateActionButton();
 }
-function boot(){ensureActionButton();watchProgress();window.setInterval(watchProgress,300);}
+function boot(){ensureActionButton();watchProgress();window.setInterval(watchProgress,350);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
