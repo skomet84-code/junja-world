@@ -2,225 +2,43 @@ import Phaser from 'phaser';
 import './v10.css';
 import { WORLD_WIDTH, WORLD_HEIGHT, HERO_CLASSES, type HeroClass } from '../shared/constants';
 
-const trackedGames = new Set<any>();
-const patchedScenes = new WeakSet<any>();
-const styledMonsters = new WeakSet<any>();
-const plates = new Map<any, { name:any; bg:any; fill:any }>();
+const trackedGames=new Set<any>();
+const patchedScenes=new WeakSet<any>();
+const styledZone=new WeakMap<any,string>();
+const plates=new Map<any,{name:any;bg:any;fill:any}>();
 
-function installTracking() {
-  const proto = (Phaser.Game as any)?.prototype;
-  if (!proto || proto.__jwV10Tracked) return;
-  const originalBoot = proto.boot;
-  if (typeof originalBoot === 'function') {
-    proto.boot = function (...args:any[]) { trackedGames.add(this); return originalBoot.apply(this,args); };
-  }
-  const originalDestroy = proto.destroy;
-  if (typeof originalDestroy === 'function') {
-    proto.destroy = function (...args:any[]) { trackedGames.delete(this); return originalDestroy.apply(this,args); };
-  }
-  proto.__jwV10Tracked = true;
-}
+function installTracking(){const proto=(Phaser.Game as any)?.prototype;if(!proto||proto.__jwV10Tracked)return;const boot=proto.boot,destroy=proto.destroy;if(typeof boot==='function')proto.boot=function(...args:any[]){trackedGames.add(this);return boot.apply(this,args);};if(typeof destroy==='function')proto.destroy=function(...args:any[]){trackedGames.delete(this);return destroy.apply(this,args);};proto.__jwV10Tracked=true;}
 installTracking();
+function worldScene():any|null{const games=[...trackedGames,...((((Phaser as any).GAMES||[]) as any[]))];for(const game of games){const s=game?.scene?.keys?.world;if(s?.sys?.isActive?.())return s;try{const x=game?.scene?.getScene?.('world');if(x?.sys?.isActive?.())return x;}catch{}}return null;}
+function saveData():any{try{return JSON.parse(localStorage.getItem('junja-world-v01')||'null');}catch{return null;}}
+function makeTexture(scene:any,key:string,w:number,h:number,paint:(g:any)=>void){if(scene.textures.exists(key))return;const g=scene.add.graphics();paint(g);g.generateTexture(key,w,h);g.destroy();}
 
-function worldScene():any|null {
-  const games = [...trackedGames, ...((((Phaser as any).GAMES || []) as any[]))];
-  for (const game of games) {
-    const s = game?.scene?.keys?.world;
-    if (s?.sys?.isActive?.()) return s;
-    try { const x = game?.scene?.getScene?.('world'); if (x?.sys?.isActive?.()) return x; } catch {}
-  }
-  return null;
+function ensureGearTextures(scene:any){
+  makeTexture(scene,'jw10-sword',34,84,g=>{g.fillStyle(0x5c3d22).fillRoundedRect(14,59,6,22,2);g.fillStyle(0xd6ad58).fillRect(6,55,22,5);g.fillStyle(0xdfe9ed).fillTriangle(17,2,28,54,7,54);g.fillStyle(0xffffff,.72).fillTriangle(17,6,19,47,13,48);});
+  makeTexture(scene,'jw10-staff',38,90,g=>{g.fillStyle(0x6d4b2c).fillRoundedRect(16,17,6,71,3);g.fillStyle(0xb89254).fillCircle(19,17,8);g.fillStyle(0x8c63c9,.82).fillCircle(19,10,9);g.fillStyle(0xd5c4ff,.75).fillCircle(16,7,3);});
+  makeTexture(scene,'jw10-bow',56,86,g=>{g.lineStyle(5,0x9a6e3e,1).beginPath().moveTo(13,5).quadraticBezierTo(51,43,13,81).strokePath();g.lineStyle(1,0xe7ddc4,.95).lineBetween(14,7,14,79);g.fillStyle(0xc8d5d8).fillTriangle(7,42,45,39,45,45);});
+  makeTexture(scene,'jw10-armor-warrior',72,60,g=>{g.fillStyle(0x34495a).fillRoundedRect(16,10,40,43,8);g.fillStyle(0x617b8c).fillTriangle(16,12,2,25,17,31).fillTriangle(56,12,70,25,55,31);g.lineStyle(3,0xbfcbd0,.8).strokeRoundedRect(20,14,32,32,5);g.fillStyle(0xd1a94f).fillRect(33,14,6,34);});
+  makeTexture(scene,'jw10-armor-mage',74,70,g=>{g.fillStyle(0x4a3e59).fillRoundedRect(17,9,40,46,11);g.fillStyle(0x6d5a83).fillTriangle(18,50,6,68,35,57).fillTriangle(56,50,68,68,38,57);g.lineStyle(3,0xb699cc,.75).strokeRoundedRect(21,13,32,34,8);g.fillStyle(0xd9b76a).fillCircle(37,20,4);});
+  makeTexture(scene,'jw10-armor-ranger',72,60,g=>{g.fillStyle(0x3d513f).fillRoundedRect(16,10,40,43,8);g.fillStyle(0x657b5d).fillTriangle(16,12,4,26,18,30).fillTriangle(56,12,68,26,54,30);g.lineStyle(3,0x92a381,.75).strokeRoundedRect(21,14,30,31,5);g.fillStyle(0x7b5430).fillRect(33,10,6,40);});
 }
+function patchGear(scene:any){if(patchedScenes.has(scene)||typeof scene.updateGearVisual!=='function')return;ensureGearTextures(scene);const original=scene.updateGearVisual.bind(scene);scene.updateGearVisual=function(time:number){original(time);const save=scene.save||saveData();if(!save)return;const hero=(save.heroClass||'warrior') as HeroClass;const weapon=scene.gearWeapon,armor=scene.gearArmor;if(weapon){const key=hero==='mage'?'jw10-staff':hero==='ranger'?'jw10-bow':'jw10-sword';weapon.setTexture(key);weapon.setScale(hero==='ranger'?.63:hero==='mage'?.68:.66);if((save.rareItems||[]).includes('blackIronBlade')&&hero==='warrior')weapon.setTint(0xb389ff);else if(Number(save.weaponLevel||0)>=5)weapon.setTint(0xf3d06b);else if(Number(save.weaponLevel||0)>=3)weapon.setTint(0x9edcff);else weapon.clearTint?.();}if(armor){armor.setTexture(`jw10-armor-${hero}`);armor.setScale(hero==='mage'?.72:.70);if(Number(save.armorLevel||0)>=5)armor.setTint(0xdcc173);else if(Number(save.armorLevel||0)>=3)armor.setTint(0x9c85c7);else armor.clearTint?.();}};patchedScenes.add(scene);}
 
-function saveData():any {
-  try { return JSON.parse(localStorage.getItem('junja-world-v01') || 'null'); } catch { return null; }
-}
+const zoneNames:Record<string,string[]>={field:['풀도깨비','들쥐요괴','청운망령'],mine:['흑철박쥐','광산도깨비','철갑망령'],forest:['월영여우','독안개요괴','달빛망령']};
+const zoneLevel:Record<string,number>={field:2,mine:6,forest:11};
+function alive(m:any){return !!m&&m.active!==false&&m.visible!==false&&!m.destroyed;}
+function monsterSeed(m:any,index:number){return Math.abs(Math.round(Number(m.getData?.('bornX')??m.x??0)*.7+Number(m.getData?.('bornY')??m.y??0)*1.3+index))%3;}
+function syncMonsterIdentity(scene:any,m:any,index:number){if(!m||m.getData?.('isBoss'))return;const zone=String(scene.zone||'field');const prev=styledZone.get(m);if(prev!==zone){const names=zoneNames[zone]||zoneNames.field;const seed=monsterSeed(m,index);const base=names[seed];const elite=!!m.getData?.('jwElite');m.setData?.('jwBaseName',base);m.setData?.('jwLevel',(zoneLevel[zone]||2)+seed);m.setData?.('name',elite?`정예 ${base}`:base);styledZone.set(m,zone);}else{const base=String(m.getData?.('jwBaseName')||m.getData?.('name')||'요괴').replace(/^정예\s+/,'');const wanted=m.getData?.('jwElite')?`정예 ${base}`:base;if(String(m.getData?.('name')||'')!==wanted)m.setData?.('name',wanted);}}
+function cleanupPlate(m:any){const p=plates.get(m);if(!p)return;try{p.name.destroy();p.bg.destroy();p.fill.destroy();}catch{}plates.delete(m);}
+function ensurePlate(scene:any,m:any){if(plates.has(m))return;const boss=!!m.getData?.('isBoss');const name=scene.add.text(m.x,m.y-64,'',{fontFamily:'Noto Sans KR',fontSize:boss?'12px':'9px',fontStyle:'bold',color:boss?'#ffe394':'#e8eee9',stroke:'#111a16',strokeThickness:4}).setOrigin(.5).setDepth(5000);const bg=scene.add.rectangle(m.x,m.y-49,boss?96:68,boss?7:5,0x111714,.86).setOrigin(.5).setDepth(4998);const fill=scene.add.rectangle(m.x-(boss?46:33),m.y-49,boss?92:66,boss?5:3,boss?0xd1a34f:0xb45c55,1).setOrigin(0,.5).setDepth(4999);plates.set(m,{name,bg,fill});}
+function updateMonsterPlates(scene:any){const children:any[]=[...(scene?.monsters?.getChildren?.()||[])];if(alive(scene?.bossEntity)&&!children.includes(scene.bossEntity))children.push(scene.bossEntity);children.forEach((m:any,i:number)=>{if(!m?.scene)return;syncMonsterIdentity(scene,m,i);ensurePlate(scene,m);});for(const[m,p]of plates){if(!m?.scene){cleanupPlate(m);continue;}const visible=alive(m)&&String(scene.zone)!=='village';p.name.setVisible(visible);p.bg.setVisible(visible);p.fill.setVisible(visible);if(!visible)continue;const boss=!!m.getData?.('isBoss');const level=boss?'BOSS':`Lv.${m.getData?.('jwLevel')||1}`;p.name.setText(`${level} ${String(m.getData?.('name')||'요괴')}`);const max=Math.max(1,Number(m.getData?.('maxHp')||m.getData?.('hp')||1));const hp=Math.max(0,Number(m.getData?.('hp')||0));const full=boss?92:66;p.name.setPosition(m.x,m.y-(boss?74:64));p.bg.setPosition(m.x,m.y-(boss?57:49));p.fill.setPosition(m.x-full/2,m.y-(boss?57:49));p.fill.displayWidth=Math.max(.1,full*(hp/max));p.fill.displayHeight=boss?5:3;const d=Phaser.Math.Distance.Between(scene.player.x,scene.player.y,m.x,m.y);const near=boss||d<520||hp<max;p.name.setAlpha(near?1:0);p.bg.setAlpha(near?.86:0);p.fill.setAlpha(near?1:0);}}
 
-function makeTexture(scene:any,key:string,w:number,h:number,paint:(g:any)=>void) {
-  if (scene.textures.exists(key)) return;
-  const g = scene.add.graphics();
-  paint(g); g.generateTexture(key,w,h); g.destroy();
-}
-
-function ensureGearTextures(scene:any) {
-  makeTexture(scene,'jw10-sword',34,84,g=>{
-    g.fillStyle(0x5c3d22).fillRoundedRect(14,59,6,22,2); g.fillStyle(0xd6ad58).fillRect(6,55,22,5);
-    g.fillStyle(0xdfe9ed).fillTriangle(17,2,28,54,7,54); g.fillStyle(0xffffff,.72).fillTriangle(17,6,19,47,13,48);
-  });
-  makeTexture(scene,'jw10-staff',38,90,g=>{
-    g.fillStyle(0x6d4b2c).fillRoundedRect(16,17,6,71,3); g.fillStyle(0xb89254).fillCircle(19,17,8);
-    g.fillStyle(0x8c63c9,.82).fillCircle(19,10,9); g.fillStyle(0xd5c4ff,.75).fillCircle(16,7,3);
-  });
-  makeTexture(scene,'jw10-bow',56,86,g=>{
-    g.lineStyle(5,0x9a6e3e,1).beginPath().moveTo(13,5).quadraticBezierTo(51,43,13,81).strokePath();
-    g.lineStyle(1,0xe7ddc4,.95).lineBetween(14,7,14,79); g.fillStyle(0xc8d5d8).fillTriangle(7,42,45,39,45,45);
-  });
-  makeTexture(scene,'jw10-armor-warrior',72,60,g=>{
-    g.fillStyle(0x34495a).fillRoundedRect(16,10,40,43,8); g.fillStyle(0x617b8c).fillTriangle(16,12,2,25,17,31).fillTriangle(56,12,70,25,55,31);
-    g.lineStyle(3,0xbfcbd0,.8).strokeRoundedRect(20,14,32,32,5); g.fillStyle(0xd1a94f).fillRect(33,14,6,34);
-  });
-  makeTexture(scene,'jw10-armor-mage',74,70,g=>{
-    g.fillStyle(0x4a3e59).fillRoundedRect(17,9,40,46,11); g.fillStyle(0x6d5a83).fillTriangle(18,50,6,68,35,57).fillTriangle(56,50,68,68,38,57);
-    g.lineStyle(3,0xb699cc,.75).strokeRoundedRect(21,13,32,34,8); g.fillStyle(0xd9b76a).fillCircle(37,20,4);
-  });
-  makeTexture(scene,'jw10-armor-ranger',72,60,g=>{
-    g.fillStyle(0x3d513f).fillRoundedRect(16,10,40,43,8); g.fillStyle(0x657b5d).fillTriangle(16,12,4,26,18,30).fillTriangle(56,12,68,26,54,30);
-    g.lineStyle(3,0x92a381,.75).strokeRoundedRect(21,14,30,31,5); g.fillStyle(0x7b5430).fillRect(33,10,6,40);
-  });
-}
-
-function patchGear(scene:any) {
-  if (patchedScenes.has(scene) || typeof scene.updateGearVisual !== 'function') return;
-  ensureGearTextures(scene);
-  const original = scene.updateGearVisual.bind(scene);
-  scene.updateGearVisual = function(time:number) {
-    original(time);
-    const save = scene.save || saveData();
-    if (!save) return;
-    const hero = (save.heroClass || 'warrior') as HeroClass;
-    const weapon = scene.gearWeapon, armor = scene.gearArmor;
-    if (weapon) {
-      const key = hero === 'mage' ? 'jw10-staff' : hero === 'ranger' ? 'jw10-bow' : 'jw10-sword';
-      weapon.setTexture(key);
-      weapon.setScale(hero === 'ranger' ? .63 : hero === 'mage' ? .68 : .66);
-      if ((save.rareItems || []).includes('blackIronBlade') && hero === 'warrior') weapon.setTint(0xb389ff);
-      else if (Number(save.weaponLevel || 0) >= 5) weapon.setTint(0xf3d06b);
-      else if (Number(save.weaponLevel || 0) >= 3) weapon.setTint(0x9edcff);
-      else weapon.clearTint?.();
-    }
-    if (armor) {
-      armor.setTexture(`jw10-armor-${hero}`);
-      armor.setScale(hero === 'mage' ? .72 : .70);
-      if (Number(save.armorLevel || 0) >= 5) armor.setTint(0xdcc173);
-      else if (Number(save.armorLevel || 0) >= 3) armor.setTint(0x9c85c7);
-      else armor.clearTint?.();
-    }
-  };
-  patchedScenes.add(scene);
-}
-
-const zoneNames:Record<string,string[]> = {
-  field:['풀도깨비','들쥐요괴','청운망령'],
-  mine:['흑철박쥐','광산도깨비','철갑망령'],
-  forest:['월영여우','독안개요괴','달빛망령']
-};
-const zoneLevel:Record<string,number> = { field:2, mine:6, forest:11 };
-
-function alive(m:any){ return !!m && m.active !== false && m.visible !== false && !m.destroyed; }
-function cleanupPlate(m:any) {
-  const p = plates.get(m); if (!p) return;
-  try { p.name.destroy(); p.bg.destroy(); p.fill.destroy(); } catch {}
-  plates.delete(m);
-}
-
-function ensureMonsterStyle(scene:any,m:any,index:number) {
-  if (!alive(m)) return;
-  if (!styledMonsters.has(m)) {
-    const boss = !!m.getData?.('isBoss');
-    const zone = String(scene.zone || 'field');
-    if (!boss) {
-      const names = zoneNames[zone] || zoneNames.field;
-      const seed = Math.abs(Math.round((m.x||0)*.7 + (m.y||0)*1.3 + index)) % names.length;
-      m.setData?.('name',names[seed]);
-      m.setData?.('jwLevel',(zoneLevel[zone]||2)+seed);
-    }
-    styledMonsters.add(m);
-  }
-  if (!plates.has(m)) {
-    const boss = !!m.getData?.('isBoss');
-    const level = boss ? 'BOSS' : `Lv.${m.getData?.('jwLevel') || 1}`;
-    const label = m.getData?.('name') || '요괴';
-    const name = scene.add.text(m.x,m.y-64,`${level} ${label}`,{fontFamily:'Noto Sans KR',fontSize:boss?'12px':'9px',fontStyle:'bold',color:boss?'#ffe394':'#e8eee9',stroke:'#111a16',strokeThickness:4}).setOrigin(.5).setDepth(5000);
-    const bg = scene.add.rectangle(m.x,m.y-49,boss?96:68,boss?7:5,0x111714,.86).setOrigin(.5).setDepth(4998);
-    const fill = scene.add.rectangle(m.x-(boss?46:33),m.y-49,boss?92:66,boss?5:3,boss?0xd1a34f:0xb45c55,1).setOrigin(0,.5).setDepth(4999);
-    plates.set(m,{name,bg,fill});
-  }
-}
-
-function updateMonsterPlates(scene:any) {
-  const children:any[] = scene?.monsters?.getChildren?.() || [];
-  if (alive(scene?.bossEntity) && !children.includes(scene.bossEntity)) children.push(scene.bossEntity);
-  children.forEach((m:any,i:number)=>ensureMonsterStyle(scene,m,i));
-  for (const [m,p] of plates) {
-    if (!m?.scene) { cleanupPlate(m); continue; }
-    const visible = alive(m) && String(scene.zone) !== 'village';
-    p.name.setVisible(visible); p.bg.setVisible(visible); p.fill.setVisible(visible);
-    if (!visible) continue;
-    const boss = !!m.getData?.('isBoss');
-    const max = Math.max(1,Number(m.getData?.('maxHp') || m.getData?.('hp') || 1));
-    const hp = Math.max(0,Number(m.getData?.('hp') || 0));
-    const full = boss?92:66;
-    p.name.setPosition(m.x,m.y-(boss?74:64)); p.bg.setPosition(m.x,m.y-(boss?57:49));
-    p.fill.setPosition(m.x-full/2,m.y-(boss?57:49));
-    p.fill.displayWidth = Math.max(.1,full*(hp/max)); p.fill.displayHeight = boss?5:3;
-    const d = Phaser.Math.Distance.Between(scene.player.x,scene.player.y,m.x,m.y);
-    const near = boss || d < 520 || hp < max;
-    p.name.setAlpha(near ? 1 : 0); p.bg.setAlpha(near ? .86 : 0); p.fill.setAlpha(near ? 1 : 0);
-  }
-}
-
-function createMinimap() {
-  if (document.querySelector('.jw-minimap')) return;
-  const el = document.createElement('aside'); el.className='jw-minimap';
-  el.innerHTML='<div class="jw-minimap-head"><b>지역 지도</b><span id="jw-mini-zone">백운성</span></div><div class="jw-minimap-map" id="jw-mini-map"><i class="jw-mini-player" id="jw-mini-player"></i></div>';
-  document.body.appendChild(el);
-}
-
-function updateMinimap(scene:any) {
-  const map = document.querySelector<HTMLElement>('#jw-mini-map');
-  const player = document.querySelector<HTMLElement>('#jw-mini-player');
-  const zone = document.querySelector<HTMLElement>('#jw-mini-zone');
-  if (!map || !player || !zone || !scene?.player) return;
-  const labels:Record<string,string>={village:'백운성',field:'청운들판',mine:'흑철광산',forest:'월영숲'};
-  zone.textContent=labels[String(scene.zone)] || String(scene.zone);
-  player.style.left=`${Math.max(2,Math.min(98,scene.player.x/WORLD_WIDTH*100))}%`;
-  player.style.top=`${Math.max(3,Math.min(97,scene.player.y/WORLD_HEIGHT*100))}%`;
-  map.querySelectorAll('.jw-mini-dot').forEach(n=>n.remove());
-  const mobs:any[] = (scene.monsters?.getChildren?.() || []).filter((m:any)=>alive(m)).slice(0,16);
-  if (alive(scene.bossEntity) && !mobs.includes(scene.bossEntity)) mobs.push(scene.bossEntity);
-  mobs.forEach(m=>{ const d=document.createElement('i'); d.className=`jw-mini-dot${m.getData?.('isBoss')?' boss':''}`; d.style.left=`${m.x/WORLD_WIDTH*100}%`; d.style.top=`${m.y/WORLD_HEIGHT*100}%`; map.appendChild(d); });
-}
-
-function createGrowthHud() {
-  if (document.querySelector('.jw-growth')) return;
-  const el=document.createElement('aside'); el.className='jw-growth';
-  el.innerHTML='<div class="jw-growth-title"><span>성장 목표</span><small>ADVENTURE</small></div><div id="jw-growth-list"></div>';
-  document.body.appendChild(el);
-  const chip=document.createElement('div'); chip.className='jw-stage-chip'; chip.innerHTML='<b>준자월드 성장 단계</b> · 수련생'; document.body.appendChild(chip);
-}
-
-function row(label:string,current:number,target:number,suffix='') {
-  const pct=Math.max(0,Math.min(100,current/target*100)); const done=current>=target;
-  return `<div class="jw-growth-row${done?' done':''}"><b>${done?'✓ ':''}${label}</b><span>${Math.min(current,target)}/${target}${suffix}</span><div class="jw-growth-track"><i style="width:${pct}%"></i></div></div>`;
-}
-
-function updateGrowth(scene:any) {
-  const list=document.querySelector<HTMLElement>('#jw-growth-list'); const chip=document.querySelector<HTMLElement>('.jw-stage-chip');
-  const s=scene?.save || saveData(); if(!list||!s) return;
-  list.innerHTML=row('레벨 수련',Number(s.level||1),10)+row('요괴 토벌',Number(s.kills||0),30)+row('무기 강화',Number(s.weaponLevel||0),5)+row('방어구 강화',Number(s.armorLevel||0),5)+row('희귀 장비',Array.isArray(s.rareItems)?s.rareItems.length:0,3);
-  if(chip){ const lv=Number(s.level||1); const title=lv>=15?'정예 무사':lv>=10?'숙련 모험가':lv>=5?'초급 무사':'수련생'; chip.innerHTML=`<b>준자월드 성장 단계</b> · ${title}`; }
-}
-
-function syncPaperDollNote() {
-  const doll=document.querySelector<HTMLElement>('.jw-paperdoll'); if(!doll) return;
-  if(!doll.querySelector('.jw-v10-gear-note')){ const n=document.createElement('div'); n.className='jw-v10-gear-note'; doll.appendChild(n); }
-  const s=saveData(); const n=doll.querySelector<HTMLElement>('.jw-v10-gear-note'); if(!s||!n)return;
-  const hero=(s.heroClass||'warrior') as HeroClass;
-  n.textContent=`${HERO_CLASSES[hero]?.label || '모험가'} · 무기 +${Number(s.weaponLevel||0)} · 방어구 +${Number(s.armorLevel||0)}`;
-}
-
-function setVersion() {
-  document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD')) n.textContent='JUNJA WORLD v1.0.0';});
-  const badge=document.querySelector<HTMLElement>('.jw-v09-badge b'); if(badge) badge.textContent='JUNJA WORLD v1.0.0';
-}
-
-function tick() {
-  const scene=worldScene(); if(!scene?.player)return;
-  patchGear(scene); updateMonsterPlates(scene); updateMinimap(scene); updateGrowth(scene); syncPaperDollNote();
-}
-
-function boot() {
-  createMinimap(); createGrowthHud(); setVersion();
-  window.setInterval(tick,180);
-}
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+function createMinimap(){if(document.querySelector('.jw-minimap'))return;const el=document.createElement('aside');el.className='jw-minimap';el.innerHTML='<div class="jw-minimap-head"><b>지역 지도</b><span id="jw-mini-zone">백운성</span></div><div class="jw-minimap-map" id="jw-mini-map"><i class="jw-mini-player" id="jw-mini-player"></i></div>';document.body.appendChild(el);}
+function updateMinimap(scene:any){const map=document.querySelector<HTMLElement>('#jw-mini-map');const player=document.querySelector<HTMLElement>('#jw-mini-player');const zone=document.querySelector<HTMLElement>('#jw-mini-zone');if(!map||!player||!zone||!scene?.player)return;const labels:Record<string,string>={village:'백운성',field:'청운들판',mine:'흑철광산',forest:'월영숲'};zone.textContent=labels[String(scene.zone)]||String(scene.zone);player.style.left=`${Math.max(2,Math.min(98,scene.player.x/WORLD_WIDTH*100))}%`;player.style.top=`${Math.max(3,Math.min(97,scene.player.y/WORLD_HEIGHT*100))}%`;map.querySelectorAll('.jw-mini-dot').forEach(n=>n.remove());const mobs:any[]=(scene.monsters?.getChildren?.()||[]).filter((m:any)=>alive(m)).slice(0,16);if(alive(scene.bossEntity)&&!mobs.includes(scene.bossEntity))mobs.push(scene.bossEntity);mobs.forEach(m=>{const d=document.createElement('i');d.className=`jw-mini-dot${m.getData?.('isBoss')?' boss':''}`;d.style.left=`${m.x/WORLD_WIDTH*100}%`;d.style.top=`${m.y/WORLD_HEIGHT*100}%`;map.appendChild(d);});}
+function createGrowthHud(){if(document.querySelector('.jw-growth'))return;const el=document.createElement('aside');el.className='jw-growth';el.innerHTML='<div class="jw-growth-title"><span>성장 목표</span><small>ADVENTURE</small></div><div id="jw-growth-list"></div>';document.body.appendChild(el);const chip=document.createElement('div');chip.className='jw-stage-chip';chip.innerHTML='<b>준자월드 성장 단계</b> · 수련생';document.body.appendChild(chip);}
+function row(label:string,current:number,target:number){const pct=Math.max(0,Math.min(100,current/target*100)),done=current>=target;return `<div class="jw-growth-row${done?' done':''}"><b>${done?'✓ ':''}${label}</b><span>${Math.min(current,target)}/${target}</span><div class="jw-growth-track"><i style="width:${pct}%"></i></div></div>`;}
+function updateGrowth(scene:any){const list=document.querySelector<HTMLElement>('#jw-growth-list'),chip=document.querySelector<HTMLElement>('.jw-stage-chip');const s=scene?.save||saveData();if(!list||!s)return;list.innerHTML=row('레벨 수련',Number(s.level||1),15)+row('요괴 토벌',Number(s.kills||0),50)+row('무기 강화',Number(s.weaponLevel||0),5)+row('방어구 강화',Number(s.armorLevel||0),5)+row('희귀 장비',Array.isArray(s.rareItems)?s.rareItems.length:0,3);if(chip){const lv=Number(s.level||1);const title=lv>=20?'백운의 수호자':lv>=15?'정예 무사':lv>=10?'숙련 모험가':lv>=5?'초급 무사':'수련생';chip.innerHTML=`<b>준자월드 성장 단계</b> · ${title}`;}}
+function syncPaperDollNote(){const doll=document.querySelector<HTMLElement>('.jw-paperdoll');if(!doll)return;if(!doll.querySelector('.jw-v10-gear-note')){const n=document.createElement('div');n.className='jw-v10-gear-note';doll.appendChild(n);}const s=saveData(),n=doll.querySelector<HTMLElement>('.jw-v10-gear-note');if(!s||!n)return;const hero=(s.heroClass||'warrior') as HeroClass;n.textContent=`${HERO_CLASSES[hero]?.label||'모험가'} · 무기 +${Number(s.weaponLevel||0)} · 방어구 +${Number(s.armorLevel||0)}`;}
+function setVersion(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.1.0';});const badge=document.querySelector<HTMLElement>('.jw-v09-badge b');if(badge)badge.textContent='JUNJA WORLD v1.1.0';}
+function tick(){const scene=worldScene();if(!scene?.player)return;patchGear(scene);updateMonsterPlates(scene);updateMinimap(scene);updateGrowth(scene);syncPaperDollNote();}
+function boot(){createMinimap();createGrowthHud();setVersion();window.setInterval(tick,180);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
