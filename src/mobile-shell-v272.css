@@ -1,0 +1,192 @@
+/* JUNJA WORLD v2.7.2 — mobile shell reset
+   Critical rule: legacy overlays are hidden by viewport media query itself.
+   This no longer depends on a JS-added body class. */
+.jw272-dock,.jw272-more{display:none}
+
+@media(max-width:760px),(pointer:coarse){
+  :root{--jw272-safe:env(safe-area-inset-bottom,0px)}
+
+  /* HARD RESET — nothing from the desktop HUD is allowed to float over play by default. */
+  .help-note,
+  .quest-panel,
+  .boss-panel,
+  .jw16-world-panel,
+  .jw16-compass,
+  .jw16-patrol-badge,
+  .zone-dock,
+  .jw-growth,
+  .jw-minimap,
+  .jw-stage-chip,
+  .jw19-mood,
+  .jw20-target-hud,
+  .jw20-target-button,
+  .jw21-class-meter,
+  .jw22-gear-status,
+  .jw23-nearby,
+  .jw-adventure-button,
+  .jw-shop-button,
+  .jw15-guide-button,
+  .jw24-wallet-chip,
+  .jw24-wallet-card,
+  .jw25-shop-button,
+  .jw25-admin-button,
+  .jw26-account-chip,
+  .jw26-ops-btn,
+  .jw-elite-timer,
+  .jw-combo,
+  .jw27-mobile-dock,
+  .jw27-more-sheet{display:none!important}
+
+  /* Calm 30px region strip. */
+  #game-ui .top-bar{
+    height:30px!important;min-height:30px!important;padding:0 6px!important;
+    background:rgba(5,12,15,.68)!important;border-bottom:1px solid rgba(235,204,130,.12)!important;
+    backdrop-filter:blur(5px)!important;box-shadow:none!important;z-index:70!important;
+  }
+  #game-ui .top-bar .brand,#game-ui #reset-save{display:none!important}
+  #game-ui .top-bar .zone{
+    position:absolute!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;
+    max-width:none!important;transform:none!important;text-align:center!important;pointer-events:none!important;
+  }
+  #game-ui .top-bar .zone small{display:none!important}
+  #game-ui .top-bar .zone strong{font-size:9px!important;line-height:30px!important;color:#e8d7a7!important;font-weight:800!important}
+
+  /* Tiny status card: no attack/kill/inventory block. */
+  #game-ui .status-panel{
+    display:block!important;position:fixed!important;top:36px!important;left:6px!important;width:104px!important;max-width:104px!important;
+    padding:5px!important;margin:0!important;border-radius:9px!important;z-index:72!important;
+    background:rgba(4,12,15,.66)!important;border:1px solid rgba(232,204,136,.14)!important;
+    box-shadow:0 5px 15px rgba(0,0,0,.18)!important;backdrop-filter:blur(4px)!important;
+  }
+  #game-ui .status-panel .identity{margin:0 0 2px!important;gap:2px!important}
+  #game-ui .status-panel .identity strong{font-size:9px!important;line-height:1.1!important}
+  #game-ui .status-panel .identity span{font-size:6px!important;line-height:1.1!important}
+  #game-ui .status-panel .bar{height:8px!important;margin:2px 0 0!important;border-radius:5px!important}
+  #game-ui .status-panel .bar span{font-size:5px!important;line-height:8px!important}
+  #game-ui .status-panel .stats,#game-ui .status-panel #inventory-button{display:none!important}
+
+  /* Existing combat strip stays usable but takes only one thin row. */
+  body.jw272-mobile .jw-combat-dock{
+    display:flex!important;position:fixed!important;left:7px!important;right:116px!important;
+    bottom:calc(61px + var(--jw272-safe))!important;width:auto!important;height:36px!important;transform:none!important;
+    padding:2px!important;margin:0!important;gap:3px!important;z-index:10010!important;
+    border-radius:11px!important;background:rgba(5,12,16,.76)!important;border:1px solid rgba(230,199,126,.14)!important;
+    box-shadow:none!important;backdrop-filter:blur(5px)!important;
+  }
+  body.jw272-mobile .jw-combat-dock>.jw-auto-hunt,
+  body.jw272-mobile .jw-combat-dock>#jw-skill-button,
+  body.jw272-mobile .jw-combat-dock>#jw-secondary-skill{
+    min-height:30px!important;height:30px!important;padding:2px 5px!important;margin:0!important;border-radius:8px!important;
+  }
+  body.jw272-mobile .jw-combat-dock button strong{font-size:7px!important;line-height:1!important;white-space:nowrap!important}
+  body.jw272-mobile .jw-combat-dock button small{display:none!important}
+
+  /* Action / attack are two compact buttons, not giant blocks. */
+  body.jw272-mobile .mobile-actions{
+    display:flex!important;position:fixed!important;right:7px!important;left:auto!important;
+    bottom:calc(61px + var(--jw272-safe))!important;gap:5px!important;z-index:10012!important;
+  }
+  body.jw272-mobile .mobile-actions button{
+    width:50px!important;height:36px!important;min-width:50px!important;min-height:36px!important;padding:0!important;margin:0!important;
+    border-radius:11px!important;font-size:9px!important;font-weight:900!important;
+    background:rgba(5,14,17,.84)!important;border:1px solid rgba(232,202,130,.2)!important;box-shadow:none!important;
+  }
+
+  /* New five-icon dock. */
+  body.jw272-game .jw272-dock{
+    display:grid!important;grid-template-columns:repeat(5,1fr)!important;position:fixed!important;
+    left:7px!important;right:7px!important;bottom:calc(6px + var(--jw272-safe))!important;height:49px!important;
+    padding:3px!important;gap:2px!important;z-index:10040!important;border-radius:14px!important;
+    background:rgba(4,11,15,.94)!important;border:1px solid rgba(232,203,132,.2)!important;
+    box-shadow:0 8px 24px rgba(0,0,0,.38)!important;backdrop-filter:blur(10px)!important;
+  }
+  .jw272-dock button{
+    min-width:0!important;border:0!important;border-radius:10px!important;background:transparent!important;color:#bbb9b0!important;
+    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:1px!important;
+    padding:1px!important;font-family:inherit!important;touch-action:manipulation!important;
+  }
+  .jw272-dock button i{font-style:normal!important;font-size:17px!important;line-height:17px!important;color:#e4cf92!important}
+  .jw272-dock button span{font-size:7px!important;line-height:8px!important}
+  .jw272-dock button.active{background:rgba(229,194,100,.14)!important;color:#fff!important}
+  .jw272-dock button.active i{color:#ffe39a!important}
+
+  /* Mission sheet — compact, center top. */
+  body.jw272-open-mission .quest-panel{
+    display:block!important;position:fixed!important;top:38px!important;left:50%!important;right:auto!important;
+    width:min(286px,88vw)!important;max-width:min(286px,88vw)!important;transform:translateX(-50%)!important;
+    padding:11px 12px!important;margin:0!important;border-radius:13px!important;z-index:10050!important;
+    background:rgba(5,14,17,.96)!important;box-shadow:0 14px 36px rgba(0,0,0,.44)!important;pointer-events:auto!important;
+  }
+  body.jw272-open-mission .quest-panel strong{font-size:12px!important}
+  body.jw272-open-mission .quest-panel p{font-size:9px!important;line-height:1.45!important;margin:5px 0!important}
+  body.jw272-open-mission .quest-panel::after{
+    content:'임무창을 누르면 자동 진행';display:block;margin-top:7px;padding:7px;border-radius:8px;
+    background:rgba(229,193,99,.12);color:#efd79a;font-size:8px;font-weight:800;text-align:center;
+  }
+
+  /* Map is completely absent normally. When requested it is deliberately SMALL. */
+  body.jw272-open-map .jw16-world-panel{
+    display:block!important;position:fixed!important;top:38px!important;right:7px!important;left:auto!important;
+    width:194px!important;max-width:194px!important;padding:7px!important;margin:0!important;transform:none!important;
+    border-radius:12px!important;z-index:10050!important;background:rgba(5,14,17,.96)!important;
+    box-shadow:0 12px 30px rgba(0,0,0,.42)!important;pointer-events:auto!important;
+  }
+  body.jw272-open-map .jw16-world-head{margin-bottom:5px!important}
+  body.jw272-open-map .jw16-world-head b{font-size:8px!important}
+  body.jw272-open-map .jw16-world-head span{font-size:6px!important}
+  body.jw272-open-map .jw16-map-wrap canvas{width:100%!important;height:96px!important;object-fit:fill!important}
+  body.jw272-open-map .jw16-map-legend{display:none!important}
+  body.jw272-open-map .jw16-world-stats{margin-top:4px!important;padding-top:4px!important;font-size:6px!important}
+  body.jw272-open-map .zone-dock{
+    display:flex!important;position:fixed!important;top:190px!important;right:7px!important;left:auto!important;bottom:auto!important;
+    width:194px!important;max-width:194px!important;padding:5px!important;gap:3px!important;flex-wrap:wrap!important;justify-content:center!important;
+    border-radius:10px!important;z-index:10051!important;background:rgba(5,14,17,.95)!important;
+  }
+  body.jw272-open-map .zone-dock button{flex:1 1 44%!important;min-width:0!important;min-height:25px!important;padding:4px!important;font-size:7px!important}
+  body.jw272-open-map .zone-dock #workshop-enter{display:none!important}
+
+  /* Boss is information only and small. */
+  body.jw272-open-boss .boss-panel{
+    display:block!important;position:fixed!important;top:38px!important;left:50%!important;right:auto!important;
+    width:min(260px,84vw)!important;max-width:min(260px,84vw)!important;transform:translateX(-50%)!important;
+    padding:10px 11px!important;margin:0!important;border-radius:12px!important;z-index:10050!important;
+    background:rgba(5,14,17,.96)!important;box-shadow:0 12px 30px rgba(0,0,0,.42)!important;
+  }
+  body.jw272-open-boss .boss-panel small{font-size:7px!important}
+  body.jw272-open-boss .boss-panel strong{font-size:11px!important;margin-top:3px!important}
+  body.jw272-open-boss .boss-panel span{font-size:8px!important}
+
+  /* Inventory becomes the only large sheet, because its content actually needs room. */
+  body.jw272-open-bag #inventory-panel{
+    display:block!important;position:fixed!important;top:36px!important;left:7px!important;right:7px!important;
+    bottom:calc(61px + var(--jw272-safe))!important;width:auto!important;max-width:none!important;max-height:none!important;
+    overflow:auto!important;margin:0!important;border-radius:14px!important;z-index:10050!important;
+    background:rgba(5,14,17,.98)!important;box-shadow:0 16px 42px rgba(0,0,0,.48)!important;
+  }
+
+  /* More menu owns the secondary buttons which used to clutter the top/game field. */
+  .jw272-more{
+    position:fixed!important;left:8px!important;right:8px!important;bottom:calc(61px + var(--jw272-safe))!important;
+    z-index:10052!important;padding:10px!important;border-radius:15px!important;background:rgba(5,14,17,.98)!important;
+    border:1px solid rgba(230,200,126,.2)!important;box-shadow:0 16px 42px rgba(0,0,0,.48)!important;
+  }
+  body.jw272-open-more .jw272-more{display:block!important}
+  .jw272-more header{display:flex;align-items:center;justify-content:space-between;padding:0 2px 8px!important}
+  .jw272-more header b{font-size:11px;color:#eedaa0}
+  .jw272-more header button{border:0;background:transparent;color:#fff;font-size:21px;line-height:21px;padding:0 4px}
+  .jw272-more-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+  .jw272-more-grid button{min-height:52px;border:1px solid rgba(230,200,126,.13);border-radius:10px;background:rgba(255,255,255,.035);color:#fff}
+  .jw272-more-grid button i{display:block;font-style:normal;font-size:16px;line-height:18px}
+  .jw272-more-grid button span{display:block;margin-top:3px;font-size:7px;color:#bbb9ae}
+
+  /* Modal layers still sit above the clean shell. */
+  #jw25-shop-layer,#jw25-admin-layer,.jw26-ops-layer,.jw15-guide-panel,.jw24-link-panel,.jw-adventure-layer,.jw-shop-layer{z-index:11000!important}
+}
+
+@media(max-width:390px){
+  #game-ui .status-panel{width:98px!important;max-width:98px!important}
+  body.jw272-open-map .jw16-world-panel,body.jw272-open-map .zone-dock{width:180px!important;max-width:180px!important}
+  body.jw272-open-map .zone-dock{top:184px!important}
+  body.jw272-mobile .jw-combat-dock{right:108px!important}
+  body.jw272-mobile .mobile-actions button{width:47px!important;min-width:47px!important}
+}
