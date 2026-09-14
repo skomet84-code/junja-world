@@ -1,6 +1,6 @@
 {
   "name": "junja-world",
-  "version": "1.5.0",
+  "version": "2.6.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "express": "^5.1.0",
+    "pg": "^8.13.1",
     "phaser": "^3.90.0"
   },
   "devDependencies": {
