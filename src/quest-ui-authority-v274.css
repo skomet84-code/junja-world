@@ -1,0 +1,6 @@
+/* v2.7.4 — mobile quest panel has one visible state and one action button */
+@media(max-width:760px),(pointer:coarse){
+  body.jw272-open-mission #quest-panel::after{display:none!important;content:none!important}
+  body.jw272-open-mission #quest-panel{animation:none!important;transition:none!important}
+  #jw-quest-action{min-height:40px!important;padding:9px 10px!important;font-size:10px!important;pointer-events:auto!important;touch-action:manipulation!important;user-select:none!important;-webkit-user-select:none!important}
+}
