@@ -94,10 +94,22 @@ function createEliteAlert(){
 }
 function alertElite(name:string){createEliteAlert();const el=document.querySelector<HTMLElement>('.jw-elite-alert');if(!el)return;el.textContent=`⚠ ${name} 출현`;el.classList.add('show');window.setTimeout(()=>el.classList.remove('show'),2200);}
 
+function resetElite(m:any){
+  if(!m?.scene || !m.getData?.('jwElite')) return;
+  const baseMax=Number(m.getData?.('jwBaseMaxHp')||m.getData?.('maxHp')||1);
+  const baseDmg=Number(m.getData?.('jwBaseDamage')||m.getData?.('damage')||1);
+  const baseXp=Number(m.getData?.('jwBaseXp')||m.getData?.('xp')||1);
+  const baseGold=Number(m.getData?.('jwBaseGold')||m.getData?.('gold')||1);
+  const baseScale=Number(m.getData?.('jwBaseScale')||1);
+  m.setData?.('maxHp',baseMax);m.setData?.('hp',baseMax);m.setData?.('damage',baseDmg);m.setData?.('xp',baseXp);m.setData?.('gold',baseGold);m.setData?.('jwElite',false);
+  m.setData?.('name',String(m.getData?.('name')||'요괴').replace(/^정예\s+/,''));m.setScale?.(baseScale);m.clearTint?.();
+}
+
 function chooseElite(s:any){
   const zone=String(s.zone||'village');let state=eliteState.get(s);
-  if(!state||state.zone!==zone){state={zone,elite:null};eliteState.set(s,state);}
-  if(zone==='village'){state.elite=null;return;}
+  if(!state){state={zone,elite:null};eliteState.set(s,state);}
+  if(state.zone!==zone){resetElite(state.elite);state={zone,elite:null};eliteState.set(s,state);}
+  if(zone==='village'){resetElite(state.elite);state.elite=null;return;}
   if(state.elite?.scene) return;
   const candidates=(s.monsters?.getChildren?.()||[]).filter((m:any)=>m?.active&&!m.getData?.('isBoss'));
   const m=candidates[0];if(!m)return;
@@ -105,15 +117,16 @@ function chooseElite(s:any){
   const baseDmg=Number(m.getData?.('jwBaseDamage')||m.getData?.('damage')||5);
   const baseXp=Number(m.getData?.('jwBaseXp')||m.getData?.('xp')||10);
   const baseGold=Number(m.getData?.('jwBaseGold')||m.getData?.('gold')||5);
-  if(!m.getData?.('jwBaseMaxHp')){m.setData?.('jwBaseMaxHp',baseMax);m.setData?.('jwBaseDamage',baseDmg);m.setData?.('jwBaseXp',baseXp);m.setData?.('jwBaseGold',baseGold);}
+  const baseScale=Number(m.getData?.('jwBaseScale')||m.scaleX||1);
+  if(!m.getData?.('jwBaseMaxHp')){m.setData?.('jwBaseMaxHp',baseMax);m.setData?.('jwBaseDamage',baseDmg);m.setData?.('jwBaseXp',baseXp);m.setData?.('jwBaseGold',baseGold);m.setData?.('jwBaseScale',baseScale);}
   const max=Math.round(baseMax*2.2);
   m.setData?.('maxHp',max);m.setData?.('hp',max);m.setData?.('damage',Math.max(1,Math.round(baseDmg*1.35)));m.setData?.('xp',Math.round(baseXp*2.1));m.setData?.('gold',Math.round(baseGold*2.4));
   const raw=String(m.getData?.('name')||'요괴').replace(/^정예\s+/,'');m.setData?.('name',`정예 ${raw}`);m.setData?.('jwElite',true);
-  m.setScale?.((m.scaleX||1)*1.2);m.setTint?.(zone==='mine'?0xd2adff:zone==='forest'?0xc8df87:0xf0bc72);
+  m.setScale?.(baseScale*1.2);m.setTint?.(zone==='mine'?0xd2adff:zone==='forest'?0xc8df87:0xf0bc72);
   state.elite=m;alertElite(`정예 ${raw}`);
 }
 
-function version(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.0.1';});const b=document.querySelector<HTMLElement>('.jw-v09-badge b');if(b)b.textContent='JUNJA WORLD v1.0.1';}
+function version(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.0.2';});const b=document.querySelector<HTMLElement>('.jw-v09-badge b');if(b)b.textContent='JUNJA WORLD v1.0.2';}
 
 function tick(){const s=scene();if(!s?.player)return;ensureNpcs(s);patchAction(s);chooseElite(s);}
 function boot(){createDialogue();createEliteAlert();version();window.setInterval(tick,300);}
