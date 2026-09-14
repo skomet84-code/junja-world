@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import './v081.css';
 
 const AUTO_KEY = 'junja-world-auto-hunt-v081';
+const trackedGames = new Set<any>();
 let enabled = false;
 let lastAttackAt = 0;
 let lastTravelAt = 0;
@@ -9,8 +10,31 @@ let currentTarget: any = null;
 let targetMarker: any = null;
 let markerScene: any = null;
 
+function installGameTracking() {
+  const proto = (Phaser.Game as any)?.prototype;
+  if (!proto || proto.__jwAutoHuntTracked) return;
+  const originalBoot = proto.boot;
+  if (typeof originalBoot === 'function') {
+    proto.boot = function (...args: any[]) {
+      trackedGames.add(this);
+      return originalBoot.apply(this, args);
+    };
+  }
+  const originalDestroy = proto.destroy;
+  if (typeof originalDestroy === 'function') {
+    proto.destroy = function (...args: any[]) {
+      trackedGames.delete(this);
+      return originalDestroy.apply(this, args);
+    };
+  }
+  proto.__jwAutoHuntTracked = true;
+}
+
+installGameTracking();
+
 function getWorldScene(): any | null {
-  const games = ((Phaser as any).GAMES || []) as any[];
+  const globalGames = (((Phaser as any).GAMES || []) as any[]);
+  const games = [...trackedGames, ...globalGames];
   for (const game of games) {
     const manager = game?.scene;
     const byKey = manager?.keys?.world;
