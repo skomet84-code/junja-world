@@ -6,6 +6,8 @@ let enabled = false;
 let lastAttackAt = 0;
 let lastTravelAt = 0;
 let currentTarget: any = null;
+let targetMarker: any = null;
+let markerScene: any = null;
 
 function getWorldScene(): any | null {
   const games = ((Phaser as any).GAMES || []) as any[];
@@ -56,11 +58,37 @@ function stopAutoMovement(scene: any) {
   try { scene.player?.body?.setVelocity?.(0, 0); } catch {}
 }
 
+function hideTargetMarker() {
+  try { targetMarker?.setVisible?.(false); } catch {}
+}
+
+function showTargetMarker(scene: any, target: any) {
+  if (!scene || !target) return;
+  if (!targetMarker || markerScene !== scene || !targetMarker.scene) {
+    try { targetMarker?.destroy?.(); } catch {}
+    markerScene = scene;
+    targetMarker = scene.add.ellipse(target.x, target.y + 28, 70, 25, 0x000000, 0)
+      .setStrokeStyle(2, 0xf1c968, .92)
+      .setDepth(900);
+    scene.tweens.add({
+      targets: targetMarker,
+      scaleX: 1.18,
+      scaleY: 1.18,
+      alpha: { from: .95, to: .35 },
+      duration: 650,
+      yoyo: true,
+      repeat: -1
+    });
+  }
+  targetMarker.setVisible(true).setPosition(target.x, target.y + 28).setDepth(target.y + 8);
+}
+
 function setEnabled(next: boolean, reason = '') {
   enabled = next;
   localStorage.setItem(AUTO_KEY, enabled ? '1' : '0');
   const scene = getWorldScene();
   if (!enabled && scene) stopAutoMovement(scene);
+  if (!enabled) hideTargetMarker();
   currentTarget = null;
   renderButton(reason);
 }
@@ -75,7 +103,7 @@ function renderButton(reason = '') {
   if (title) title.textContent = enabled ? '⚔ 자동사냥 ON' : '⚔ 자동사냥 OFF';
   if (sub) {
     if (reason) sub.textContent = reason;
-    else if (!enabled) sub.textContent = '가까운 몬스터 자동 탐색';
+    else if (!enabled) sub.textContent = '가까운 몬스터 자동 탐색 · R';
     else if (currentTarget) sub.textContent = sceneTargetLabel(currentTarget);
     else sub.textContent = '사냥 대상 탐색 중';
   }
@@ -92,7 +120,7 @@ function createButton() {
   button.id = 'jw-auto-hunt';
   button.className = 'jw-auto-hunt';
   button.type = 'button';
-  button.innerHTML = '<strong>⚔ 자동사냥 OFF</strong><small>가까운 몬스터 자동 탐색</small>';
+  button.innerHTML = '<strong>⚔ 자동사냥 OFF</strong><small>가까운 몬스터 자동 탐색 · R</small>';
   button.addEventListener('click', () => setEnabled(!enabled));
   document.body.appendChild(button);
   renderButton();
@@ -126,6 +154,7 @@ function stepAutoHunt() {
   }
 
   if (scene.zone === 'village') {
+    hideTargetMarker();
     const now = performance.now();
     if (now - lastTravelAt > 2500) {
       lastTravelAt = now;
@@ -141,11 +170,13 @@ function stepAutoHunt() {
 
   if (!alive(currentTarget)) currentTarget = getNearestTarget(scene);
   if (!currentTarget) {
+    hideTargetMarker();
     stopAutoMovement(scene);
     renderButton('몬스터 재생성 대기');
     return;
   }
 
+  showTargetMarker(scene, currentTarget);
   const player = scene.player;
   const distance = Phaser.Math.Distance.Between(player.x, player.y, currentTarget.x, currentTarget.y);
   setFacing(scene, currentTarget);
@@ -176,13 +207,25 @@ function bindQuestPriority() {
   document.querySelectorAll<HTMLButtonElement>('[data-zone]').forEach(button => {
     if (button.dataset.autoHuntGuard === '1') return;
     button.dataset.autoHuntGuard = '1';
-    button.addEventListener('click', () => { currentTarget = null; }, { capture: true });
+    button.addEventListener('click', () => { currentTarget = null; hideTargetMarker(); }, { capture: true });
+  });
+}
+
+function bindKeyboard() {
+  window.addEventListener('keydown', event => {
+    const target = event.target as HTMLElement | null;
+    if (target?.matches('input,textarea,select,[contenteditable="true"]')) return;
+    if (event.code === 'KeyR') {
+      event.preventDefault();
+      setEnabled(!enabled);
+    }
   });
 }
 
 function boot() {
   createButton();
   bindQuestPriority();
+  bindKeyboard();
   syncPaperDoll();
   enabled = localStorage.getItem(AUTO_KEY) === '1';
   renderButton();
