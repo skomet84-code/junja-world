@@ -92,7 +92,7 @@ function improveQuestFeedback() {
 
 function setVersionLabels() {
   document.querySelectorAll<HTMLElement>('.login-footer span').forEach((node) => {
-    if (node.textContent?.includes('JUNJA WORLD')) node.textContent = 'JUNJA WORLD v0.8.0';
+    if (node.textContent?.includes('JUNJA WORLD')) node.textContent = 'JUNJA WORLD v0.8.1';
   });
 }
 
