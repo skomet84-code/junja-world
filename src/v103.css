@@ -1,0 +1,37 @@
+/* JUNJA WORLD v1.0.3 - HUD safety and mobile collision pass */
+body:has(#game-ui.hidden) .jw-auto-hunt,
+body:has(#game-ui.hidden) .jw-skill-button,
+body:has(#game-ui.hidden) .jw-minimap,
+body:has(#game-ui.hidden) .jw-growth,
+body:has(#game-ui.hidden) .jw-stage-chip,
+body:has(#game-ui.hidden) .jw-feed,
+body:has(#game-ui.hidden) .jw-v09-badge,
+body:has(#game-ui.hidden) .jw-elite-alert,
+body:has(#game-ui.hidden) .jw-dialogue{display:none!important}
+
+body:has(#inventory-panel:not(.hidden)) .jw-minimap,
+body:has(#inventory-panel:not(.hidden)) .jw-growth,
+body:has(#inventory-panel:not(.hidden)) .jw-feed,
+body:has(#inventory-panel:not(.hidden)) .jw-stage-chip,
+body:has(#inventory-panel:not(.hidden)) .jw-auto-hunt,
+body:has(#inventory-panel:not(.hidden)) .jw-skill-button{visibility:hidden!important;pointer-events:none!important}
+
+body:has(#workshop-panel:not(.hidden)) .jw-minimap,
+body:has(#workshop-panel:not(.hidden)) .jw-growth,
+body:has(#workshop-panel:not(.hidden)) .jw-feed,
+body:has(#workshop-panel:not(.hidden)) .jw-stage-chip,
+body:has(#workshop-panel:not(.hidden)) .jw-auto-hunt,
+body:has(#workshop-panel:not(.hidden)) .jw-skill-button,
+body:has(#workshop-panel:not(.hidden)) .quest-panel,
+body:has(#workshop-panel:not(.hidden)) .boss-panel{visibility:hidden!important;pointer-events:none!important}
+
+@media(max-width:760px),(pointer:coarse){
+  .jw-growth{max-height:102px;overflow:hidden}
+  .jw-minimap{opacity:.9}
+  .jw-feed{max-height:82px;overflow:hidden}
+  .quest-panel{max-height:112px!important;overflow:hidden}
+  .boss-panel{max-height:82px!important;overflow:hidden}
+  .zone-dock{z-index:55!important}
+  .mobile-actions{z-index:56!important}
+  .jw-auto-hunt,.jw-skill-button{z-index:57!important}
+}
