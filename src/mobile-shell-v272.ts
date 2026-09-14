@@ -82,6 +82,7 @@ function ensureMore(){
     <button type="button" data-act="account"><i>☁</i><span>계정</span></button>
     <button type="button" data-act="adventure"><i>☷</i><span>모험록</span></button>
     <button type="button" data-act="merchant"><i>錢</i><span>잡화상</span></button>
+    <button type="button" data-act="bounty"><i>⚑</i><span>현상금</span></button>
   </div>`;
   document.body.appendChild(sheet);
   sheet.querySelector<HTMLButtonElement>('[data-close]')!.onclick=()=>toggle('more');
@@ -93,6 +94,7 @@ function ensureMore(){
     if(act==='account')trigger('.jw26-account-chip');
     if(act==='adventure')trigger('.jw-adventure-button');
     if(act==='merchant')trigger('.jw-shop-button');
+    if(act==='bounty')trigger('.jw28-bounty-button');
   });
 }
 
