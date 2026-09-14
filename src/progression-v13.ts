@@ -1,0 +1,155 @@
+import Phaser from 'phaser';
+import './v13.css';
+import { HERO_CLASSES, WORLD_HEIGHT, WORLD_WIDTH, type HeroClass } from '../shared/constants';
+
+const SAVE_KEY='junja-world-v01';
+const trackedGames=new Set<any>();
+const patchedScenes=new WeakSet<any>();
+const bossStates=new WeakMap<any,{lastPattern:number;enraged:boolean}>();
+let lastSecondaryAt=-99999;
+let questSyncing=false;
+let chapterObserver:MutationObserver|undefined;
+
+type Chapter3={state:number;forestKills:number;crystalsGathered:number;guardianDone:boolean;rewarded:boolean};
+
+function installTracking(){
+  const proto=(Phaser.Game as any)?.prototype;
+  if(!proto||proto.__jwV13Tracked)return;
+  const boot=proto.boot,destroy=proto.destroy;
+  if(typeof boot==='function')proto.boot=function(...args:any[]){trackedGames.add(this);return boot.apply(this,args);};
+  if(typeof destroy==='function')proto.destroy=function(...args:any[]){trackedGames.delete(this);return destroy.apply(this,args);};
+  proto.__jwV13Tracked=true;
+}
+installTracking();
+
+function worldScene():any|null{
+  const games=[...trackedGames,...((((Phaser as any).GAMES||[]) as any[]))];
+  for(const game of games){
+    const direct=game?.scene?.keys?.world;if(direct?.sys?.isActive?.())return direct;
+    try{const found=game?.scene?.getScene?.('world');if(found?.sys?.isActive?.())return found;}catch{}
+  }
+  return null;
+}
+function readSave():any{try{return JSON.parse(localStorage.getItem(SAVE_KEY)||'null');}catch{return null;}}
+function writeSave(save:any,scene?:any){localStorage.setItem(SAVE_KEY,JSON.stringify(save));if(scene?.save)Object.assign(scene.save,save);}
+function toast(msg:string){const el=document.querySelector<HTMLElement>('#toast');if(!el)return;el.textContent=msg;el.classList.remove('hidden');window.setTimeout(()=>el.classList.add('hidden'),2450);}
+function chapterBanner(title:string,sub:string){let el=document.querySelector<HTMLElement>('.jw-chapter-banner');if(!el){el=document.createElement('div');el.className='jw-chapter-banner';document.body.appendChild(el);}el.innerHTML=`<b>${title}</b><small>${sub}</small>`;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
+function bossWarning(text:string){let el=document.querySelector<HTMLElement>('.jw-boss-warning');if(!el){el=document.createElement('div');el.className='jw-boss-warning';document.body.appendChild(el);}el.innerHTML=text;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
+function lootPop(text:string,heroic=false){let el=document.querySelector<HTMLElement>('.jw-loot-pop');if(!el){el=document.createElement('div');el.className='jw-loot-pop';document.body.appendChild(el);}el.textContent=text;el.classList.toggle('heroic',heroic);el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
+function alive(entity:any){return !!entity&&entity.active!==false&&entity.visible!==false&&!entity.destroyed;}
+function near(scene:any,x:number,y:number,r=135){return !!scene?.player&&Phaser.Math.Distance.Between(scene.player.x,scene.player.y,x,y)<=r;}
+function chapter2Done(save:any){return Number(save?.chapter2?.state||0)>=5;}
+function ensureChapter3(save:any):Chapter3{
+  if(!save.chapter3||typeof save.chapter3!=='object')save.chapter3={state:0,forestKills:0,crystalsGathered:0,guardianDone:false,rewarded:false};
+  save.chapter3.state=Number(save.chapter3.state||0);
+  save.chapter3.forestKills=Number(save.chapter3.forestKills||0);
+  save.chapter3.crystalsGathered=Number(save.chapter3.crystalsGathered||0);
+  save.chapter3.guardianDone=!!save.chapter3.guardianDone;
+  save.chapter3.rewarded=!!save.chapter3.rewarded;
+  return save.chapter3 as Chapter3;
+}
+function shards(save:any){save.jw13Shards=Math.max(0,Number(save.jw13Shards||0));return save.jw13Shards as number;}
+function addXp(scene:any,amount:number){if(typeof scene?.gainXp==='function')scene.gainXp(amount);else if(scene?.save)scene.save.xp=Number(scene.save.xp||0)+amount;}
+function setChapterState(scene:any,state:number,message:string){const save=scene?.save||readSave();if(!save)return;const ch=ensureChapter3(save);ch.state=state;writeSave(save,scene);chapterBanner(`메인 임무 3장 · ${state>=5?'완료':'진행'}`,message);syncQuest3();}
+
+function createChapterTag(){const panel=document.querySelector<HTMLElement>('#quest-panel');if(!panel||panel.querySelector('.jw-chapter3-tag'))return;const tag=document.createElement('span');tag.className='jw-chapter3-tag';tag.textContent='CHAPTER III';panel.appendChild(tag);}
+function questCopy(save:any):[string,string,string]{
+  const ch=ensureChapter3(save);
+  if(ch.state===0)return['3장 · 월영의 균열','촌장 백운에게 월영숲에서 느껴지는 불길한 기운을 보고하자. · 클릭 이동','7%'];
+  if(ch.state===1)return['3장 · 달빛 아래 추적',`월영숲 요괴 15마리 토벌 (${Math.min(ch.forestKills,15)}/15) · 클릭 이동`,`${12+Math.min(ch.forestKills,15)*3}%`];
+  if(ch.state===2)return['3장 · 균열의 결정',`월광결정 6개 직접 채집 (${Math.min(ch.crystalsGathered,6)}/6) · 클릭 이동`,`${58+Math.min(ch.crystalsGathered,6)*4}%`];
+  if(ch.state===3)return['3장 · 봉인수호자','월영숲에 나타난 봉인수호자를 격파하자. · 클릭 이동','88%'];
+  if(ch.state===4)return['3장 · 백운의 결단','촌장 백운에게 봉인수호자 격파를 보고하자. · 클릭 이동','96%'];
+  return['3장 · 달빛의 수호자','3장 완료 · 정예·월드보스·재련으로 상위 성장을 이어가세요.','100%'];
+}
+function syncQuest3(){
+  if(questSyncing)return;const save=readSave();if(!save||!chapter2Done(save))return;
+  const panel=document.querySelector<HTMLElement>('#quest-panel'),title=document.querySelector<HTMLElement>('#quest-title'),text=document.querySelector<HTMLElement>('#quest-text'),bar=document.querySelector<HTMLElement>('#quest-bar');
+  if(!panel||!title||!text||!bar)return;questSyncing=true;createChapterTag();const ch=ensureChapter3(save);const [a,b,c]=questCopy(save);panel.classList.add('jw-chapter3');panel.classList.toggle('jw-chapter3-complete',ch.state>=5);title.textContent=a;text.textContent=b;bar.style.width=c;questSyncing=false;
+}
+function stopAutoHunt(){const auto=document.querySelector<HTMLButtonElement>('#jw-auto-hunt');if(auto?.classList.contains('on'))auto.click();}
+function go(scene:any,zone:string,x?:number,y?:number){if(!scene)return;stopAutoHunt();try{if(String(scene.zone)!==zone)scene.travel?.(zone);window.setTimeout(()=>{if(x!==undefined&&y!==undefined)scene.autoTarget=new Phaser.Math.Vector2(x,y);},140);}catch{}}
+function bindQuestNavigation(){
+  window.addEventListener('click',(event:MouseEvent)=>{
+    const target=event.target as Element|null;if(!target?.closest('#quest-panel'))return;
+    const save=readSave();if(!save||!chapter2Done(save))return;
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+    const ch=ensureChapter3(save),scene=worldScene();
+    if(ch.state===0)go(scene,'village',1070,720);else if(ch.state===1||ch.state===2||ch.state===3)go(scene,'forest',ch.state===3?1700:undefined,ch.state===3?720:undefined);else if(ch.state===4)go(scene,'village',1070,720);else toast('메인 임무 3장 완료 · 모험록과 재련, 월드보스 콘텐츠를 진행하세요.');
+  },true);
+}
+function observeQuest(){const panel=document.querySelector<HTMLElement>('#quest-panel');if(!panel||chapterObserver)return;chapterObserver=new MutationObserver(()=>{if(!questSyncing)window.queueMicrotask(syncQuest3);});chapterObserver.observe(panel,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['style','class']});}
+
+function ensureChapterBoss(scene:any){
+  const save=scene?.save||readSave();if(!save||!chapter2Done(save))return;const ch=ensureChapter3(save);if(ch.state!==3||String(scene.zone)!=='forest')return;
+  const existing=(scene.monsters?.getChildren?.()||[]).find((m:any)=>alive(m)&&m.getData?.('jw13Boss'));if(existing){scene.bossEntity=existing;return;}
+  if(alive(scene.bossEntity)&&!scene.bossEntity?.getData?.('jw13Boss'))return;
+  const x=Math.min(WORLD_WIDTH-320,1760),y=Math.min(WORLD_HEIGHT-260,760);const hp=2200+Number(save.level||10)*35;
+  const boss=scene.monsters.create(x,y,'boss');boss.setTint(0x9ed8ff).setScale(1.08).setSize(92,82).setData({name:'월영 봉인수호자',hp,maxHp:hp,damage:34,xp:920,gold:1150,bornX:x,bornY:y,nextMove:0,isBoss:true,bossKey:'chapter3-moon-seal-guardian',rareItem:'moonRing',rareChance:.08,jw13Boss:true}).setDepth(y+24);
+  scene.bossEntity=boss;scene.bossEntityKey='chapter3-moon-seal-guardian';scene.tweens.add({targets:boss,scaleX:1.15,scaleY:1.15,duration:620,yoyo:true,repeat:-1});bossWarning('<b>월영 봉인수호자 출현</b> · 붉은 범위를 피하며 공격하세요');chapterBanner('3장 결전','월영숲의 봉인수호자를 격파하십시오.');
+}
+
+function attackPower(save:any){
+  const hero=(save?.heroClass||'warrior') as HeroClass;const base=HERO_CLASSES[hero]?.attack||20;const rares=Array.isArray(save?.rareItems)?save.rareItems:[];
+  return base+Math.max(0,Number(save?.level||1)-1)*5+Number(save?.weaponLevel||0)*5+(rares.includes('cloudCharm')?6:0)+(rares.includes('blackIronBlade')?14:0)+(rares.includes('moonRing')?10:0);
+}
+function nearest(scene:any,radius:number,count:number){if(!scene?.player)return[];const list:any[]=(scene.monsters?.getChildren?.()||[]).filter((m:any)=>alive(m));return list.map((m:any)=>({m,d:Phaser.Math.Distance.Between(scene.player.x,scene.player.y,m.x,m.y)})).filter((x:any)=>x.d<=radius).sort((a:any,b:any)=>a.d-b.d).slice(0,count);}
+function floatDamage(scene:any,target:any,damage:number,color:string){try{const t=scene.add.text(target.x,target.y-54,`-${damage}`,{fontFamily:'Noto Sans KR',fontSize:'17px',fontStyle:'bold',color,stroke:'#17121a',strokeThickness:4}).setOrigin(.5).setDepth(target.y+130);scene.tweens.add({targets:t,y:t.y-38,alpha:0,duration:560,ease:'Cubic.out',onComplete:()=>t.destroy()});}catch{}}
+function damage(scene:any,target:any,amount:number,color:string){if(!alive(target))return;const hp=Number(target.getData?.('hp')||0)-amount;target.setData?.('hp',hp);floatDamage(scene,target,amount,color);try{target.setTintFill?.(0xffffff);scene.time.delayedCall(75,()=>target?.clearTint?.());}catch{}if(hp<=0)try{scene.defeat?.(target);}catch{}}
+function secondaryRank(level:number){return level>=20?3:level>=14?2:1;}
+function secondaryCooldown(level:number){return Math.max(7200,10000-(secondaryRank(level)-1)*1250);}
+function secondaryName(hero:HeroClass,rank:number){const suffix=['','Ⅰ','Ⅱ','Ⅲ'][rank]||String(rank);if(hero==='mage')return `빙월진 ${suffix}`;if(hero==='ranger')return `연환시 ${suffix}`;return `용아진 ${suffix}`;}
+function useSecondary(fromAuto=false){
+  const scene=worldScene(),save=scene?.save||readSave();if(!scene?.player||!save||String(scene.zone)==='village')return false;const level=Number(save.level||1);if(level<8)return false;
+  const cool=secondaryCooldown(level),now=performance.now();if(now-lastSecondaryAt<cool)return false;const hero=(save.heroClass||'warrior') as HeroClass,rank=secondaryRank(level),power=attackPower(save);let targets:any[]=[];
+  if(hero==='warrior')targets=nearest(scene,185+rank*18,3+rank);else if(hero==='mage')targets=nearest(scene,245+rank*24,4+rank*2);else targets=nearest(scene,420+rank*30,2+rank);if(!targets.length)return false;
+  if(hero==='warrior'){
+    const ring=scene.add.circle(scene.player.x,scene.player.y,52,0xff8a5a,.10).setStrokeStyle(6,0xffb26d,.88).setDepth(scene.player.y+90);scene.tweens.add({targets:ring,scale:3.1+rank*.25,alpha:0,duration:350,onComplete:()=>ring.destroy()});targets.forEach(({m}:any)=>damage(scene,m,Math.round(power*(1.55+rank*.18)),'#ffbc7d'));
+  }else if(hero==='mage'){
+    const ring=scene.add.circle(scene.player.x,scene.player.y,44,0x84d9ff,.11).setStrokeStyle(5,0xc4efff,.88).setDepth(scene.player.y+90);scene.tweens.add({targets:ring,scale:4.1+rank*.25,alpha:0,duration:450,onComplete:()=>ring.destroy()});targets.forEach(({m}:any,i:number)=>scene.time.delayedCall(i*45,()=>damage(scene,m,Math.round(power*(1.22+rank*.16)),'#bcecff')));
+  }else{
+    targets.forEach(({m}:any,i:number)=>scene.time.delayedCall(i*85,()=>{const line=scene.add.line(0,0,scene.player.x,scene.player.y,m.x,m.y,0xd7f59a,.88).setOrigin(0).setLineWidth(3+rank).setDepth(Math.max(scene.player.y,m.y)+120);scene.tweens.add({targets:line,alpha:0,duration:210,onComplete:()=>line.destroy()});damage(scene,m,Math.round(power*(1.42+rank*.19)),'#ddff9e');}));
+  }
+  lastSecondaryAt=now;try{scene.cameras?.main?.shake?.(70,.0025);}catch{}renderSecondary(fromAuto?'자동 발동':'사용 완료');return true;
+}
+function createSecondaryButton(){if(document.querySelector('#jw-secondary-skill'))return;const button=document.createElement('button');button.id='jw-secondary-skill';button.className='jw-secondary-skill locked';button.type='button';button.innerHTML='<strong>◆ 보조 스킬 · F</strong><small>Lv.8 해금</small>';button.addEventListener('click',()=>useSecondary(false));document.body.appendChild(button);}
+function renderSecondary(reason=''){
+  const b=document.querySelector<HTMLButtonElement>('#jw-secondary-skill'),save=readSave();if(!b||!save)return;const level=Number(save.level||1),hero=(save.heroClass||'warrior') as HeroClass,rank=secondaryRank(level);const locked=level<8,cool=secondaryCooldown(level),left=Math.max(0,cool-(performance.now()-lastSecondaryAt)),ready=!locked&&left<=0;b.classList.toggle('locked',locked);b.classList.toggle('ready',ready);b.classList.toggle('cooldown',!locked&&!ready);const strong=b.querySelector('strong'),small=b.querySelector('small');if(strong)strong.textContent=`◆ ${secondaryName(hero,rank)} · F`;if(small)small.textContent=reason||(locked?'Lv.8 달성 시 해금':ready?'사용 가능':`재사용 ${(left/1000).toFixed(1)}초`);
+}
+function bindSecondaryKey(){window.addEventListener('keydown',(event:KeyboardEvent)=>{const target=event.target as HTMLElement|null;if(target?.matches('input,textarea,select,[contenteditable="true"]'))return;if(event.code==='KeyF'){event.preventDefault();useSecondary(false);}});}
+function autoSecondary(){const auto=document.querySelector('#jw-auto-hunt');if(auto?.classList.contains('on'))useSecondary(true);}
+
+function ensureReforgeBox(){const inventory=document.querySelector<HTMLElement>('#inventory-panel');if(!inventory||inventory.querySelector('.jw-reforge-box'))return;const anchor=inventory.querySelector('.jw-inventory-overview')||inventory.querySelector('#equip-text');const box=document.createElement('section');box.className='jw-reforge-box';box.innerHTML='<div class="jw-reforge-head"><b>전리품 재련</b><span id="jw13-shards">파편 0</span></div><div class="jw-reforge-actions"><button data-reforge="weapon">무기 재련 · 파편 10</button><button data-reforge="armor">방어구 재련 · 파편 10</button></div><div class="jw-reforge-note">요괴·정예·보스가 떨어뜨린 장비 파편을 모아 현재 장비를 직접 강화합니다. 최대 +10.</div>';if(anchor)anchor.insertAdjacentElement('afterend',box);else inventory.appendChild(box);box.querySelectorAll<HTMLButtonElement>('[data-reforge]').forEach(btn=>btn.addEventListener('click',()=>reforge(btn.dataset.reforge==='armor'?'armor':'weapon')));}
+function renderReforge(){ensureReforgeBox();const save=readSave(),el=document.querySelector<HTMLElement>('#jw13-shards');if(!save||!el)return;const count=shards(save);el.textContent=`파편 ${count}`;document.querySelectorAll<HTMLButtonElement>('[data-reforge]').forEach(btn=>{const level=Number(save[btn.dataset.reforge==='armor'?'armorLevel':'weaponLevel']||0);btn.disabled=count<10||level>=10;btn.textContent=`${btn.dataset.reforge==='armor'?'방어구':'무기'} 재련 · ${level>=10?'MAX':'파편 10'}`;});}
+function reforge(kind:'weapon'|'armor'){
+  const scene=worldScene(),save=scene?.save||readSave();if(!save)return;const count=shards(save),key=kind==='weapon'?'weaponLevel':'armorLevel',level=Number(save[key]||0);if(level>=10){toast('이미 최고 재련 단계입니다.');return;}if(count<10){toast('장비 파편 10개가 필요합니다.');return;}save.jw13Shards=count-10;save[key]=level+1;if(kind==='armor'&&scene?.save)scene.save.hp=Math.max(Number(scene.save.hp||0),Number(scene.save.hp||0)+8);writeSave(save,scene);try{scene?.refreshGearVisual?.();}catch{}lootPop(`${kind==='weapon'?'무기':'방어구'} +${level+1} 재련 성공`,true);renderReforge();
+}
+function rollLoot(scene:any,x:number,y:number,elite:boolean,boss:boolean){
+  const save=scene?.save||readSave();if(!save)return;const chance=boss?.58:elite?.24:.065;if(Math.random()>chance)return;const roll=Math.random();let grade='고급',gain=1,heroic=false;if(boss&&roll<.18){grade='영웅';gain=6;heroic=true;}else if((boss&&roll<.55)||(elite&&roll<.28)||roll<.08){grade='희귀';gain=3;heroic=true;}else if(elite||boss){grade='고급';gain=2;}save.jw13Shards=shards(save)+gain;if(heroic&&Math.random()<.28){if(!save.resources)save.resources={wood:0,herb:0,ore:0,crystal:0};save.resources.crystal=Number(save.resources.crystal||0)+1;}if(!Array.isArray(save.jw13LootHistory))save.jw13LootHistory=[];save.jw13LootHistory.unshift({grade,gain,at:Date.now()});save.jw13LootHistory=save.jw13LootHistory.slice(0,20);writeSave(save,scene);lootPop(`${grade} 전리품 · 장비 파편 +${gain}`,heroic);try{const t=scene.add.text(x,y-72,`${grade} 전리품 +${gain}`,{fontFamily:'Noto Sans KR',fontSize:'12px',fontStyle:'bold',color:heroic?'#ffe39b':'#d9c2ef',stroke:'#17121a',strokeThickness:4}).setOrigin(.5).setDepth(y+180);scene.tweens.add({targets:t,y:t.y-42,alpha:0,duration:850,onComplete:()=>t.destroy()});}catch{}renderReforge();
+}
+
+function patchScene(scene:any){
+  if(patchedScenes.has(scene))return;
+  if(typeof scene.contextAction==='function'){
+    const original=scene.contextAction.bind(scene);scene.contextAction=function(){const save=scene.save||readSave();if(save&&chapter2Done(save)){const ch=ensureChapter3(save);if(ch.state===0&&String(scene.zone)==='village'&&near(scene,1070,645)){ch.state=1;ch.forestKills=0;ch.crystalsGathered=0;writeSave(save,scene);addXp(scene,180);save.gold=Number(save.gold||0)+250;writeSave(save,scene);chapterBanner('3장 시작 · 월영의 균열','월영숲 요괴 15마리를 토벌하세요.');syncQuest3();return;}if(ch.state===4&&String(scene.zone)==='village'&&near(scene,1070,645)){if(!ch.rewarded){addXp(scene,1200);save.gold=Number(save.gold||0)+2500;save.potions=Number(save.potions||0)+5;if(!save.resources)save.resources={wood:0,herb:0,ore:0,crystal:0};save.resources.crystal=Number(save.resources.crystal||0)+4;save.jw13Shards=shards(save)+8;save.jw13Title='달빛의 수호자';ch.rewarded=true;}ch.state=5;writeSave(save,scene);chapterBanner('3장 완료 · 달빛의 수호자','EXP +1,200 · 2,500엽전 · 월광결정 4 · 파편 8');syncQuest3();return;}}original();};
+  }
+  if(typeof scene.gather==='function'){
+    const original=scene.gather.bind(scene);scene.gather=function(node:any){const save=scene.save||readSave(),kind=node?.getData?.('kind'),before=Number(save?.resources?.crystal||0);original(node);const afterSave=scene.save||readSave();if(afterSave&&chapter2Done(afterSave)){const ch=ensureChapter3(afterSave);if(ch.state===2&&kind==='crystal'){const gained=Math.max(1,Number(afterSave.resources?.crystal||0)-before);ch.crystalsGathered+=gained;writeSave(afterSave,scene);if(ch.crystalsGathered>=6)setChapterState(scene,3,'월광결정 수집 완료 · 봉인수호자가 월영숲에 출현합니다.');syncQuest3();}}};
+  }
+  if(typeof scene.defeat==='function'){
+    const original=scene.defeat.bind(scene);scene.defeat=function(monster:any){const wasElite=!!monster?.getData?.('jwElite'),wasBoss=!!monster?.getData?.('isBoss'),wasGuardian=!!monster?.getData?.('jw13Boss'),x=Number(monster?.x||0),y=Number(monster?.y||0),zone=String(scene.zone);original(monster);const save=scene.save||readSave();if(save&&chapter2Done(save)){const ch=ensureChapter3(save);if(ch.state===1&&zone==='forest'&&!wasGuardian){ch.forestKills++;if(ch.forestKills>=15){ch.state=2;ch.crystalsGathered=0;chapterBanner('3장 · 균열의 결정','월광결정 6개를 직접 채집하세요.');}writeSave(save,scene);}if(ch.state===3&&wasGuardian){ch.guardianDone=true;ch.state=4;writeSave(save,scene);chapterBanner('봉인수호자 격파','백운성 촌장 백운에게 돌아가십시오.');}}rollLoot(scene,x,y,wasElite,wasBoss);syncQuest3();};
+  }
+  patchedScenes.add(scene);
+}
+
+function bossPatternTick(scene:any){
+  const boss=scene?.bossEntity;if(!alive(boss)||String(scene.zone)==='village')return;let state=bossStates.get(boss);if(!state){state={lastPattern:performance.now()-2500,enraged:false};bossStates.set(boss,state);}const hp=Number(boss.getData?.('hp')||0),max=Math.max(1,Number(boss.getData?.('maxHp')||1));if(!state.enraged&&hp/max<=.5){state.enraged=true;boss.setData?.('damage',Math.round(Number(boss.getData?.('damage')||10)*1.25));try{boss.setScale?.(boss.scaleX*1.08);scene.cameras?.main?.flash?.(260,180,70,90);}catch{}bossWarning(`<b>${String(boss.getData?.('name')||'보스')} 격노</b> · 공격력이 상승했습니다`);}
+  const now=performance.now();if(now-state.lastPattern<(state.enraged?4300:5600))return;state.lastPattern=now;const px=Number(scene.player?.x||0),py=Number(scene.player?.y||0),radius=state.enraged?128:112;let warning:any;try{warning=scene.add.circle(px,py,radius,0xff3d35,.08).setStrokeStyle(5,0xff695e,.9).setDepth(4600);scene.tweens.add({targets:warning,alpha:{from:.85,to:.22},scale:{from:.92,to:1.05},duration:760,yoyo:true});}catch{}bossWarning(`<b>${String(boss.getData?.('name')||'보스')} 광역기</b> · 붉은 범위 밖으로 이동!`);scene.time.delayedCall(900,()=>{try{const d=Phaser.Math.Distance.Between(scene.player.x,scene.player.y,px,py);if(d<=radius)scene.hurt?.(boss);warning?.destroy?.();}catch{}});
+}
+
+function progressionTick(){
+  const scene=worldScene();if(scene?.player){patchScene(scene);ensureChapterBoss(scene);bossPatternTick(scene);}const save=readSave();if(save&&chapter2Done(save))syncQuest3();renderSecondary();renderReforge();
+}
+function setVersion(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.3.0';});const badge=document.querySelector<HTMLElement>('.jw-v09-badge b');if(badge)badge.textContent='JUNJA WORLD v1.3.0';}
+function boot(){createChapterTag();createSecondaryButton();bindSecondaryKey();bindQuestNavigation();observeQuest();ensureReforgeBox();setVersion();renderSecondary();renderReforge();window.setInterval(progressionTick,120);window.setInterval(autoSecondary,850);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
