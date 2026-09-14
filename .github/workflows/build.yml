@@ -19,8 +19,8 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install dependencies
-        run: npm ci
-      - name: Validate server bridge
-        run: node --check server/index.mjs
+        run: npm install --no-audit --no-fund
+      - name: Validate server modules
+        run: node --check server/world-store.mjs && node --check server/index.mjs
       - name: Typecheck and build
         run: npm run build
