@@ -43,10 +43,16 @@ function ensureBagOpen(){
   const panel=document.querySelector<HTMLElement>('#inventory-panel');
   if(panel?.classList.contains('hidden'))document.querySelector<HTMLButtonElement>('#inventory-button')?.click();
 }
+function ensureBagClosed(){
+  const panel=document.querySelector<HTMLElement>('#inventory-panel');
+  if(panel&&!panel.classList.contains('hidden'))document.querySelector<HTMLButtonElement>('#inventory-close')?.click();
+}
 
 function toggle(panel:Panel){
   if(!mobile()||!playing())return;
+  const previous=active;
   const next=active===panel?'':panel;
+  if(previous==='bag'&&next!=='bag')ensureBagClosed();
   active=next;
   document.body.classList.remove('jw272-open-mission','jw272-open-map','jw272-open-boss','jw272-open-bag','jw272-open-more');
   if(active)document.body.classList.add(`jw272-open-${active}`);
