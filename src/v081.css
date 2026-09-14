@@ -1,0 +1,95 @@
+/* JUNJA WORLD v0.8.1 - interaction and combat polish */
+.quest-panel,
+.boss-panel{
+  pointer-events:auto!important;
+  right:18px!important;
+  left:auto!important;
+  width:min(320px,calc(100vw - 36px))!important;
+  max-width:320px!important;
+}
+.quest-panel{
+  top:92px!important;
+  z-index:42!important;
+}
+.boss-panel{
+  top:224px!important;
+  z-index:41!important;
+}
+.quest-panel *{pointer-events:none}
+.quest-panel{touch-action:manipulation}
+.quest-panel.pressed{transform:translateY(1px) scale(.995)}
+
+.jw-auto-hunt{
+  position:fixed;
+  right:18px;
+  bottom:96px;
+  z-index:52;
+  min-width:152px;
+  padding:10px 13px 9px;
+  border:1px solid rgba(229,196,122,.4);
+  border-radius:6px;
+  background:linear-gradient(180deg,rgba(42,55,50,.97),rgba(15,25,23,.97));
+  color:#eadfbe;
+  box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.06);
+  text-align:left;
+  cursor:pointer;
+  user-select:none;
+  touch-action:manipulation;
+}
+.jw-auto-hunt strong{display:block;font-size:12px;letter-spacing:.03em}
+.jw-auto-hunt small{display:block;margin-top:3px;color:#89a197;font-size:9px}
+.jw-auto-hunt.on{
+  border-color:rgba(245,213,130,.82);
+  color:#fff1bf;
+  background:linear-gradient(180deg,rgba(109,70,31,.98),rgba(48,33,20,.98));
+  box-shadow:0 0 0 1px rgba(255,211,111,.12),0 10px 28px rgba(0,0,0,.4),0 0 18px rgba(222,172,77,.14);
+}
+.jw-auto-hunt.on small{color:#e9c777}
+.jw-auto-hunt.busy::after{
+  content:"";
+  position:absolute;
+  right:10px;top:10px;
+  width:7px;height:7px;border-radius:50%;
+  background:#f0c866;
+  box-shadow:0 0 9px rgba(240,200,102,.85);
+  animation:jwPulse .9s ease-in-out infinite alternate;
+}
+@keyframes jwPulse{to{opacity:.35;transform:scale(.78)}}
+
+.jw-paperdoll[data-class="warrior"] .body{background:linear-gradient(90deg,#344655,#587189,#344655)}
+.jw-paperdoll[data-class="mage"] .body{background:linear-gradient(90deg,#453955,#6c5b7c,#453955)}
+.jw-paperdoll[data-class="ranger"] .body{background:linear-gradient(90deg,#324d3c,#55765f,#324d3c)}
+.jw-paperdoll .weapon{opacity:.12;transition:opacity .2s,filter .2s}
+.jw-paperdoll .armor{opacity:.12;transition:opacity .2s,filter .2s}
+.jw-paperdoll.has-weapon .weapon{opacity:1;filter:drop-shadow(0 0 4px rgba(210,229,238,.35))}
+.jw-paperdoll.has-armor .armor{opacity:.92;filter:drop-shadow(0 0 4px rgba(218,190,128,.22))}
+.jw-paperdoll.rare::after{
+  content:"";
+  position:absolute;
+  left:50%;top:55%;
+  width:96px;height:96px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(185,126,255,.45);
+  border-radius:50%;
+  box-shadow:0 0 18px rgba(151,93,232,.2),inset 0 0 20px rgba(151,93,232,.08);
+  pointer-events:none;
+}
+
+@media(max-width:760px){
+  .quest-panel,
+  .boss-panel{
+    right:8px!important;
+    width:min(360px,calc(100vw - 16px))!important;
+    max-width:calc(100vw - 16px)!important;
+  }
+  .quest-panel{top:64px!important}
+  .boss-panel{top:182px!important}
+  .jw-auto-hunt{
+    right:10px;
+    bottom:164px;
+    min-width:132px;
+    padding:9px 11px;
+  }
+  .jw-auto-hunt strong{font-size:11px}
+  .jw-auto-hunt small{font-size:8px}
+}
