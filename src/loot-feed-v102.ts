@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import './v102.css';
+import './v103.css';
 
 const trackedGames=new Set<any>();
 const patched=new WeakSet<any>();
@@ -29,7 +30,7 @@ function patchScene(s:any){
   patched.add(s);
 }
 
-function version(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.0.2';});const b=document.querySelector<HTMLElement>('.jw-v09-badge b');if(b)b.textContent='JUNJA WORLD v1.0.2';}
+function version(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.0.3';});const b=document.querySelector<HTMLElement>('.jw-v09-badge b');if(b)b.textContent='JUNJA WORLD v1.0.3';}
 function tick(){const s=scene();if(s?.player)patchScene(s);}
 function boot(){createFeed();version();window.setInterval(tick,350);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
