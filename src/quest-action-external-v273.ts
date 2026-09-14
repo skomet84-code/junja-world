@@ -1,11 +1,11 @@
 const MOBILE='(max-width: 760px), (pointer: coarse)';
+let raf=0;
 
-function syncQuestActionPosition(){
-  const btn=document.querySelector<HTMLButtonElement>('.jw273-quest-action');
+function positionQuestAction(){
+  const btn=document.querySelector<HTMLButtonElement>('#jw-quest-action');
   const panel=document.querySelector<HTMLElement>('#quest-panel');
   const game=document.querySelector<HTMLElement>('#game-ui');
   if(!btn||!panel||!game)return;
-  if(btn.parentElement!==document.body)document.body.appendChild(btn);
   const isMobile=window.matchMedia(MOBILE).matches;
   const gameOn=!game.classList.contains('hidden');
   const visible=gameOn&&(!isMobile||document.body.classList.contains('jw272-open-mission'));
@@ -20,5 +20,16 @@ function syncQuestActionPosition(){
   btn.style.margin='0';
   btn.style.transform='none';
 }
-function boot(){syncQuestActionPosition();window.setInterval(syncQuestActionPosition,160);window.addEventListener('resize',syncQuestActionPosition,{passive:true});window.addEventListener('orientationchange',syncQuestActionPosition);}
+function requestPosition(){cancelAnimationFrame(raf);raf=requestAnimationFrame(positionQuestAction);}
+function boot(){
+  requestPosition();
+  const panel=document.querySelector('#quest-panel');
+  const game=document.querySelector('#game-ui');
+  if(panel)new ResizeObserver(requestPosition).observe(panel);
+  if(game)new MutationObserver(requestPosition).observe(game,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(requestPosition).observe(document.body,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('resize',requestPosition,{passive:true});
+  window.addEventListener('orientationchange',requestPosition);
+  window.setInterval(requestPosition,700);
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
