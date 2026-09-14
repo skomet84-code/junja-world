@@ -1,0 +1,42 @@
+/* JUNJA WORLD v1.3 - chapter 3, boss telegraphs, secondary skill and loot reforging */
+.jw-secondary-skill{
+  position:fixed;right:326px;bottom:96px;z-index:53;min-width:138px;padding:10px 12px 9px;
+  border:1px solid rgba(188,145,230,.55);border-radius:6px;
+  background:linear-gradient(180deg,rgba(61,43,78,.97),rgba(25,19,34,.98));
+  color:#f1ddff;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.07);
+  cursor:pointer;touch-action:manipulation;user-select:none;
+}
+.jw-secondary-skill strong,.jw-secondary-skill small{display:block}.jw-secondary-skill strong{font-size:12px}.jw-secondary-skill small{margin-top:3px;color:#b99bc9;font-size:9px}
+.jw-secondary-skill.ready{border-color:rgba(215,172,255,.86);box-shadow:0 0 18px rgba(172,104,230,.15),0 8px 24px rgba(0,0,0,.38)}
+.jw-secondary-skill.cooldown{opacity:.68;filter:saturate(.55)}.jw-secondary-skill.locked{opacity:.48;filter:grayscale(.75);cursor:not-allowed}
+
+.jw-boss-warning{
+  position:fixed;left:50%;top:138px;z-index:70;transform:translate(-50%,-12px);min-width:260px;max-width:min(520px,88vw);
+  padding:10px 18px;border-top:1px solid rgba(255,111,91,.55);border-bottom:1px solid rgba(255,111,91,.42);
+  background:linear-gradient(90deg,transparent,rgba(49,15,16,.95) 13%,rgba(49,15,16,.97) 87%,transparent);
+  color:#ffd4c8;text-align:center;text-shadow:0 2px 4px #000;opacity:0;pointer-events:none;
+}
+.jw-boss-warning.show{animation:jwBossWarn 1.35s ease-out}@keyframes jwBossWarn{0%{opacity:0;transform:translate(-50%,-18px)}15%,70%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,6px)}}
+.jw-boss-warning b{color:#ff9c7f}
+
+.jw-chapter3-tag{
+  display:none;position:absolute;right:9px;top:8px;padding:3px 6px;border:1px solid rgba(173,139,231,.4);border-radius:3px;
+  background:rgba(50,30,72,.72);color:#d8baff;font-size:8px;font-weight:900;letter-spacing:.08em
+}
+.quest-panel.jw-chapter3{border-color:rgba(174,137,231,.52)!important;background:linear-gradient(135deg,rgba(122,74,174,.13),transparent 45%),rgba(18,22,27,.94)!important}
+.quest-panel.jw-chapter3 .jw-chapter3-tag{display:block}.quest-panel.jw-chapter3::after{content:'▸ 3장 자동이동';color:#d4b3ff}
+.quest-panel.jw-chapter3-complete{border-color:rgba(239,200,102,.58)!important}.quest-panel.jw-chapter3-complete .jw-chapter3-tag{color:#ffe59a;border-color:rgba(239,200,102,.42);background:rgba(70,49,19,.78)}
+
+.jw-reforge-box{margin:9px 0 11px;padding:10px;border:1px solid rgba(177,138,224,.28);background:linear-gradient(135deg,rgba(92,57,123,.10),rgba(8,15,16,.68));border-radius:5px}
+.jw-reforge-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}.jw-reforge-head b{color:#ead7ff;font-size:11px}.jw-reforge-head span{color:#b696ca;font-size:9px}
+.jw-reforge-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.jw-reforge-actions button{padding:8px 7px;border:1px solid rgba(186,151,221,.32);border-radius:4px;background:linear-gradient(#433653,#251f2d);color:#eadcf4;font-size:9px;cursor:pointer}.jw-reforge-actions button:disabled{opacity:.38;cursor:not-allowed}.jw-reforge-note{margin-top:7px;color:#7f9290;font-size:8px;line-height:1.45}
+.jw-loot-pop{position:fixed;left:50%;top:33%;z-index:72;transform:translate(-50%,-8px);padding:8px 15px;border:1px solid rgba(203,163,244,.5);border-radius:5px;background:rgba(24,17,31,.94);color:#f1dcff;font-size:11px;font-weight:900;opacity:0;pointer-events:none;box-shadow:0 10px 28px rgba(0,0,0,.38)}
+.jw-loot-pop.show{animation:jwLootPop 1.7s ease-out}@keyframes jwLootPop{0%{opacity:0;transform:translate(-50%,0) scale(.92)}12%,72%{opacity:1;transform:translate(-50%,-10px) scale(1)}100%{opacity:0;transform:translate(-50%,-28px)}}
+.jw-loot-pop.heroic{color:#ffe3a1;border-color:rgba(245,195,91,.68);box-shadow:0 0 22px rgba(231,170,72,.15),0 10px 28px rgba(0,0,0,.4)}
+
+.jw-chapter-banner{position:fixed;left:50%;top:23%;z-index:74;transform:translateX(-50%);width:min(520px,88vw);padding:15px 22px;text-align:center;background:linear-gradient(90deg,transparent,rgba(22,17,31,.96) 13%,rgba(22,17,31,.96) 87%,transparent);border-top:1px solid rgba(195,160,232,.36);border-bottom:1px solid rgba(195,160,232,.25);color:#eadcff;opacity:0;pointer-events:none;text-shadow:0 2px 4px #000}.jw-chapter-banner.show{animation:jwChapterBanner 2.5s ease}@keyframes jwChapterBanner{0%{opacity:0;transform:translateX(-50%) scale(.96)}14%,76%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0}}.jw-chapter-banner b{display:block;font-size:16px}.jw-chapter-banner small{display:block;margin-top:4px;color:#a99ab7;font-size:9px;letter-spacing:.08em}
+
+@media(max-width:760px){
+  .jw-secondary-skill{left:10px;right:auto;bottom:222px;min-width:122px;padding:9px 10px}.jw-secondary-skill strong{font-size:11px}.jw-secondary-skill small{font-size:8px}
+  .jw-boss-warning{top:118px;min-width:230px;font-size:11px}.jw-reforge-actions{grid-template-columns:1fr}.jw-loot-pop{top:29%;font-size:10px}
+}
