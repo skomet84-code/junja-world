@@ -1,0 +1,154 @@
+/* JUNJA WORLD v2.7 - mobile-first calm HUD */
+.jw27-mobile-dock,.jw27-more-sheet{display:none}
+
+@media(max-width:760px),(pointer:coarse){
+  body.jw27-mobile{--jw27-safe:env(safe-area-inset-bottom,0px)}
+  body.jw27-mobile .help-note,
+  body.jw27-mobile .jw16-patrol-badge,
+  body.jw27-mobile .jw16-compass,
+  body.jw27-mobile .jw16-world-panel,
+  body.jw27-mobile .quest-panel,
+  body.jw27-mobile .boss-panel,
+  body.jw27-mobile .zone-dock,
+  body.jw27-mobile .jw-growth,
+  body.jw27-mobile .jw-minimap,
+  body.jw27-mobile .jw-stage-chip,
+  body.jw27-mobile .jw19-mood,
+  body.jw27-mobile .jw20-target-hud,
+  body.jw27-mobile #jw20-target-hud,
+  body.jw27-mobile .jw21-class-meter,
+  body.jw27-mobile .jw22-gear-status,
+  body.jw27-mobile .jw23-nearby,
+  body.jw27-mobile .jw-adventure-button,
+  body.jw27-mobile .jw-shop-button,
+  body.jw27-mobile .jw27-top-hidden{display:none!important}
+
+  body.jw27-mobile .top-bar{
+    height:48px!important;min-height:48px!important;padding:5px 8px!important;
+    background:linear-gradient(180deg,rgba(7,15,20,.9),rgba(7,15,20,.68))!important;
+    backdrop-filter:blur(7px);border-bottom:1px solid rgba(225,196,124,.12)!important;
+  }
+  body.jw27-mobile .top-bar .brand{font-size:10px!important;gap:5px!important}
+  body.jw27-mobile .top-bar .mini-crest{width:26px!important;height:26px!important;font-size:14px!important}
+  body.jw27-mobile .top-bar .zone{position:absolute!important;left:50%!important;transform:translateX(-50%)!important;text-align:center!important;max-width:48vw!important;white-space:nowrap!important;overflow:hidden!important}
+  body.jw27-mobile .top-bar .zone small{display:none!important}
+  body.jw27-mobile .top-bar .zone strong{font-size:10px!important;overflow:hidden;text-overflow:ellipsis}
+  body.jw27-mobile #reset-save{display:none!important}
+
+  body.jw27-mobile .status-panel{
+    top:55px!important;left:7px!important;width:118px!important;max-width:118px!important;
+    padding:7px!important;border-radius:10px!important;background:rgba(8,18,20,.76)!important;
+    border:1px solid rgba(230,203,139,.18)!important;backdrop-filter:blur(5px);z-index:54!important;
+    box-shadow:0 5px 18px rgba(0,0,0,.18)!important;
+  }
+  body.jw27-mobile .status-panel .identity strong{font-size:10px!important}
+  body.jw27-mobile .status-panel .identity span{font-size:8px!important}
+  body.jw27-mobile .status-panel .bar{height:11px!important;margin-top:4px!important}
+  body.jw27-mobile .status-panel .bar span{font-size:7px!important}
+  body.jw27-mobile .status-panel .stats,
+  body.jw27-mobile .status-panel #inventory-button{display:none!important}
+
+  body.jw27-mobile .jw27-mobile-dock{
+    display:grid;grid-template-columns:repeat(5,1fr);position:fixed;z-index:10001;
+    left:7px;right:7px;bottom:calc(7px + var(--jw27-safe));height:56px;padding:4px;
+    border:1px solid rgba(230,200,127,.24);border-radius:15px;background:rgba(6,13,18,.92);
+    box-shadow:0 10px 28px rgba(0,0,0,.42);backdrop-filter:blur(12px);gap:2px;
+  }
+  body.jw27-mobile .jw27-mobile-dock button{
+    position:relative;border:0;background:transparent;color:#c9c7bd;border-radius:11px;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px;min-width:0;
+    font-family:inherit;touch-action:manipulation;
+  }
+  body.jw27-mobile .jw27-mobile-dock button i{font-style:normal;font-size:19px;line-height:20px;color:#e7d49c}
+  body.jw27-mobile .jw27-mobile-dock button span{font-size:8px;letter-spacing:-.2px}
+  body.jw27-mobile .jw27-mobile-dock button.active{background:rgba(223,190,107,.14);color:#fff}
+  body.jw27-mobile .jw27-mobile-dock button.active i{color:#ffe39a}
+  body.jw27-mobile.jw27-quest-running .jw27-mobile-dock button[data-jw27="mission"]::after{
+    content:'';position:absolute;top:5px;right:10px;width:6px;height:6px;border-radius:50%;background:#7ef29a;
+    box-shadow:0 0 0 3px rgba(126,242,154,.13),0 0 10px rgba(126,242,154,.7);
+  }
+
+  body.jw27-mobile .jw-combat-dock{
+    left:7px!important;right:7px!important;bottom:calc(69px + var(--jw27-safe))!important;width:auto!important;
+    transform:none!important;padding:3px!important;gap:3px!important;border-radius:12px!important;
+    background:rgba(7,15,18,.82)!important;z-index:9998!important;
+  }
+  body.jw27-mobile .jw-combat-dock>.jw-auto-hunt,
+  body.jw27-mobile .jw-combat-dock>#jw-skill-button,
+  body.jw27-mobile .jw-combat-dock>#jw-secondary-skill{min-height:38px!important;padding:5px!important;border-radius:9px!important}
+  body.jw27-mobile .jw-combat-dock button strong{font-size:8px!important}
+  body.jw27-mobile .jw-combat-dock button small{display:none!important}
+  body.jw27-mobile .mobile-actions{right:7px!important;bottom:calc(115px + var(--jw27-safe))!important;z-index:9999!important;gap:4px!important}
+  body.jw27-mobile .mobile-actions button{width:48px!important;height:34px!important;min-width:48px!important;padding:0 5px!important;font-size:8px!important;border-radius:10px!important;opacity:.88}
+
+  body.jw27-mobile.jw27-open-mission .quest-panel{
+    display:block!important;position:fixed!important;top:58px!important;left:50%!important;right:auto!important;
+    width:min(92vw,420px)!important;max-width:min(92vw,420px)!important;transform:translateX(-50%)!important;
+    padding:14px 15px 13px!important;border-radius:14px!important;z-index:10002!important;
+    background:rgba(8,18,19,.96)!important;box-shadow:0 18px 50px rgba(0,0,0,.46)!important;
+  }
+  body.jw27-mobile.jw27-open-mission .quest-panel strong{font-size:14px!important}
+  body.jw27-mobile.jw27-open-mission .quest-panel p{font-size:11px!important;line-height:1.55!important;margin:7px 0!important}
+  body.jw27-mobile.jw27-open-mission .quest-panel::after{
+    content:'탭하면 이 임무 자동 진행';display:block;margin-top:9px;padding:8px 10px;border-radius:8px;
+    background:rgba(225,190,101,.13);color:#f5dc9d;font-size:10px;font-weight:700;text-align:center;
+  }
+  body.jw27-mobile.jw27-open-mission .jw16-compass{display:flex!important;position:fixed!important;top:190px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(88vw,390px)!important;z-index:10001!important}
+
+  body.jw27-mobile.jw27-open-map .jw16-world-panel{
+    display:block!important;position:fixed!important;top:58px!important;left:10px!important;right:10px!important;
+    width:auto!important;max-width:none!important;z-index:10002!important;border-radius:14px!important;
+    background:rgba(8,18,19,.96)!important;box-shadow:0 18px 50px rgba(0,0,0,.46)!important;
+  }
+  body.jw27-mobile.jw27-open-map .jw16-world-panel canvas{width:100%!important;height:auto!important;max-height:32vh!important}
+  body.jw27-mobile.jw27-open-map .zone-dock{
+    display:flex!important;position:fixed!important;left:10px!important;right:10px!important;top:280px!important;bottom:auto!important;
+    width:auto!important;max-width:none!important;z-index:10003!important;padding:6px!important;gap:4px!important;flex-wrap:wrap!important;
+    justify-content:center!important;background:rgba(8,18,19,.95)!important;border-radius:12px!important;
+  }
+  body.jw27-mobile.jw27-open-map .zone-dock button{font-size:8px!important;padding:7px 8px!important;min-height:30px!important}
+
+  body.jw27-mobile.jw27-open-boss .boss-panel{
+    display:block!important;position:fixed!important;top:58px!important;left:50%!important;right:auto!important;
+    width:min(92vw,400px)!important;max-width:min(92vw,400px)!important;transform:translateX(-50%)!important;
+    padding:14px!important;border-radius:14px!important;z-index:10002!important;background:rgba(8,18,19,.96)!important;
+    box-shadow:0 18px 50px rgba(0,0,0,.46)!important;pointer-events:none!important;
+  }
+  body.jw27-mobile.jw27-open-boss .boss-panel strong{font-size:13px!important}
+  body.jw27-mobile.jw27-open-boss .boss-panel span{font-size:10px!important}
+
+  body.jw27-mobile.jw27-open-bag #inventory-panel{
+    display:block!important;position:fixed!important;left:8px!important;right:8px!important;top:58px!important;bottom:132px!important;
+    width:auto!important;max-width:none!important;max-height:none!important;overflow:auto!important;z-index:10002!important;border-radius:14px!important;
+    box-shadow:0 18px 50px rgba(0,0,0,.46)!important;
+  }
+
+  body.jw27-mobile .jw27-more-sheet{
+    display:none;position:fixed;z-index:10003;left:10px;right:10px;bottom:calc(70px + var(--jw27-safe));
+    padding:10px;border-radius:16px;border:1px solid rgba(230,200,127,.22);background:rgba(7,15,18,.97);
+    box-shadow:0 18px 50px rgba(0,0,0,.48);backdrop-filter:blur(12px);
+  }
+  body.jw27-mobile.jw27-open-more .jw27-more-sheet{display:block}
+  body.jw27-mobile .jw27-more-sheet header{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 9px}
+  body.jw27-mobile .jw27-more-sheet header b{font-size:12px;color:#f1dfad}
+  body.jw27-mobile .jw27-more-sheet header button{border:0;background:transparent;color:#fff;font-size:22px;line-height:22px}
+  body.jw27-mobile .jw27-more-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  body.jw27-mobile .jw27-more-grid button{min-height:62px;border:1px solid rgba(226,196,124,.15);border-radius:11px;background:rgba(255,255,255,.035);color:#fff;font-size:18px}
+  body.jw27-mobile .jw27-more-grid button span{display:block;margin-top:3px;font-size:8px;color:#c9c5b8}
+
+  body.jw27-mobile #jw25-shop-layer,
+  body.jw27-mobile #jw25-admin-layer,
+  body.jw27-mobile .jw26-ops-layer,
+  body.jw27-mobile .jw15-guide-panel,
+  body.jw27-mobile .jw24-link-panel{z-index:11000!important}
+}
+
+@media(max-width:390px){
+  body.jw27-mobile .status-panel{width:108px!important;max-width:108px!important}
+  body.jw27-mobile .jw27-mobile-dock{height:53px}
+  body.jw27-mobile .jw27-mobile-dock button i{font-size:17px}
+  body.jw27-mobile .jw27-mobile-dock button span{font-size:7px}
+  body.jw27-mobile .jw-combat-dock{bottom:calc(66px + var(--jw27-safe))!important}
+  body.jw27-mobile .mobile-actions{bottom:calc(110px + var(--jw27-safe))!important}
+  body.jw27-mobile.jw27-open-map .zone-dock{top:255px!important}
+}
