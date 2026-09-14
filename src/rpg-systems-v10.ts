@@ -151,10 +151,11 @@ function updateMonsterPlates(scene:any) {
     const hp = Math.max(0,Number(m.getData?.('hp') || 0));
     const full = boss?92:66;
     p.name.setPosition(m.x,m.y-(boss?74:64)); p.bg.setPosition(m.x,m.y-(boss?57:49));
-    p.fill.setPosition(m.x-full/2,m.y-(boss?57:49)).setSize(full*(hp/max),boss?5:3);
+    p.fill.setPosition(m.x-full/2,m.y-(boss?57:49));
+    p.fill.displayWidth = Math.max(.1,full*(hp/max)); p.fill.displayHeight = boss?5:3;
     const d = Phaser.Math.Distance.Between(scene.player.x,scene.player.y,m.x,m.y);
     const near = boss || d < 520 || hp < max;
-    p.name.setAlpha(near?1:0); p.bg.setAlpha(near?.86:0); p.fill.setAlpha(near?1:0);
+    p.name.setAlpha(near ? 1 : 0); p.bg.setAlpha(near ? .86 : 0); p.fill.setAlpha(near ? 1 : 0);
   }
 }
 
