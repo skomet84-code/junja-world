@@ -1,4 +1,4 @@
-import {JUNJA_WORLD_VERSION,loadCoreGroup} from './core-v30';
+import {JUNJA_WORLD_VERSION,loadCoreGroup,loadCoreModule} from './core-v30';
 
 const CURRENT_VERSION=JUNJA_WORLD_VERSION;
 const VERSION_LABEL=`JUNJA WORLD v${CURRENT_VERSION}`;
@@ -30,10 +30,17 @@ function gameStarted(){const ui=document.querySelector('#game-ui');return !!ui&&
 
 function loadBootstrap(){
   if(bootstrapPromise)return bootstrapPromise;
-  bootstrapPromise=loadCoreGroup(BOOT_MODULES).then(result=>{
-    if(result.failed){console.warn(`[JW CORE] bootstrap degraded: ${result.failed}/${result.total}`);window.setTimeout(()=>{bootstrapPromise=null;loadBootstrap();},3000);}
+  bootstrapPromise=(async()=>{
+    let ready=0,failed=0;
+    // These modules have DOM/order dependencies on mobile. Keep the order stable:
+    // account gate first, then its recovery observers, then optional fallback.
+    for(const [id,loader] of BOOT_MODULES){
+      if(await loadCoreModule(id,loader))ready++;else failed++;
+    }
+    const result={ready,failed,total:BOOT_MODULES.length};
+    if(failed){console.warn(`[JW CORE] bootstrap degraded: ${failed}/${result.total}`);window.setTimeout(()=>{bootstrapPromise=null;loadBootstrap();},3000);}
     return result;
-  });
+  })();
   return bootstrapPromise;
 }
 

@@ -4,11 +4,13 @@ const LOCAL_MODE_KEY='jw286-local-mode';
 const INAPP=/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i;
 let accountBusy=false;
 let lastEntryTouch=0;
+let bodyObserver:MutationObserver|null=null;
 
 function localMode(){return sessionStorage.getItem(LOCAL_MODE_KEY)==='1';}
 function gate(){return document.querySelector<HTMLElement>('.jw26-account-gate');}
 function gateOpen(){const g=gate();return !!g&&!g.classList.contains('hidden')&&!localMode();}
 function entry(){return document.querySelector<HTMLElement>('#auth-layer');}
+function gameUi(){return document.querySelector<HTMLElement>('#game-ui');}
 function entryOpen(){const a=entry();return !!a&&!a.classList.contains('hidden')&&!gateOpen();}
 function status(text:string){const el=document.querySelector<HTMLElement>('#jw26-auth-status');if(el)el.textContent=text;}
 async function json(url:string,options:RequestInit={},timeout=9000){
@@ -80,6 +82,28 @@ function repairAccountGate(){
   }
 }
 
+function recoverVisibleSurface(){
+  if(gateOpen())return;
+  const a=entry(),ui=gameUi();
+  const gameVisible=!!ui&&!ui.classList.contains('hidden');
+  const entryVisible=!!a&&!a.classList.contains('hidden');
+
+  // On iOS/Kakao a reload can finish with the account gate hidden while both
+  // underlying surfaces still carry a stale hidden class. Never leave a blank page.
+  if(!gameVisible&&!entryVisible&&a){
+    a.classList.remove('hidden');
+    a.removeAttribute('inert');
+  }
+
+  if(gameVisible){
+    document.body.classList.remove('jw286-entry-open');
+    const host=document.querySelector<HTMLElement>('#game-container');
+    if(host){host.style.display='block';host.style.visibility='visible';host.style.opacity='1';}
+    requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+    window.setTimeout(()=>window.dispatchEvent(new Event('resize')),180);
+  }
+}
+
 function repairCharacterEntry(){
   const a=entry();const open=entryOpen();
   document.body.classList.toggle('jw286-entry-open',open);
@@ -117,26 +141,29 @@ function ensureInAppNotice(){
   if(!INAPP.test(navigator.userAgent)||document.querySelector('.jw286-inapp-notice'))return;
   const notice=document.createElement('aside');notice.className='jw286-inapp-notice';
   notice.innerHTML='<strong>앱 내부 브라우저로 열렸어</strong><span>카카오톡 등에서는 입력·터치가 불안정할 수 있어. 우측 상단 ⋯ → Safari에서 열기를 권장해.</span><div><button type="button" data-copy>주소 복사</button><button type="button" data-close>닫기</button></div>';
-  // Keep the notice inside #app. Entry isolation intentionally disables
-  // pointer events for body-level overlays, which previously made Close
-  // impossible to tap in iOS/Kakao in-app browsers.
   (document.querySelector('#app')||document.body).appendChild(notice);
   notice.querySelector<HTMLButtonElement>('[data-copy]')!.onclick=async()=>{try{await navigator.clipboard.writeText(location.origin+location.pathname);notice.querySelector<HTMLButtonElement>('[data-copy]')!.textContent='복사됨';}catch{notice.querySelector<HTMLButtonElement>('[data-copy]')!.textContent='주소창에서 복사';}};
   notice.querySelector<HTMLButtonElement>('[data-close]')!.onclick=()=>notice.remove();
 }
 
-function repair(){repairAccountGate();repairCharacterEntry();}
+function installObservers(){
+  const g=gate(),a=entry(),ui=gameUi();
+  if(g&&g.dataset.jw286Observed!=='1'){g.dataset.jw286Observed='1';new MutationObserver(repair).observe(g,{attributes:true,attributeFilter:['class']});}
+  if(a&&a.dataset.jw286Observed!=='1'){a.dataset.jw286Observed='1';new MutationObserver(repair).observe(a,{attributes:true,attributeFilter:['class']});}
+  if(ui&&ui.dataset.jw286Observed!=='1'){ui.dataset.jw286Observed='1';new MutationObserver(repair).observe(ui,{attributes:true,attributeFilter:['class']});}
+}
+
+function repair(){installObservers();repairAccountGate();recoverVisibleSurface();repairCharacterEntry();}
 function boot(){
   ensureInAppNotice();repair();
-  const g=gate(),a=entry();
-  // Observing inline style while repair writes inline style creates an endless
-  // microtask loop in WebKit. Class changes are the only state signal needed.
-  if(g)new MutationObserver(repair).observe(g,{attributes:true,attributeFilter:['class']});
-  if(a)new MutationObserver(repair).observe(a,{attributes:true,attributeFilter:['class']});
-  // Capture before any transparent HUD/canvas overlay can swallow the iOS tap.
+  // Dynamic bootstrap can create the account gate after this module has executed.
+  // Watch only direct body children briefly so we can attach the real class observers.
+  bodyObserver=new MutationObserver(()=>repair());
+  bodyObserver.observe(document.body,{childList:true,subtree:false});
+  window.setTimeout(()=>{bodyObserver?.disconnect();bodyObserver=null;},8000);
   window.addEventListener('touchend',entryTouchFallback,{capture:true,passive:false});
-  window.addEventListener('pageshow',repair);window.addEventListener('focus',repair);
-  [120,450,1200].forEach(ms=>window.setTimeout(repair,ms));
+  window.addEventListener('pageshow',repair);window.addEventListener('focus',repair);window.addEventListener('resize',recoverVisibleSurface);
+  [120,450,1200,2500].forEach(ms=>window.setTimeout(repair,ms));
   window.setTimeout(()=>{if(gateOpen()&&!accountBusy)ensureLocalButton(true);},6500);
 }
 
