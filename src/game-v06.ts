@@ -163,7 +163,10 @@ function refreshHud(s: SaveData) {
 
 function startGame(s: SaveData) {
   ui.auth.classList.add('hidden'); ui.game.classList.remove('hidden'); launchSave = s; refreshHud(s); game?.destroy(true);
-  game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game-container', width: innerWidth, height: innerHeight, backgroundColor: '#182a22', physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } }, scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [WorldScene] });
+  // iOS WebKit in embedded browsers can create a WebGL surface but leave it
+  // blank after resuming/navigation. Canvas is slower but renders reliably.
+  const iosWebKit=/iP(?:hone|ad|od)/i.test(navigator.userAgent);
+  game = new Phaser.Game({ type: iosWebKit ? Phaser.CANVAS : Phaser.AUTO, parent: 'game-container', width: innerWidth, height: innerHeight, backgroundColor: '#182a22', physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } }, scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [WorldScene] });
 }
 
 ui.classCards.forEach(c => c.addEventListener('click', () => { chosenClass = c.dataset.class as HeroClass; ui.classCards.forEach(x => x.classList.toggle('selected', x === c)); }));

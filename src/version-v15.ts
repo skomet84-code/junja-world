@@ -2,7 +2,7 @@ import './account-admin-v26';
 import './stability-recovery-v286';
 import './mobile-fallback-v287';
 
-const CURRENT_VERSION='2.9.8';
+const CURRENT_VERSION='2.9.9';
 const VERSION_LABEL=`JUNJA WORLD v${CURRENT_VERSION}`;
 let enhancementsLoading=false;
 function gameStarted(){const ui=document.querySelector('#game-ui');return !!ui&&!ui.classList.contains('hidden');}

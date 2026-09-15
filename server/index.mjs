@@ -37,7 +37,7 @@ async function requireWorldAdmin(req,res){const user=await requireWorld(req,res)
 function accountFields(body){return {username:String(body?.username||'').trim().toLowerCase().slice(0,20),password:String(body?.password||'').slice(0,72)};}
 function validAccount(username,password){if(!/^[a-z0-9_]{3,20}$/.test(username))return '아이디는 영문 소문자·숫자·_ 조합 3~20자로 입력해주세요.';if(password.length<6||password.length>72)return '비밀번호는 6~72자로 입력해주세요.';return '';}
 
-app.get('/api/health',(_req,res)=>res.json({ok:true,game:'JUNJA WORLD',version:'2.9.8',jcoinBridge:'shop-limited',worldAccounts:true,persistence:process.env.DATABASE_URL?'postgres':'sqlite-fallback'}));
+app.get('/api/health',(_req,res)=>res.json({ok:true,game:'JUNJA WORLD',version:'2.9.9',jcoinBridge:'shop-limited',worldAccounts:true,persistence:process.env.DATABASE_URL?'postgres':'sqlite-fallback'}));
 
 // JUNJA WORLD account + server save
 app.post('/api/world/register',async(req,res)=>{if(!allowAccountAttempt(req))return res.status(429).json({error:'가입 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.'});const {username,password}=accountFields(req.body),bad=validAccount(username,password);if(bad)return res.status(400).json({error:bad});try{const out=await worldStore.register(username,password);res.setHeader('Set-Cookie',worldCookie(req,out.token));return res.status(201).json({user:out.user});}catch(e){return res.status(String(e?.message||'').includes('이미')?409:400).json({error:e?.message||'가입에 실패했습니다.'});}});

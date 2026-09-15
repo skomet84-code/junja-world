@@ -117,7 +117,10 @@ function ensureInAppNotice(){
   if(!INAPP.test(navigator.userAgent)||document.querySelector('.jw286-inapp-notice'))return;
   const notice=document.createElement('aside');notice.className='jw286-inapp-notice';
   notice.innerHTML='<strong>앱 내부 브라우저로 열렸어</strong><span>카카오톡 등에서는 입력·터치가 불안정할 수 있어. 우측 상단 ⋯ → Safari에서 열기를 권장해.</span><div><button type="button" data-copy>주소 복사</button><button type="button" data-close>닫기</button></div>';
-  document.body.appendChild(notice);
+  // Keep the notice inside #app. Entry isolation intentionally disables
+  // pointer events for body-level overlays, which previously made Close
+  // impossible to tap in iOS/Kakao in-app browsers.
+  (document.querySelector('#app')||document.body).appendChild(notice);
   notice.querySelector<HTMLButtonElement>('[data-copy]')!.onclick=async()=>{try{await navigator.clipboard.writeText(location.origin+location.pathname);notice.querySelector<HTMLButtonElement>('[data-copy]')!.textContent='복사됨';}catch{notice.querySelector<HTMLButtonElement>('[data-copy]')!.textContent='주소창에서 복사';}};
   notice.querySelector<HTMLButtonElement>('[data-close]')!.onclick=()=>notice.remove();
 }
