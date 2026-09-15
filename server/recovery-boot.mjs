@@ -2,6 +2,10 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Keep PostgreSQL/Neon, but never allow a dead DB connection to freeze the web process forever.
+process.env.PGCONNECT_TIMEOUT=process.env.PGCONNECT_TIMEOUT||'6';
+process.env.PGOPTIONS=process.env.PGOPTIONS||'-c statement_timeout=8000';
+
 try {
   await import('./index.mjs');
 } catch (error) {
@@ -13,7 +17,7 @@ try {
 
   app.disable('x-powered-by');
   app.get('/api/health', (_req, res) => {
-    res.status(200).json({ ok: true, game: 'JUNJA WORLD', version: '2.8.5', degraded: true, recovery: 'static' });
+    res.status(200).json({ ok: true, game: 'JUNJA WORLD', version: '2.8.6', degraded: true, recovery: 'static' });
   });
   app.use(express.static(path.join(root, 'dist'), { maxAge: '0', etag: false }));
   app.get('/{*splat}', (_req, res) => {
