@@ -19,6 +19,20 @@ import './bounty-board-v28';
 import './stability-recovery-v286';
 import './mobile-fallback-v287';
 
-function syncVersion(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(node=>{if(node.textContent?.includes('JUNJA WORLD'))node.textContent='JUNJA WORLD v2.9.3';});const badge=document.querySelector<HTMLElement>('.jw-v09-badge b');if(badge)badge.textContent='JUNJA WORLD v2.9.3';}
-function boot(){syncVersion();window.setTimeout(syncVersion,600);window.setTimeout(syncVersion,1800);}
+const CURRENT_VERSION='2.9.4';
+const VERSION_LABEL=`JUNJA WORLD v${CURRENT_VERSION}`;
+function syncVersion(){
+  document.documentElement.dataset.jwVersion=CURRENT_VERSION;
+  document.querySelectorAll<HTMLElement>('.login-footer span').forEach(node=>{
+    if(node.textContent?.includes('JUNJA WORLD')&&node.textContent!==VERSION_LABEL)node.textContent=VERSION_LABEL;
+  });
+  const badge=document.querySelector<HTMLElement>('.jw-v09-badge b');
+  if(badge&&badge.textContent!==VERSION_LABEL)badge.textContent=VERSION_LABEL;
+}
+function boot(){
+  syncVersion();
+  const footer=document.querySelector('.login-footer');
+  if(footer)new MutationObserver(syncVersion).observe(footer,{subtree:true,childList:true,characterData:true});
+  window.setInterval(syncVersion,1000);
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
