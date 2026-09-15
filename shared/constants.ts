@@ -1,5 +1,5 @@
 export const GAME_TITLE = 'JUNJA WORLD';
-export const GAME_VERSION = '2.8.0';
+export const GAME_VERSION = '2.8.5';
 export const WORLD_WIDTH = 2400;
 export const WORLD_HEIGHT = 1350;
 export const PLAYER_SPEED = 230;

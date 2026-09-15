@@ -1,0 +1,23 @@
+/* JUNJA WORLD v2.8.5 — account input repair only */
+.jw26-account-gate:not(.hidden){
+  z-index:2147483000!important;
+  pointer-events:auto!important;
+  isolation:isolate!important;
+}
+.jw26-account-gate:not(.hidden) .jw26-account-box,
+.jw26-account-gate:not(.hidden) .jw26-auth-form,
+.jw26-account-gate:not(.hidden) .jw26-auth-form label,
+.jw26-account-gate:not(.hidden) .jw26-auth-form input,
+.jw26-account-gate:not(.hidden) .jw26-auth-form button,
+.jw26-account-gate:not(.hidden) .jw26-tabs button{
+  pointer-events:auto!important;
+}
+.jw26-account-gate:not(.hidden) .jw26-auth-form input{
+  position:relative!important;
+  z-index:5!important;
+  opacity:1!important;
+  -webkit-user-select:text!important;
+  user-select:text!important;
+  touch-action:auto!important;
+  cursor:text!important;
+}
