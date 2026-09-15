@@ -9,7 +9,7 @@ async function enterLocalGame(page) {
   await page.locator('#hero-name').fill('smokehero');
   await page.locator('[data-class="ranger"]').click();
   await page.locator('#enter-game').click();
-  await expect(page.locator('#game-ui')).toBeVisible();
+  await expect(page.locator('#game-ui')).not.toHaveClass(/\bhidden\b/);
   await page.waitForTimeout(4500);
 }
 
@@ -41,7 +41,7 @@ async function diagnostics(page) {
       canvasHeight: canvas?.height || 0,
       canvasRect: canvas ? { width: Math.round(canvas.getBoundingClientRect().width), height: Math.round(canvas.getBoundingClientRect().height) } : null,
       hostChildren: host?.children.length || 0,
-      gameUiVisible: !!ui && !ui.classList.contains('hidden'),
+      gameUiStarted: !!ui && !ui.classList.contains('hidden'),
       authVisible: !!auth && !auth.classList.contains('hidden'),
       bodyClasses: document.body.className,
       userAgent: navigator.userAgent
@@ -66,6 +66,7 @@ test('mobile world visibly renders', async ({ page }, testInfo) => {
   const stats = imageStats(shot);
   console.log('JW_PIXELS', JSON.stringify(stats));
 
+  expect(diag.gameUiStarted, 'game entry state must be active').toBeTruthy();
   expect(diag.canvas, 'Phaser canvas must exist after entering the game').toBeTruthy();
   expect(diag.canvasWidth, 'canvas backing width').toBeGreaterThan(100);
   expect(diag.canvasHeight, 'canvas backing height').toBeGreaterThan(100);
