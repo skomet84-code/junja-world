@@ -1,0 +1,48 @@
+name: JUNJA World Mobile Browser Smoke
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  mobile-world:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install app dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build production bundle
+        run: npm run build
+      - name: Install browser test tools
+        run: |
+          npm install --no-save @playwright/test@1.55.0 pngjs@7.0.0
+          npx playwright install --with-deps chromium webkit
+      - name: Start Vite server
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/jw-vite.log 2>&1 &
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/jw-vite.log
+          exit 1
+      - name: Run real mobile browser rendering test
+        run: npx playwright test --config=playwright.mobile.config.mjs
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-world-smoke-evidence
+          path: |
+            test-results/**
+            /tmp/jw-vite.log
+          if-no-files-found: ignore
+          retention-days: 3

@@ -1,4 +1,4 @@
-import {JUNJA_WORLD_VERSION,loadCoreGroup,loadCoreModule} from './core-v30';
+import {JUNJA_WORLD_VERSION,loadCoreModule} from './core-v30';
 
 const CURRENT_VERSION=JUNJA_WORLD_VERSION;
 const VERSION_LABEL=`JUNJA WORLD v${CURRENT_VERSION}`;
@@ -27,6 +27,23 @@ const GAME_MODULES:Array<[string,()=>Promise<unknown>]>=[
 ];
 
 function gameStarted(){const ui=document.querySelector('#game-ui');return !!ui&&!ui.classList.contains('hidden');}
+function isMobile(){return matchMedia('(max-width: 900px),(pointer: coarse)').matches;}
+function pause(ms=0){return new Promise<void>(resolve=>window.setTimeout(resolve,ms));}
+function nextPaint(){return new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));}
+
+async function waitForWorldCanvas(timeoutMs=8000){
+  const started=performance.now();
+  while(performance.now()-started<timeoutMs){
+    if(!gameStarted())return false;
+    const canvas=document.querySelector<HTMLCanvasElement>('#game-container canvas');
+    if(canvas&&canvas.width>100&&canvas.height>100){
+      await nextPaint();
+      return true;
+    }
+    await pause(50);
+  }
+  return false;
+}
 
 function loadBootstrap(){
   if(bootstrapPromise)return bootstrapPromise;
@@ -44,10 +61,41 @@ function loadBootstrap(){
   return bootstrapPromise;
 }
 
+async function loadGameplayStaged(){
+  // The base Phaser world must get the first frames before optional feature modules run.
+  // Loading every feature in Promise.all froze mobile WebKit/Chromium during character entry.
+  const canvasReady=await waitForWorldCanvas();
+  if(!canvasReady){
+    console.warn('[JW CORE] gameplay modules deferred: world canvas not ready');
+    return {ready:0,failed:0,total:GAME_MODULES.length,deferred:true};
+  }
+
+  let ready=0,failed=0;
+  const mobile=isMobile();
+  for(let i=0;i<GAME_MODULES.length;i++){
+    if(!gameStarted())break;
+    const [id,loader]=GAME_MODULES[i];
+    if(await loadCoreModule(id,loader))ready++;else failed++;
+    // Yield rendering/input time between feature initializers. On phones this prevents
+    // the long main-thread stall that hid the actual Phaser world after login.
+    await nextPaint();
+    if(mobile)await pause(i<8?32:16);
+  }
+  return {ready,failed,total:GAME_MODULES.length,deferred:false};
+}
+
 function loadEnhancements(){
   if(!gameStarted()||enhancementsPromise)return enhancementsPromise;
-  enhancementsPromise=loadCoreGroup(GAME_MODULES).then(result=>{
-    if(result.failed){console.warn(`[JW CORE] gameplay degraded: ${result.failed}/${result.total}`);window.setTimeout(()=>{enhancementsPromise=null;if(gameStarted())loadEnhancements();},3000);}
+  enhancementsPromise=loadGameplayStaged().then(result=>{
+    if((result as any).deferred){
+      enhancementsPromise=null;
+      if(gameStarted())window.setTimeout(loadEnhancements,500);
+      return result;
+    }
+    if(result.failed){
+      console.warn(`[JW CORE] gameplay degraded: ${result.failed}/${result.total}`);
+      window.setTimeout(()=>{enhancementsPromise=null;if(gameStarted())loadEnhancements();},3000);
+    }
     return result;
   });
   return enhancementsPromise;
