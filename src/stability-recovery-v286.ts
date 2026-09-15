@@ -3,6 +3,7 @@ import './stability-recovery-v286.css';
 const LOCAL_MODE_KEY='jw286-local-mode';
 const INAPP=/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i;
 let accountBusy=false;
+let lastEntryTouch=0;
 
 function localMode(){return sessionStorage.getItem(LOCAL_MODE_KEY)==='1';}
 function gate(){return document.querySelector<HTMLElement>('.jw26-account-gate');}
@@ -93,6 +94,22 @@ function repairCharacterEntry(){
   });
 }
 
+function entryTouchFallback(e:TouchEvent){
+  if(!entryOpen()||e.changedTouches.length===0)return;
+  const touch=e.changedTouches[0];
+  const hit=document.elementFromPoint(touch.clientX,touch.clientY) as HTMLElement|null;
+  const control=hit?.closest<HTMLElement>('#hero-name,.class-card,#enter-game');
+  if(!control)return;
+  if(control instanceof HTMLInputElement){
+    if(document.activeElement!==control){e.preventDefault();control.focus();}
+    return;
+  }
+  const now=performance.now();
+  if(now-lastEntryTouch<450)return;
+  lastEntryTouch=now;e.preventDefault();e.stopPropagation();
+  (control as HTMLButtonElement).click();
+}
+
 function ensureInAppNotice(){
   if(!INAPP.test(navigator.userAgent)||document.querySelector('.jw286-inapp-notice'))return;
   const notice=document.createElement('aside');notice.className='jw286-inapp-notice';
@@ -110,6 +127,7 @@ function boot(){
   // microtask loop in WebKit. Class changes are the only state signal needed.
   if(g)new MutationObserver(repair).observe(g,{attributes:true,attributeFilter:['class']});
   if(a)new MutationObserver(repair).observe(a,{attributes:true,attributeFilter:['class']});
+  a?.addEventListener('touchend',entryTouchFallback,{capture:true,passive:false});
   window.addEventListener('pageshow',repair);window.addEventListener('focus',repair);
   [120,450,1200].forEach(ms=>window.setTimeout(repair,ms));
   window.setTimeout(()=>{if(gateOpen()&&!accountBusy)ensureLocalButton(true);},6500);
