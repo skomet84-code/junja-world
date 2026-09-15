@@ -23,7 +23,6 @@ export class V4WorldScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor('#13261e');
-    this.physics.world.setBounds(0,0,W,H);
     this.cameras.main.setBounds(0,0,W,H);
     this.drawWorld();
     this.player = this.makePlayer(1040,790);
@@ -41,7 +40,7 @@ export class V4WorldScene extends Phaser.Scene {
       const dir = this.moveVector.clone().normalize();
       this.player.x = Phaser.Math.Clamp(this.player.x + dir.x * speed * delta / 1000,40,W-40);
       this.player.y = Phaser.Math.Clamp(this.player.y + dir.y * speed * delta / 1000,60,H-40);
-      this.player.setScale(dir.x < -0.08 ? -1 : 1,1);
+      this.player.setDepth(this.player.y+30);
       this.hooks.onPosition?.(Math.round(this.player.x),Math.round(this.player.y));
     }
   }
@@ -59,6 +58,7 @@ export class V4WorldScene extends Phaser.Scene {
       y:target.y,
       duration,
       ease:'Sine.easeInOut',
+      onUpdate:()=>this.player.setDepth(this.player.y+30),
       onComplete:()=>this.hooks.onTarget?.('경비 무진')
     });
   }
