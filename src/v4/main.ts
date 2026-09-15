@@ -11,7 +11,7 @@ app.innerHTML = `
 <div class="jw4-shell">
   <header class="jw4-topbar">
     <div class="jw4-brand"><span>準</span><div><small>JUNJA WORLD v4</small><b>백운성</b></div></div>
-    <div class="jw4-server"><i></i><span>NEW CLIENT PREVIEW</span></div>
+    <div class="jw4-server"><i></i><span>MOBILE ALPHA · CANVAS</span></div>
     <button class="jw4-icon-btn" id="jw4-menu" type="button" aria-label="메뉴">☰</button>
   </header>
   <main class="jw4-stage">
@@ -26,7 +26,7 @@ app.innerHTML = `
     <nav class="jw4-bottom"><button data-v4="quest"><span>◉</span>임무</button><button data-v4="map"><span>⌖</span>지도</button><button data-v4="boss"><span>♛</span>보스</button><button data-v4="bag"><span>□</span>가방</button><button data-v4="more"><span>•••</span>메뉴</button></nav>
     <div class="jw4-hint">화면을 누른 채 원하는 방향으로 드래그해서 이동</div>
   </main>
-  <aside class="jw4-sheet" id="jw4-sheet" aria-hidden="true"><div class="jw4-sheet-card"><button id="jw4-sheet-close">×</button><small>JUNJA WORLD v4</small><h2>새 클라이언트 구조</h2><p>기존 캐릭터·레벨·아이템·퀘스트 규칙은 유지하고 화면과 조작만 처음부터 다시 만든다.</p><div class="jw4-sheet-grid"><div><b>기존 룰 유지</b><span>계정 / 저장 / 성장 / 제작 / 퀘스트 / 던전</span></div><div><b>새 렌더링</b><span>모바일 우선 · 단일 월드 씬 · 패치 레이어 제거</span></div><div><b>새 조작</b><span>드래그 이동 · 퀘스트 자동이동 · 터치 공격</span></div><div><b>새 디자인</b><span>한국 판타지 · 고급 2D · 장비 외형 일체화</span></div></div></div></aside>
+  <aside class="jw4-sheet" id="jw4-sheet" aria-hidden="true"><div class="jw4-sheet-card"><button id="jw4-sheet-close">×</button><small>JUNJA WORLD v4</small><h2>새 클라이언트 구조</h2><p>기존 캐릭터·레벨·아이템·퀘스트 규칙은 유지하고 화면과 조작만 처음부터 다시 만든다.</p><div class="jw4-sheet-grid"><div><b>기존 룰 유지</b><span>계정 / 저장 / 성장 / 제작 / 퀘스트 / 던전</span></div><div><b>안정 렌더링</b><span>모바일 우선 · Canvas 2D · WebKit/Chromium 공통</span></div><div><b>새 조작</b><span>드래그 이동 · 퀘스트 자동이동 · 터치 공격</span></div><div><b>새 디자인</b><span>한국 판타지 · 고급 2D · 장비 외형 일체화</span></div></div></div></aside>
   <div class="jw4-toast" id="jw4-toast"></div>
 </div>`;
 
@@ -42,8 +42,11 @@ const scene = new V4WorldScene({
   onTarget: label => toast(`${label}에게 도착했어.`)
 });
 
+// Mobile alpha deliberately uses Canvas 2D. The v4 scene is vector/primitive based,
+// so WebGL provides no gameplay benefit yet and has caused blank-world failures on iOS WebKit.
+// Keep the renderer deterministic across WebKit and Chromium until the asset pipeline needs WebGL.
 new Phaser.Game({
-  type: Phaser.AUTO,
+  type: Phaser.CANVAS,
   parent: 'jw4-game',
   width: window.innerWidth,
   height: window.innerHeight,
