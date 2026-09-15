@@ -1,6 +1,7 @@
 import './mobile-fallback-v287.css';
 
-const FALLBACK_HOST=location.hostname.endsWith('.github.io');
+const host=location.hostname.toLowerCase();
+const FALLBACK_HOST=host.endsWith('.github.io')||host==='cdn.jsdelivr.net'||host==='raw.githack.com';
 
 function activateFallback(){
   if(!FALLBACK_HOST)return;
