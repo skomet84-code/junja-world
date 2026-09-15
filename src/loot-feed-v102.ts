@@ -30,7 +30,7 @@ function patchScene(s:any){
   patched.add(s);
 }
 
-function version(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.0.3';});const b=document.querySelector<HTMLElement>('.jw-v09-badge b');if(b)b.textContent='JUNJA WORLD v1.0.3';}
+function version(){/* Version display is owned by version-v15.ts. */}
 function tick(){const s=scene();if(s?.player)patchScene(s);}
 function boot(){createFeed();version();window.setInterval(tick,350);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

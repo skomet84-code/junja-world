@@ -51,8 +51,7 @@ function createHud(){
 }
 
 function syncVersion(){
-  document.querySelectorAll<HTMLElement>('.login-footer span').forEach(node=>{if(node.textContent?.includes('JUNJA WORLD'))node.textContent=`JUNJA WORLD v${VERSION}`;});
-  const badge=document.querySelector<HTMLElement>('.jw-v09-badge b');if(badge)badge.textContent=`JUNJA WORLD v${VERSION}`;
+  // Version display is owned by version-v15.ts. Do not rewrite it from this 120ms world tick.
 }
 
 function alive(o:any){return !!o&&o.active!==false&&o.visible!==false&&!o.destroyed;}

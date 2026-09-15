@@ -91,7 +91,7 @@ function bindQuestClick(){
   const panel=document.querySelector<HTMLElement>('#quest-panel');if(!panel||panel.dataset.jwChapterBound==='1')return;panel.dataset.jwChapterBound='1';
   panel.addEventListener('click',e=>{const save=readSave();if(Number(save?.quest||0)<5)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();const ch=ensureChapter(save);const s=worldScene();if(ch.state===0)go(s,'village',1310,780);else if(ch.state===1)go(s,'field');else if(ch.state===2)go(s,'mine');else if(ch.state===3)go(s,'forest');else if(ch.state===4)go(s,'village',1070,720);else toast('메인 임무 2장 완료 · 성장 목표와 보스 콘텐츠를 진행하세요.');},true);
 }
-function version(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.1.0';});const b=document.querySelector<HTMLElement>('.jw-v09-badge b');if(b)b.textContent='JUNJA WORLD v1.1.0';}
+function version(){/* Version display is owned by version-v15.ts. */}
 function tick(){bindQuestClick();syncQuest();const s=worldScene();if(s?.player){patchScene(s);updateProgress(s);}}
 function boot(){version();bindQuestClick();syncQuest();window.setInterval(tick,300);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

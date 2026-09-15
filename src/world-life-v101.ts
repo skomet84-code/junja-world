@@ -126,7 +126,7 @@ function chooseElite(s:any){
   state.elite=m;alertElite(`정예 ${raw}`);
 }
 
-function version(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.0.2';});const b=document.querySelector<HTMLElement>('.jw-v09-badge b');if(b)b.textContent='JUNJA WORLD v1.0.2';}
+function version(){/* Version display is owned by version-v15.ts. */}
 
 function tick(){const s=scene();if(!s?.player)return;ensureNpcs(s);patchAction(s);chooseElite(s);}
 function boot(){createDialogue();createEliteAlert();version();window.setInterval(tick,300);}

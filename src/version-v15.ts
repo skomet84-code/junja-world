@@ -19,7 +19,7 @@ import './bounty-board-v28';
 import './stability-recovery-v286';
 import './mobile-fallback-v287';
 
-const CURRENT_VERSION='2.9.4';
+const CURRENT_VERSION='2.9.5';
 const VERSION_LABEL=`JUNJA WORLD v${CURRENT_VERSION}`;
 function syncVersion(){
   document.documentElement.dataset.jwVersion=CURRENT_VERSION;

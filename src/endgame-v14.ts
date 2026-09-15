@@ -72,7 +72,7 @@ function patchScene(s:any){if(patchedScenes.has(s))return;const meta:{travel?:(z
  patchedScenes.add(s);}
 
 function dungeonTick(s:any){if(!dungeonActive||s!==dungeonScene)return;if(String(s.zone)!=='forest'){leaveDungeon();return;}if(dungeonBossSpawned){for(const m of s.monsters?.getChildren?.()||[])if(m?.active&&m?.getData?.('jw14DungeonMob'))try{m.disableBody(true,true);}catch{}}updateLabels(s);updateDungeonHud();}
-function setVersion(){document.querySelectorAll<HTMLElement>('.login-footer span').forEach(n=>{if(n.textContent?.includes('JUNJA WORLD'))n.textContent='JUNJA WORLD v1.4.0';});const badge=document.querySelector<HTMLElement>('.jw-v09-badge b');if(badge)badge.textContent='JUNJA WORLD v1.4.0';}
+function setVersion(){/* Version display is owned by version-v15.ts. */}
 function tick(){const s=scene();if(s?.player){patchScene(s);dungeonTick(s);}const now=performance.now();if(now-lastUiRender>600){lastUiRender=now;renderQuest();renderGrowth();}}
 function boot(){createUi();ensureGrowthBoxes();setVersion();renderQuest();renderGrowth();window.setInterval(tick,140);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

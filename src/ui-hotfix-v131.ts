@@ -24,8 +24,7 @@ function gameActive(){const ui=document.querySelector<HTMLElement>('#game-ui');r
 function preferredZone(level:number){if(level>=10)return'forest';if(level>=5)return'mine';return'field';}
 
 function setVersion(){
-  document.querySelectorAll<HTMLElement>('.login-footer span').forEach(node=>{if(node.textContent?.includes('JUNJA WORLD'))node.textContent='JUNJA WORLD v1.3.1';});
-  const badge=document.querySelector<HTMLElement>('.jw-v09-badge b');if(badge)badge.textContent='JUNJA WORLD v1.3.1';
+  // Version display is owned by version-v15.ts.
 }
 function layoutPanels(){
   const quest=document.querySelector<HTMLElement>('#quest-panel');

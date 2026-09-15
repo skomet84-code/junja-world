@@ -198,9 +198,7 @@ function addVersionBadge() {
 }
 
 function setVersionLabel() {
-  document.querySelectorAll<HTMLElement>('.login-footer span').forEach(node => {
-    if (node.textContent?.includes('JUNJA WORLD')) node.textContent = 'JUNJA WORLD v0.9.0';
-  });
+  // Version display is owned by version-v15.ts.
 }
 
 function tick() {
