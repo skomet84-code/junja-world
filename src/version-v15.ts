@@ -2,7 +2,7 @@ import './account-admin-v26';
 import './stability-recovery-v286';
 import './mobile-fallback-v287';
 
-const CURRENT_VERSION='2.9.7';
+const CURRENT_VERSION='2.9.8';
 const VERSION_LABEL=`JUNJA WORLD v${CURRENT_VERSION}`;
 let enhancementsLoading=false;
 function gameStarted(){const ui=document.querySelector('#game-ui');return !!ui&&!ui.classList.contains('hidden');}
@@ -10,6 +10,12 @@ async function loadEnhancements(){
   if(enhancementsLoading||!gameStarted())return;
   enhancementsLoading=true;
   try{await Promise.all([
+    import('./auto-hunt-v081'),import('./workshop-v07'),import('./world-polish-v08'),
+    import('./world-density-v09'),import('./combat-polish-v091'),import('./rpg-systems-v10'),
+    import('./world-life-v101'),import('./loot-feed-v102'),import('./quest-finish-v104'),
+    import('./workshop-polish-v103'),import('./inventory-v11'),import('./adventure-v12'),
+    import('./auto-safety-v121'),import('./progression-v13'),import('./ui-hotfix-v131'),
+    import('./endgame-v14'),import('./guidebook-v15'),import('./character-polish-v151'),
     import('./living-world-v16'),import('./creature-art-v17'),import('./combat-motion-v18'),
     import('./world-atmosphere-v19'),import('./target-combat-v20'),import('./class-identity-v21'),
     import('./equipment-evolution-v22'),import('./village-hub-v23'),import('./economy-link-v24'),
