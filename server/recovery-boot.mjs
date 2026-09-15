@@ -3,7 +3,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const originalDatabaseUrl=String(process.env.DATABASE_URL||'').trim();
-process.env.PGOPTIONS=process.env.PGOPTIONS||'-c statement_timeout=8000';
 
 async function preflightDatabase(){
   if(!originalDatabaseUrl)return;
@@ -14,8 +13,7 @@ async function preflightDatabase(){
       connectionString:originalDatabaseUrl,
       ssl:/sslmode=require|neon\.tech/i.test(originalDatabaseUrl)?{rejectUnauthorized:false}:undefined,
       connectionTimeoutMillis:4500,
-      query_timeout:5000,
-      statement_timeout:5000
+      query_timeout:5000
     });
     await client.connect();
     await client.query('SELECT 1');
@@ -41,7 +39,7 @@ try {
 
   app.disable('x-powered-by');
   app.get('/api/health', (_req, res) => {
-    res.status(200).json({ ok: true, game: 'JUNJA WORLD', version: '2.9.0', degraded: true, recovery: 'static' });
+    res.status(200).json({ ok: true, game: 'JUNJA WORLD', version: '2.9.1', degraded: true, recovery: 'static' });
   });
   app.use(express.static(path.join(root, 'dist'), { maxAge: '0', etag: false }));
   app.get('/{*splat}', (_req, res) => {
