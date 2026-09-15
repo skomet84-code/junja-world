@@ -1,1 +1,24 @@
-N‹Z–‹­¦ëeŠw¬
+{
+  "name": "junja-world",
+  "version": "2.9.8",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "start": "node server/frontdoor.mjs"
+  },
+  "engines": {
+    "node": ">=22.5.0 <23"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.13.1",
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}
