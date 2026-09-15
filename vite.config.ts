@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
+import { resolve } from 'node:path';
 
 function junjaCoreRendererFix(): Plugin {
   return {
@@ -23,5 +24,14 @@ export default defineConfig({
   plugins: [junjaCoreRendererFix()],
   server: { port: 5173 },
   preview: { port: 4173 },
-  build: { outDir: 'dist', sourcemap: false }
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        v4: resolve(__dirname, 'v4.html')
+      }
+    }
+  }
 });
