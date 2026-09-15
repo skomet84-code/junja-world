@@ -1,55 +1,53 @@
-# JUNJA WORLD v0.2
+# JUNJA WORLD v3.0
 
-한국형 2D 판타지 MMORPG를 목표로 만드는 첫 번째 플레이어블 프로토타입입니다.
+한국형 2D 판타지 MMORPG를 목표로 개발 중인 JUNJA WORLD입니다.
 
-## v0.2 비주얼 업그레이드
+## 현재 기준
 
-- 백운성 조선풍 쿼터뷰 픽셀아트 월드맵
-- 검객·도사·궁사 4방향 걷기 애니메이션
-- 전용 촌장 백운 NPC 아트
-- 도깨비 슬라임 애니메이션
-- 전체 화면 반응형 게임 캔버스
+- 공식 기준 브랜치: `main`
+- 런타임 버전: v3.0.x
+- 배포: Render Auto-Deploy
+- 프론트엔드: TypeScript + Phaser + Vite
+- 서버: Node.js + Express + PostgreSQL(Neon)
 
-## 지금 플레이할 수 있는 기능
+## 현재 구현된 주요 기능
 
-- 캐릭터 이름 및 직업 선택: 검객, 도사, 궁사
-- 단풍골 초보자 마을과 야생 숲 탐험
-- PC 방향키/WASD 이동, Space 공격, E 대화
-- 모바일 터치 이동, 공격, 대화 버튼
-- NPC 대화와 첫 메인 임무
-- 슬라임 전투, 피해, 사망 및 마을 부활
-- 경험치, 레벨업, 능력치 성장
-- 브라우저 자동 저장
+- 검객·도사·궁사 캐릭터
+- 백운성, 청운들판, 흑철광산, 월영숲
+- 퀘스트, 자동이동, 사냥, 자동사냥
+- 채집, 제작, 장비 성장, 인벤토리
+- 보스/엔드게임, 반복 의뢰, 현상금 게시판
+- 모바일 HUD 및 터치/드래그 조작
+- 계정 로그인, 서버 저장, 관리자 기능
+- J-Coin 연동 기능
+
+## 모바일 호환성
+
+Safari, Chrome, 카카오톡 인앱 브라우저 등 모바일 WebKit 환경을 대상으로 렌더링/터치 안정화 작업을 계속 진행하고 있습니다.
+
+v3.0.3에서는 오래된 iPhone 전용 Canvas 강제 선택을 배포 번들에서 제거하고 `Phaser.AUTO`로 복구하여 WebGL을 우선 사용할 수 있도록 조정합니다.
 
 ## 로컬 실행
 
-Node.js 20 이상이 필요합니다.
+Node.js 22.x가 필요합니다.
 
 ```bash
 npm install
 npm run dev
 ```
 
-표시된 주소(보통 `http://localhost:5173`)를 브라우저에서 엽니다.
-
 ## Render 배포
-
-이 저장소에는 `render.yaml`이 포함되어 있습니다.
-
-1. Render Dashboard에서 **New + → Blueprint**를 선택합니다.
-2. 이 GitHub 저장소를 연결합니다.
-3. **Apply**를 누릅니다.
-
-수동 Web Service 생성 시 설정은 다음과 같습니다.
 
 - Build Command: `npm install && npm run build`
 - Start Command: `npm start`
 - Health Check Path: `/api/health`
 
-## 다음 개발 단계
+Render는 `main` 최신 커밋을 기준으로 Auto-Deploy합니다.
 
-v0.2에서는 서버 로그인과 PostgreSQL 캐릭터 저장, Socket.IO 실시간 동시 접속, 다른 플레이어 표시를 추가할 예정입니다. 이후 인벤토리·장비·스킬·몬스터 AI·맵 확장 순으로 발전시킵니다.
+## 개발 원칙
+
+JUNJA WORLD 작업의 기준은 항상 GitHub `main` 최신 커밋입니다. 기능 추가는 별도 브랜치에서 진행하고 빌드 검증 후 `main`으로 병합합니다.
 
 ---
 
-Built with TypeScript, Phaser, Vite and Node.js.
+Built with TypeScript, Phaser, Vite, Node.js and PostgreSQL.
