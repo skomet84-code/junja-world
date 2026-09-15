@@ -2,14 +2,14 @@ name: JUNJA World Build Check
 
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild/v4-world-client]
   pull_request:
     branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,3 +24,7 @@ jobs:
         run: node --check server/frontdoor.mjs && node --check server/recovery-boot.mjs && node --check server/world-store.mjs && node --check server/index.mjs
       - name: Typecheck and build
         run: npm run build
+      - name: Install mobile browsers
+        run: npx playwright install --with-deps chromium webkit
+      - name: Mobile Chromium and WebKit smoke tests
+        run: npm run test:mobile
