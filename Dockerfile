@@ -15,4 +15,4 @@ ENV PGOPTIONS="-c statement_timeout=8000"
 
 EXPOSE 10000
 
-CMD ["node", "server/recovery-boot.mjs"]
+CMD ["node", "server/frontdoor.mjs"]
