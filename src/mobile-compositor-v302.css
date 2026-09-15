@@ -1,0 +1,69 @@
+/* JUNJA WORLD v3.0.2 — mobile compositor safe mode
+   iOS WebKit (Safari, Chrome, Kakao in-app) can drop Phaser canvas layers when
+   fullscreen fixed overlays, CSS filters and mix-blend-mode are composited above it.
+   Keep the play canvas in its own stable layer and move visual FX out of the way. */
+
+body.jw302-mobile-safe #game-container{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100vh!important;
+  height:100dvh!important;
+  z-index:1!important;
+  overflow:hidden!important;
+  background:#182a22!important;
+  isolation:isolate!important;
+}
+
+body.jw302-mobile-safe #game-container canvas{
+  position:absolute!important;
+  inset:0!important;
+  z-index:2!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  opacity:1!important;
+  visibility:visible!important;
+  filter:none!important;
+  mix-blend-mode:normal!important;
+  transform:none!important;
+  -webkit-transform:none!important;
+  backface-visibility:visible!important;
+  -webkit-backface-visibility:visible!important;
+  pointer-events:auto!important;
+  touch-action:none!important;
+}
+
+/* These two fullscreen visual layers are cosmetic only. On iOS WebKit they can
+   become a separate accelerated surface above Phaser and hide the actual world. */
+body.jw302-mobile-safe .jw-world-fx,
+body.jw302-mobile-safe .jw19-zone-atmosphere{
+  display:none!important;
+}
+
+/* Keep interface above the world canvas. */
+body.jw302-mobile-safe #game-ui .top-bar,
+body.jw302-mobile-safe #game-ui .status-panel,
+body.jw302-mobile-safe #game-ui .quest-panel,
+body.jw302-mobile-safe #game-ui .boss-panel,
+body.jw302-mobile-safe #game-ui .mobile-actions,
+body.jw302-mobile-safe #game-ui .zone-dock,
+body.jw302-mobile-safe .jw19-zone-mood,
+body.jw302-mobile-safe .jw-zone-title{
+  position:fixed;
+  z-index:70!important;
+}
+
+body.jw302-mobile-safe .jw-combat-dock,
+body.jw302-mobile-safe .jw272-dock,
+body.jw302-mobile-safe .jw27-mobile-dock,
+body.jw302-mobile-safe .jw272-more,
+body.jw302-mobile-safe .jw27-more-sheet{
+  z-index:10040!important;
+}
+
+@media(min-width:761px) and (pointer:fine){
+  body.jw302-mobile-safe #game-container canvas{position:absolute!important}
+}
