@@ -1,12 +1,15 @@
 {
   "name": "junja-world",
-  "version": "2.8.7",
+  "version": "2.8.8",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "start": "node server/recovery-boot.mjs"
+  },
+  "engines": {
+    "node": ">=22.5.0 <23"
   },
   "dependencies": {
     "express": "^5.1.0",
