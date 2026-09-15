@@ -2,9 +2,33 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Keep PostgreSQL/Neon, but never allow a dead DB connection to freeze the web process forever.
-process.env.PGCONNECT_TIMEOUT=process.env.PGCONNECT_TIMEOUT||'6';
+const originalDatabaseUrl=String(process.env.DATABASE_URL||'').trim();
 process.env.PGOPTIONS=process.env.PGOPTIONS||'-c statement_timeout=8000';
+
+async function preflightDatabase(){
+  if(!originalDatabaseUrl)return;
+  let client;
+  try{
+    const {Client}=await import('pg');
+    client=new Client({
+      connectionString:originalDatabaseUrl,
+      ssl:/sslmode=require|neon\.tech/i.test(originalDatabaseUrl)?{rejectUnauthorized:false}:undefined,
+      connectionTimeoutMillis:4500,
+      query_timeout:5000,
+      statement_timeout:5000
+    });
+    await client.connect();
+    await client.query('SELECT 1');
+    console.log('[RECOVERY BOOT] Neon/PostgreSQL preflight OK.');
+  }catch(error){
+    console.error('[RECOVERY BOOT] Neon preflight failed; booting with local fallback:',error?.message||error);
+    delete process.env.DATABASE_URL;
+  }finally{
+    try{await client?.end();}catch{}
+  }
+}
+
+await preflightDatabase();
 
 try {
   await import('./index.mjs');
@@ -12,12 +36,12 @@ try {
   console.error('[RECOVERY BOOT] primary server failed to start:', error?.stack || error);
 
   const app = express();
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 10000;
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
   app.disable('x-powered-by');
   app.get('/api/health', (_req, res) => {
-    res.status(200).json({ ok: true, game: 'JUNJA WORLD', version: '2.8.7', degraded: true, recovery: 'static' });
+    res.status(200).json({ ok: true, game: 'JUNJA WORLD', version: '2.8.8', degraded: true, recovery: 'static' });
   });
   app.use(express.static(path.join(root, 'dist'), { maxAge: '0', etag: false }));
   app.get('/{*splat}', (_req, res) => {
