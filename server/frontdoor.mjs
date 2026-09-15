@@ -16,7 +16,7 @@ app.get('/api/health',(_req,res)=>{
   res.status(200).json({
     ok:true,
     game:'JUNJA WORLD',
-    version:'2.9.1',
+    version:'2.9.2',
     frontdoor:true,
     backendReady,
     backendError:backendReady?null:backendError

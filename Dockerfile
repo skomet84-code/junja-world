@@ -11,7 +11,6 @@ RUN npm run build
 ENV NODE_ENV=production
 ENV PORT=10000
 ENV PGCONNECT_TIMEOUT=5
-ENV PGOPTIONS="-c statement_timeout=8000"
 
 EXPOSE 10000
 
