@@ -39,7 +39,7 @@ try {
 
   app.disable('x-powered-by');
   app.get('/api/health', (_req, res) => {
-    res.status(200).json({ ok: true, game: 'JUNJA WORLD', version: '2.9.6', degraded: true, recovery: 'static' });
+    res.status(200).json({ ok: true, game: 'JUNJA WORLD', version: '2.9.7', degraded: true, recovery: 'static' });
   });
   app.use(express.static(path.join(root, 'dist'), { maxAge: '0', etag: false }));
   app.get('/{*splat}', (_req, res) => {

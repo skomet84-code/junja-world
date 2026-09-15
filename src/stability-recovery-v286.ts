@@ -97,8 +97,11 @@ function repairCharacterEntry(){
 function entryTouchFallback(e:TouchEvent){
   if(!entryOpen()||e.changedTouches.length===0)return;
   const touch=e.changedTouches[0];
-  const hit=document.elementFromPoint(touch.clientX,touch.clientY) as HTMLElement|null;
-  const control=hit?.closest<HTMLElement>('#hero-name,.class-card,#enter-game');
+  const controls=Array.from(document.querySelectorAll<HTMLElement>('#hero-name,.class-card,#enter-game'));
+  const control=controls.find(candidate=>{
+    const r=candidate.getBoundingClientRect();
+    return touch.clientX>=r.left&&touch.clientX<=r.right&&touch.clientY>=r.top&&touch.clientY<=r.bottom;
+  });
   if(!control)return;
   if(control instanceof HTMLInputElement){
     if(document.activeElement!==control){e.preventDefault();control.focus();}
@@ -127,7 +130,8 @@ function boot(){
   // microtask loop in WebKit. Class changes are the only state signal needed.
   if(g)new MutationObserver(repair).observe(g,{attributes:true,attributeFilter:['class']});
   if(a)new MutationObserver(repair).observe(a,{attributes:true,attributeFilter:['class']});
-  a?.addEventListener('touchend',entryTouchFallback,{capture:true,passive:false});
+  // Capture before any transparent HUD/canvas overlay can swallow the iOS tap.
+  window.addEventListener('touchend',entryTouchFallback,{capture:true,passive:false});
   window.addEventListener('pageshow',repair);window.addEventListener('focus',repair);
   [120,450,1200].forEach(ms=>window.setTimeout(repair,ms));
   window.setTimeout(()=>{if(gateOpen()&&!accountBusy)ensureLocalButton(true);},6500);
