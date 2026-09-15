@@ -8,10 +8,14 @@ export type V4WorldHooks = {
 
 const W = 2200;
 const H = 1500;
+const INPUT_TOP = 135;
+const INPUT_BOTTOM = 165;
+const DRAG_DEADZONE = 12;
 
 export class V4WorldScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Container;
   private dragging = false;
+  private activePointerId: number | null = null;
   private dragOrigin = new Phaser.Math.Vector2();
   private moveVector = new Phaser.Math.Vector2();
   private hooks: V4WorldHooks;
@@ -31,13 +35,17 @@ export class V4WorldScene extends Phaser.Scene {
     this.applyCameraZoom();
     this.installInput();
     this.scale.on('resize',this.applyCameraZoom,this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>this.scale.off('resize',this.applyCameraZoom,this));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{
+      this.scale.off('resize',this.applyCameraZoom,this);
+      this.stopManualMove();
+      this.navigator?.cancel();
+    });
   }
 
   update(_time:number,delta:number) {
     if (!this.player) return;
     const speed = 250;
-    if (this.dragging && this.moveVector.lengthSq() > 1) {
+    if (this.dragging && this.moveVector.lengthSq() > DRAG_DEADZONE * DRAG_DEADZONE) {
       const dir = this.moveVector.clone().normalize();
       this.player.x = Phaser.Math.Clamp(this.player.x + dir.x * speed * delta / 1000,40,W-40);
       this.player.y = Phaser.Math.Clamp(this.player.y + dir.y * speed * delta / 1000,60,H-40);
@@ -48,7 +56,7 @@ export class V4WorldScene extends Phaser.Scene {
 
   goToQuest() {
     if (!this.player || !this.questMarker || !this.navigator) return;
-    this.dragging=false; this.moveVector.set(0,0);
+    this.stopManualMove();
     this.navigator.moveTo({x:this.questMarker.x-90,y:this.questMarker.y+40},{
       onStep:(x,y)=>this.hooks.onPosition?.(x,y),
       onArrive:()=>this.hooks.onTarget?.('경비 무진')
@@ -59,18 +67,31 @@ export class V4WorldScene extends Phaser.Scene {
 
   private installInput() {
     this.input.on('pointerdown',(p:Phaser.Input.Pointer)=>{
-      if (p.y < 135 || p.y > this.scale.height - 165) return;
+      if (this.dragging) return;
+      if (p.y < INPUT_TOP || p.y > this.scale.height - INPUT_BOTTOM) return;
       this.navigator?.cancel();
       this.dragging = true;
+      this.activePointerId = p.id;
       this.dragOrigin.set(p.x,p.y);
       this.moveVector.set(0,0);
     });
     this.input.on('pointermove',(p:Phaser.Input.Pointer)=>{
-      if (!this.dragging || !p.isDown) return;
+      if (!this.dragging || !p.isDown || p.id !== this.activePointerId) return;
       this.moveVector.set(p.x-this.dragOrigin.x,p.y-this.dragOrigin.y);
     });
-    const stop=()=>{this.dragging=false;this.moveVector.set(0,0)};
-    this.input.on('pointerup',stop); this.input.on('pointerupoutside',stop);
+    const stop=(p:Phaser.Input.Pointer)=>{
+      if (this.activePointerId !== null && p.id !== this.activePointerId) return;
+      this.stopManualMove();
+    };
+    this.input.on('pointerup',stop);
+    this.input.on('pointerupoutside',stop);
+    this.input.on('gameout',()=>this.stopManualMove());
+  }
+
+  private stopManualMove() {
+    this.dragging=false;
+    this.activePointerId=null;
+    this.moveVector.set(0,0);
   }
 
   private drawWorld() {
