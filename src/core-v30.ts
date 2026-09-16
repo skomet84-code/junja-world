@@ -1,5 +1,5 @@
 const SAVE_KEY='junja-world-v01';
-export const JUNJA_WORLD_VERSION='3.1.0';
+export const JUNJA_WORLD_VERSION='3.1.1';
 
 type ModuleState='idle'|'loading'|'ready'|'failed';
 type ModuleRecord={state:ModuleState;startedAt?:number;finishedAt?:number;error?:string};
