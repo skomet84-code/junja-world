@@ -1,0 +1,561 @@
+/* JUNJA ADVENTURE · DESIGN SYSTEM v1
+   Design-first layer: cozy fantasy + readable MMORPG HUD.
+   Keeps gameplay logic untouched while unifying PC/mobile presentation. */
+
+:root{
+  --ja-ink:#18252a;
+  --ja-deep:#10252a;
+  --ja-deep-2:#0a171c;
+  --ja-cream:#fff5d8;
+  --ja-paper:#f7e7bd;
+  --ja-gold:#f0bd55;
+  --ja-gold-2:#c57c2e;
+  --ja-green:#4e8c59;
+  --ja-green-2:#2e6545;
+  --ja-sky:#72c7df;
+  --ja-red:#e45d64;
+  --ja-blue:#4ca6da;
+  --ja-panel:rgba(16,37,42,.91);
+  --ja-line:rgba(255,224,153,.28);
+  --ja-shadow:0 16px 42px rgba(3,12,15,.34);
+}
+
+body.ja-design-v1{
+  background:#0a171c;
+  color:var(--ja-cream);
+}
+body.ja-design-v1 button{letter-spacing:-.01em}
+
+/* ---------- AUTH / FIRST IMPRESSION ---------- */
+body.ja-design-v1 .screen-layer{
+  overflow:hidden;
+  background:
+    linear-gradient(180deg,rgba(23,67,63,.22),rgba(10,24,28,.66) 58%,rgba(5,14,18,.94)),
+    url('/assets/baegun-village.webp') center/cover no-repeat;
+}
+body.ja-design-v1 .screen-layer::before{
+  content:'';
+  position:absolute;
+  inset:-2%;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 18%,rgba(255,246,198,.27),transparent 31%),
+    linear-gradient(90deg,rgba(13,38,34,.28),transparent 28%,transparent 72%,rgba(13,38,34,.28));
+  backdrop-filter:saturate(1.08);
+}
+body.ja-design-v1 .screen-layer::after{
+  content:'';
+  position:absolute;
+  inset:auto 0 0;
+  height:32%;
+  pointer-events:none;
+  background:linear-gradient(transparent,rgba(7,18,22,.72));
+}
+body.ja-design-v1 .login-card{
+  position:relative;
+  z-index:2;
+  width:min(590px,94vw);
+  padding:36px 40px 26px;
+  overflow:visible;
+  border:1px solid rgba(255,224,151,.72);
+  border-radius:26px;
+  background:
+    linear-gradient(180deg,rgba(255,248,220,.96),rgba(239,220,177,.95));
+  box-shadow:0 34px 100px rgba(0,0,0,.48),inset 0 0 0 4px rgba(118,72,32,.09);
+  color:var(--ja-ink);
+}
+body.ja-design-v1 .login-card::before{
+  content:'JUNJA ADVENTURE';
+  position:absolute;
+  left:50%;
+  top:-24px;
+  transform:translateX(-50%);
+  min-width:260px;
+  padding:10px 24px 11px;
+  border:2px solid #8f5c2d;
+  border-radius:14px;
+  background:linear-gradient(180deg,#b87537,#70401f);
+  box-shadow:0 8px 0 #4f2c16,0 14px 28px rgba(0,0,0,.28);
+  color:#fff3c9;
+  font:900 17px 'Noto Sans KR',sans-serif;
+  letter-spacing:.08em;
+  text-shadow:0 2px 0 #4c2a17;
+}
+body.ja-design-v1 .crest{
+  width:58px;
+  height:58px;
+  margin:5px auto 6px;
+  border:3px solid #78491e;
+  outline:3px solid rgba(255,241,184,.85);
+  background:radial-gradient(circle at 35% 25%,#fff0a3,#efa843 58%,#a86624);
+  box-shadow:0 6px 18px rgba(83,47,19,.26);
+  color:#633610;
+}
+body.ja-design-v1 .login-card .eyebrow{
+  margin-top:8px;
+  color:#5a855d;
+  font-weight:900;
+  letter-spacing:.24em;
+}
+body.ja-design-v1 .login-card h1{
+  margin:2px 0 0;
+  color:#234d42;
+  background:none;
+  -webkit-text-fill-color:initial;
+  text-shadow:0 2px 0 rgba(255,255,255,.72);
+  font-size:clamp(34px,6vw,49px);
+}
+body.ja-design-v1 .login-card .subtitle{
+  margin:2px 0 19px;
+  color:#6b6a55;
+  font-weight:700;
+}
+body.ja-design-v1 .login-card label,
+body.ja-design-v1 .select-title{color:#3f5549}
+body.ja-design-v1 .login-card input{
+  color:#24352e;
+  background:rgba(255,253,239,.84);
+  border:1px solid #b69c6e;
+  box-shadow:inset 0 2px 8px rgba(91,63,34,.08);
+}
+body.ja-design-v1 .login-card input:focus{
+  border-color:#4c8c65;
+  box-shadow:0 0 0 3px rgba(78,140,89,.15),inset 0 2px 8px rgba(91,63,34,.08);
+}
+body.ja-design-v1 .class-grid{gap:10px}
+body.ja-design-v1 .class-card{
+  position:relative;
+  min-height:96px;
+  overflow:hidden;
+  padding:14px 7px 11px;
+  color:#4f5b51;
+  border:1px solid #b59c70;
+  border-radius:15px;
+  background:linear-gradient(180deg,rgba(255,253,238,.9),rgba(228,211,171,.72));
+  box-shadow:inset 0 1px rgba(255,255,255,.7);
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+body.ja-design-v1 .class-card::after{
+  content:'';
+  position:absolute;
+  inset:auto -12px -22px;
+  height:48px;
+  border-radius:50%;
+  background:rgba(71,117,79,.08);
+}
+body.ja-design-v1 .class-card b{position:relative;z-index:1;color:#a96628;font-size:29px;text-shadow:0 2px #fff6dc}
+body.ja-design-v1 .class-card span{position:relative;z-index:1;color:#2e463a;font-size:13px}
+body.ja-design-v1 .class-card small{position:relative;z-index:1;color:#7e7866}
+body.ja-design-v1 .class-card:hover,
+body.ja-design-v1 .class-card.selected{
+  color:#254535;
+  border-color:#4f8f60;
+  background:linear-gradient(180deg,#fff9df,#e8e1ad);
+  transform:translateY(-3px);
+  box-shadow:0 9px 18px rgba(43,83,49,.18),inset 0 0 0 2px rgba(89,146,95,.14);
+}
+body.ja-design-v1 .class-card[data-class='warrior'].selected{box-shadow:0 9px 18px rgba(160,95,43,.2),inset 0 0 0 2px rgba(192,112,43,.18)}
+body.ja-design-v1 .class-card[data-class='mage'].selected{box-shadow:0 9px 18px rgba(122,83,180,.18),inset 0 0 0 2px rgba(139,89,190,.16)}
+body.ja-design-v1 .class-card[data-class='ranger'].selected{box-shadow:0 9px 18px rgba(55,118,72,.18),inset 0 0 0 2px rgba(62,133,76,.16)}
+body.ja-design-v1 .primary-button{
+  min-height:50px;
+  border:1px solid #a36c2c;
+  border-radius:14px;
+  color:#4c2a0d;
+  background:linear-gradient(180deg,#ffdf79,#e59f3b);
+  box-shadow:0 7px 0 #a66227,0 12px 24px rgba(116,71,28,.18),inset 0 1px #fff4bd;
+}
+body.ja-design-v1 .primary-button:active{transform:translateY(3px);box-shadow:0 4px 0 #a66227,0 8px 16px rgba(116,71,28,.16)}
+body.ja-design-v1 .login-footer{color:#82745f;font-weight:700}
+
+/* ---------- IN-GAME WORLD / ATMOSPHERE ---------- */
+body.ja-design-v1 #game-ui::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  z-index:3;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(7,21,23,.16),transparent 20%,transparent 76%,rgba(5,14,18,.18)),
+    radial-gradient(ellipse at center,transparent 56%,rgba(8,20,22,.16) 100%);
+}
+body.ja-design-v1 #game-container canvas{image-rendering:auto}
+
+/* ---------- TOP BAR ---------- */
+body.ja-design-v1 #game-ui .top-bar{
+  height:64px;
+  padding:8px 18px;
+  background:linear-gradient(180deg,rgba(8,24,27,.92),rgba(8,24,27,.58) 64%,transparent);
+  border:0;
+}
+body.ja-design-v1 #game-ui .brand{
+  gap:10px;
+  padding:5px 12px 5px 6px;
+  border:1px solid rgba(255,218,138,.23);
+  border-radius:16px;
+  background:rgba(10,29,31,.76);
+  color:#fff0bd;
+  box-shadow:0 8px 22px rgba(0,0,0,.2);
+  backdrop-filter:blur(8px);
+}
+body.ja-design-v1 #game-ui .mini-crest{
+  width:35px;
+  height:35px;
+  border:2px solid #9e6429;
+  background:linear-gradient(145deg,#ffe087,#d58f35);
+  color:#53300d;
+  box-shadow:inset 0 1px #fff6c6;
+}
+body.ja-design-v1 #game-ui .zone{
+  min-width:135px;
+  padding:6px 16px;
+  border:1px solid rgba(255,224,153,.2);
+  border-radius:999px;
+  background:rgba(9,28,31,.68);
+  box-shadow:0 8px 22px rgba(0,0,0,.16);
+  backdrop-filter:blur(7px);
+}
+body.ja-design-v1 #game-ui .zone small{color:#9bc7b0;letter-spacing:.08em}
+body.ja-design-v1 #game-ui .zone strong{color:#fff1bf;font-size:13px}
+body.ja-design-v1 #reset-save{
+  border:1px solid rgba(255,224,153,.22);
+  border-radius:12px;
+  background:rgba(9,28,31,.72);
+  color:#f3d895;
+}
+
+/* ---------- PLAYER CARD ---------- */
+body.ja-design-v1 #game-ui .status-panel{
+  top:78px;
+  left:16px;
+  width:258px;
+  padding:13px 14px 12px 76px;
+  overflow:visible;
+  border:1px solid rgba(255,224,153,.34);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(15,43,42,.94),rgba(9,25,31,.92));
+  box-shadow:var(--ja-shadow),inset 0 1px rgba(255,255,255,.05);
+  backdrop-filter:blur(12px);
+}
+body.ja-design-v1 #game-ui .ja-avatar-emblem{
+  position:absolute;
+  left:13px;
+  top:14px;
+  width:51px;
+  height:51px;
+  display:grid;
+  place-items:center;
+  border:2px solid #d5a549;
+  border-radius:16px;
+  background:radial-gradient(circle at 38% 28%,#416f5a,#193d39 68%,#102628);
+  box-shadow:0 7px 18px rgba(0,0,0,.3),inset 0 0 0 2px rgba(255,236,169,.1);
+  color:#ffe39a;
+  font-size:25px;
+  text-shadow:0 2px 5px #000;
+}
+body.ja-design-v1 #game-ui .identity{display:flex;align-items:flex-end;gap:7px;justify-content:flex-start}
+body.ja-design-v1 #game-ui .identity strong{color:#fff8df;font-size:14px}
+body.ja-design-v1 #game-ui .identity span{color:#f2c76e;font-size:9px;font-weight:800}
+body.ja-design-v1 #game-ui .bar{
+  height:15px;
+  margin-top:6px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:999px;
+  background:rgba(3,13,17,.66);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.32);
+}
+body.ja-design-v1 #game-ui .bar i{border-radius:999px}
+body.ja-design-v1 #game-ui .bar.hp i{background:linear-gradient(90deg,#c9404d,#ef7571 72%,#ffc09d)}
+body.ja-design-v1 #game-ui .bar.xp i{background:linear-gradient(90deg,#328fc0,#67d0df 72%,#b3f3e4)}
+body.ja-design-v1 #game-ui .bar span{line-height:13px;font-size:8px;font-weight:900}
+body.ja-design-v1 #game-ui .stats{margin-top:7px;color:#a7beb8}
+body.ja-design-v1 #game-ui .stats b{color:#ffe29b}
+body.ja-design-v1 #game-ui #inventory-button{
+  margin-top:8px;
+  padding:8px 10px;
+  border:1px solid rgba(255,224,153,.22);
+  border-radius:10px;
+  color:#f7e9bd;
+  background:linear-gradient(180deg,rgba(68,104,73,.56),rgba(29,66,52,.52));
+}
+
+/* ---------- QUEST / BOSS ---------- */
+body.ja-design-v1 #game-ui .quest-panel{
+  top:78px;
+  right:16px;
+  width:286px;
+  padding:14px 16px 15px 18px;
+  border:1px solid rgba(210,166,84,.52);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(255,245,212,.96),rgba(225,205,159,.95));
+  box-shadow:var(--ja-shadow),inset 0 0 0 3px rgba(105,72,36,.07);
+  color:#3a3326;
+}
+body.ja-design-v1 #game-ui .quest-panel::before{
+  content:'!';
+  position:absolute;
+  left:-13px;
+  top:17px;
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border:2px solid #8e5d23;
+  border-radius:50%;
+  background:linear-gradient(#ffdf72,#e9a63c);
+  color:#5a3511;
+  font-weight:1000;
+  box-shadow:0 5px 14px rgba(75,48,20,.28);
+}
+body.ja-design-v1 #game-ui .quest-panel .panel-title{color:#4f7d51}
+body.ja-design-v1 #game-ui .quest-panel .panel-title small{color:#a66e31}
+body.ja-design-v1 #game-ui .quest-panel strong{color:#3c392b;font-size:13px}
+body.ja-design-v1 #game-ui .quest-panel p{color:#6c6654}
+body.ja-design-v1 #game-ui .quest-progress{height:6px;background:#b5a886}
+body.ja-design-v1 #game-ui .quest-progress i{background:linear-gradient(90deg,#5f9c59,#9fd06f)}
+body.ja-design-v1 #game-ui .boss-panel{
+  top:202px;
+  right:16px;
+  width:286px;
+  border:1px solid rgba(183,127,203,.28);
+  border-radius:14px;
+  background:linear-gradient(145deg,rgba(45,29,55,.82),rgba(16,31,37,.82));
+  box-shadow:0 10px 28px rgba(0,0,0,.25);
+}
+body.ja-design-v1 #game-ui .boss-panel small{color:#c8a8d2}
+body.ja-design-v1 #game-ui .boss-panel strong{color:#ffe7a4}
+
+/* ---------- DESKTOP QUICK MENU ---------- */
+body.ja-design-v1 .ja-quick-menu{
+  position:fixed;
+  z-index:18;
+  top:78px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:7px;
+  padding:6px;
+  border:1px solid rgba(255,224,153,.22);
+  border-radius:15px;
+  background:rgba(8,27,29,.78);
+  box-shadow:0 10px 26px rgba(0,0,0,.24);
+  backdrop-filter:blur(10px);
+}
+body.ja-design-v1 .ja-quick-menu button{
+  min-width:72px;
+  padding:7px 10px;
+  border:0;
+  border-radius:10px;
+  color:#dfeadf;
+  background:transparent;
+  font-size:9px;
+  font-weight:900;
+  cursor:pointer;
+}
+body.ja-design-v1 .ja-quick-menu button b{display:block;margin-bottom:1px;color:#ffe09a;font-size:15px;line-height:15px}
+body.ja-design-v1 .ja-quick-menu button:hover{background:rgba(255,226,157,.1);color:#fff}
+
+/* ---------- BOTTOM TRAVEL / ACTION ---------- */
+body.ja-design-v1 #game-ui .zone-dock{
+  bottom:18px;
+  gap:5px;
+  padding:7px;
+  border:1px solid rgba(255,222,143,.22);
+  border-radius:17px;
+  background:rgba(8,27,29,.86);
+  box-shadow:0 12px 34px rgba(0,0,0,.28);
+  backdrop-filter:blur(10px);
+}
+body.ja-design-v1 #game-ui .zone-dock button{
+  min-height:36px;
+  padding:8px 13px;
+  border:1px solid rgba(255,229,164,.16);
+  border-radius:11px;
+  color:#e8ead8;
+  background:linear-gradient(180deg,rgba(54,89,66,.58),rgba(22,57,49,.58));
+}
+body.ja-design-v1 #game-ui .zone-dock button:hover{border-color:#e8c675;color:#fff6d7;background:linear-gradient(180deg,rgba(79,123,82,.72),rgba(32,75,58,.72))}
+body.ja-design-v1 #game-ui .workshop-enter{background:linear-gradient(180deg,#a8642f,#65391f)!important;border-color:#e3b260!important}
+body.ja-design-v1 #game-ui .mobile-actions button{
+  box-shadow:0 8px 18px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.08);
+}
+body.ja-design-v1 #game-ui #mobile-attack{
+  border-color:#f0c35f;
+  background:radial-gradient(circle at 35% 25%,#ffdf71,#d8842f 72%)!important;
+  color:#4a270b!important;
+}
+body.ja-design-v1 #game-ui #mobile-action{
+  border-color:#7eb78b;
+  background:radial-gradient(circle at 35% 25%,#6f9f79,#285a47 72%)!important;
+}
+
+/* ---------- INVENTORY ---------- */
+body.ja-design-v1 #inventory-panel{
+  border:1px solid rgba(240,192,96,.55);
+  border-radius:20px;
+  background:linear-gradient(145deg,rgba(20,50,46,.98),rgba(8,25,30,.99));
+  box-shadow:0 28px 80px rgba(0,0,0,.55),inset 0 0 0 3px rgba(255,232,166,.05);
+}
+body.ja-design-v1 #inventory-panel .inventory-head strong{color:#ffe2a0;font-size:16px}
+body.ja-design-v1 #inventory-panel .inventory-summary{border:1px solid rgba(255,231,170,.09);background:rgba(5,21,24,.56);color:#c9dad1}
+body.ja-design-v1 #inventory-panel .auto-toggle.enabled{border-color:#6ca36f;background:linear-gradient(180deg,#315f3c,#163c31)}
+body.ja-design-v1 #inventory-panel .gold-line{padding:8px 10px;border-radius:9px;background:rgba(255,218,119,.07)}
+
+/* ---------- TOAST / FEEDBACK ---------- */
+body.ja-design-v1 .toast{
+  top:80px;
+  padding:10px 18px;
+  border:1px solid #b47a31;
+  border-radius:999px;
+  background:linear-gradient(180deg,#fff1b5,#efbd5e);
+  box-shadow:0 10px 28px rgba(0,0,0,.28);
+}
+body.ja-design-v1 .ja-zone-intro{
+  position:fixed;
+  z-index:10060;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%) scale(.96);
+  min-width:min(420px,78vw);
+  padding:19px 26px 18px;
+  pointer-events:none;
+  text-align:center;
+  border:1px solid rgba(255,230,163,.45);
+  border-radius:19px;
+  background:linear-gradient(145deg,rgba(10,35,34,.94),rgba(8,22,29,.94));
+  box-shadow:0 24px 64px rgba(0,0,0,.38),inset 0 0 0 3px rgba(255,255,255,.03);
+  opacity:0;
+  transition:opacity .35s ease,transform .35s ease;
+}
+body.ja-design-v1 .ja-zone-intro.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+body.ja-design-v1 .ja-zone-intro small{display:block;color:#91c7a2;font-size:9px;font-weight:900;letter-spacing:.24em}
+body.ja-design-v1 .ja-zone-intro b{display:block;margin-top:3px;color:#fff1b5;font-size:25px}
+body.ja-design-v1 .ja-zone-intro span{display:block;margin-top:2px;color:#c5d4ce;font-size:10px}
+
+/* ---------- EXISTING ENHANCEMENT PANELS: unify their palette ---------- */
+body.ja-design-v1 .jw-combat-dock,
+body.ja-design-v1 .jw272-dock,
+body.ja-design-v1 .jw27-mobile-dock,
+body.ja-design-v1 .jw16-world-panel,
+body.ja-design-v1 .jw15-guide-panel{
+  --ja-shell:rgba(8,27,29,.93);
+}
+body.ja-design-v1 .jw-combat-dock{border-color:rgba(255,224,153,.22)!important;background:rgba(8,27,29,.82)!important}
+
+/* ---------- MOBILE: CLEAN, GAME-FIRST, THUMB-REACHABLE ---------- */
+@media(max-width:760px),(pointer:coarse){
+  body.ja-design-v1 .screen-layer{padding:10px;background-position:center}
+  body.ja-design-v1 .login-card{width:min(430px,94vw);padding:31px 15px 17px;border-radius:21px}
+  body.ja-design-v1 .login-card::before{top:-19px;min-width:220px;padding:8px 17px;font-size:14px}
+  body.ja-design-v1 .crest{width:48px;height:48px;font-size:24px}
+  body.ja-design-v1 .login-card h1{font-size:32px}
+  body.ja-design-v1 .login-card .subtitle{font-size:11px;margin-bottom:13px}
+  body.ja-design-v1 .class-card{min-height:82px;padding:10px 3px}
+  body.ja-design-v1 .class-card b{font-size:24px}
+  body.ja-design-v1 .class-card span{font-size:11px}
+  body.ja-design-v1 .class-card small{font-size:7px}
+  body.ja-design-v1 .primary-button{min-height:46px}
+
+  body.ja-design-v1 .ja-quick-menu{display:none!important}
+  body.ja-design-v1 #game-ui::before{background:linear-gradient(180deg,rgba(7,21,23,.1),transparent 20%,transparent 84%,rgba(5,14,18,.1))}
+
+  /* final authority over older compact shells */
+  body.ja-design-v1 #game-ui .top-bar{
+    height:34px!important;
+    min-height:34px!important;
+    padding:0 7px!important;
+    background:linear-gradient(180deg,rgba(7,24,25,.88),rgba(7,24,25,.48))!important;
+    border-bottom:1px solid rgba(255,224,153,.12)!important;
+    box-shadow:none!important;
+  }
+  body.ja-design-v1 #game-ui .top-bar .brand,
+  body.ja-design-v1 #game-ui #reset-save{display:none!important}
+  body.ja-design-v1 #game-ui .top-bar .zone{
+    position:absolute!important;
+    inset:0!important;
+    min-width:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  body.ja-design-v1 #game-ui .top-bar .zone small{display:none!important}
+  body.ja-design-v1 #game-ui .top-bar .zone strong{font-size:10px!important;line-height:34px!important;color:#fff0b7!important}
+
+  body.ja-design-v1 #game-ui .status-panel{
+    display:block!important;
+    position:fixed!important;
+    top:41px!important;
+    left:7px!important;
+    width:122px!important;
+    max-width:122px!important;
+    padding:7px!important;
+    border:1px solid rgba(255,224,153,.18)!important;
+    border-radius:12px!important;
+    background:linear-gradient(145deg,rgba(11,38,37,.82),rgba(7,23,28,.78))!important;
+    box-shadow:0 7px 18px rgba(0,0,0,.2)!important;
+    backdrop-filter:blur(7px)!important;
+    z-index:72!important;
+  }
+  body.ja-design-v1 #game-ui .ja-avatar-emblem{display:none!important}
+  body.ja-design-v1 #game-ui .status-panel .identity{margin:0 0 3px!important;display:flex!important;align-items:center!important;gap:3px!important}
+  body.ja-design-v1 #game-ui .status-panel .identity strong{font-size:10px!important;line-height:1.1!important;color:#fff8df!important}
+  body.ja-design-v1 #game-ui .status-panel .identity span{font-size:7px!important;color:#f1c76d!important}
+  body.ja-design-v1 #game-ui .status-panel .bar{height:9px!important;margin-top:3px!important;border-radius:999px!important}
+  body.ja-design-v1 #game-ui .status-panel .bar span{font-size:6px!important;line-height:8px!important}
+  body.ja-design-v1 #game-ui .status-panel .stats,
+  body.ja-design-v1 #game-ui .status-panel #inventory-button{display:none!important}
+
+  body.ja-design-v1.jw272-game .jw272-dock,
+  body.ja-design-v1.jw271-game-on .jw27-mobile-dock{
+    border:1px solid rgba(255,224,153,.19)!important;
+    background:linear-gradient(180deg,rgba(10,35,34,.96),rgba(6,21,27,.97))!important;
+    box-shadow:0 10px 27px rgba(0,0,0,.36)!important;
+  }
+  body.ja-design-v1 .jw272-dock button i,
+  body.ja-design-v1 .jw27-mobile-dock button i{color:#ffe09a!important}
+  body.ja-design-v1 .jw272-dock button.active,
+  body.ja-design-v1 .jw27-mobile-dock button.active{background:linear-gradient(180deg,rgba(79,128,79,.32),rgba(37,78,58,.32))!important}
+
+  body.ja-design-v1.jw272-mobile .jw-combat-dock,
+  body.ja-design-v1.jw271-mobile .jw-combat-dock{
+    border-color:rgba(255,224,153,.16)!important;
+    background:rgba(8,29,30,.82)!important;
+    box-shadow:0 7px 18px rgba(0,0,0,.2)!important;
+  }
+  body.ja-design-v1 .mobile-actions button{
+    border-radius:14px!important;
+    box-shadow:0 7px 18px rgba(0,0,0,.26)!important;
+  }
+  body.ja-design-v1 #mobile-attack{border-color:#f0c35f!important;background:radial-gradient(circle at 35% 25%,#ffe182,#d88731 74%)!important;color:#4b290c!important}
+  body.ja-design-v1 #mobile-action{border-color:#86b995!important;background:radial-gradient(circle at 35% 25%,#6da17c,#2a5e4b 74%)!important;color:#fff!important}
+
+  body.ja-design-v1.jw272-open-mission .quest-panel,
+  body.ja-design-v1.jw271-open-mission .quest-panel{
+    border:1px solid rgba(191,145,69,.62)!important;
+    background:linear-gradient(145deg,rgba(255,245,212,.98),rgba(226,206,161,.98))!important;
+    color:#383226!important;
+    box-shadow:0 15px 38px rgba(0,0,0,.34)!important;
+  }
+  body.ja-design-v1.jw272-open-mission .quest-panel strong,
+  body.ja-design-v1.jw271-open-mission .quest-panel strong{color:#343125!important}
+  body.ja-design-v1.jw272-open-mission .quest-panel p,
+  body.ja-design-v1.jw271-open-mission .quest-panel p{color:#68604d!important}
+
+  body.ja-design-v1.jw272-open-bag #inventory-panel,
+  body.ja-design-v1.jw271-open-bag #inventory-panel{
+    border:1px solid rgba(240,192,96,.45)!important;
+    background:linear-gradient(145deg,rgba(19,49,45,.99),rgba(7,23,29,.99))!important;
+  }
+  body.ja-design-v1 .ja-zone-intro{min-width:min(300px,78vw);padding:15px 18px}
+  body.ja-design-v1 .ja-zone-intro b{font-size:20px}
+}
+
+@media(max-width:390px){
+  body.ja-design-v1 .login-card{padding-left:12px;padding-right:12px}
+  body.ja-design-v1 #game-ui .status-panel{width:114px!important;max-width:114px!important}
+}
