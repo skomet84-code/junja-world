@@ -1,7 +1,7 @@
 import {JUNJA_WORLD_VERSION,loadCoreGroup,loadCoreModule} from './core-v30';
 
 const CURRENT_VERSION=JUNJA_WORLD_VERSION;
-const VERSION_LABEL=`JUNJA WORLD v${CURRENT_VERSION}`;
+const VERSION_LABEL=`JUNJA ADVENTURE v${CURRENT_VERSION}`;
 let bootstrapPromise:Promise<any>|null=null;
 let enhancementsPromise:Promise<any>|null=null;
 
@@ -56,7 +56,7 @@ function loadEnhancements(){
 function syncVersion(){
   document.documentElement.dataset.jwVersion=CURRENT_VERSION;
   document.querySelectorAll<HTMLElement>('.login-footer span').forEach(node=>{
-    if(node.textContent?.includes('JUNJA WORLD')&&node.textContent!==VERSION_LABEL)node.textContent=VERSION_LABEL;
+    if(/JUNJA (WORLD|ADVENTURE)/.test(node.textContent||'')&&node.textContent!==VERSION_LABEL)node.textContent=VERSION_LABEL;
   });
   const badge=document.querySelector<HTMLElement>('.jw-v09-badge b');
   if(badge&&badge.textContent!==VERSION_LABEL)badge.textContent=VERSION_LABEL;
