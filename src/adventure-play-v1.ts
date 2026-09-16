@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import './adventure-play-v1.css';
+import './adventure-character-v2';
 
 type Hero='warrior'|'mage'|'ranger';
 const tuned=new WeakSet<any>();
