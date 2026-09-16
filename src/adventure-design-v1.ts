@@ -1,7 +1,7 @@
 import './adventure-design-v1.css';
 
 const SAVE_KEY='junja-world-v01';
-const VERSION='3.1.0';
+const VERSION='3.1.1';
 const classMeta={
   warrior:{icon:'⚔',label:'검객'},
   mage:{icon:'✦',label:'도사'},
