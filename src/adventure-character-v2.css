@@ -1,0 +1,74 @@
+/* JUNJA ADVENTURE · CHARACTER / COMBAT DESIGN v2 */
+:root{--ja-class-color:#ffc36f}
+
+body.ja-design-v1 .class-grid{gap:12px!important}
+body.ja-design-v1 .class-card{
+  position:relative!important;overflow:hidden!important;min-height:116px!important;padding:14px 8px 12px!important;
+  border-radius:16px!important;border:1px solid rgba(89,71,42,.18)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(246,235,205,.92))!important;
+  box-shadow:0 7px 18px rgba(65,47,24,.08),inset 0 1px rgba(255,255,255,.9)!important;
+  color:#544731!important;transform:none!important;
+}
+body.ja-design-v1 .class-card::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.76;
+  background:radial-gradient(circle at 50% 16%,var(--ja-card-glow,rgba(255,194,111,.3)),transparent 42%);
+}
+body.ja-design-v1 .class-card[data-class=warrior]{--ja-card-glow:rgba(232,154,87,.32)}
+body.ja-design-v1 .class-card[data-class=mage]{--ja-card-glow:rgba(176,125,227,.3)}
+body.ja-design-v1 .class-card[data-class=ranger]{--ja-card-glow:rgba(119,174,104,.31)}
+body.ja-design-v1 .class-card b{
+  position:relative!important;z-index:1!important;width:52px!important;height:52px!important;margin:0 auto 8px!important;
+  display:grid!important;place-items:center!important;border-radius:50%!important;font-size:26px!important;
+  color:#fff8e7!important;background:linear-gradient(145deg,#6d5435,#3c2e20)!important;
+  box-shadow:0 6px 14px rgba(70,48,25,.18),inset 0 1px rgba(255,255,255,.2)!important;
+}
+body.ja-design-v1 .class-card[data-class=mage] b{background:linear-gradient(145deg,#8e69b5,#574172)!important}
+body.ja-design-v1 .class-card[data-class=ranger] b{background:linear-gradient(145deg,#6f9860,#405c38)!important}
+body.ja-design-v1 .class-card span{position:relative;z-index:1;font-size:14px!important;color:#403728!important}
+body.ja-design-v1 .class-card small{position:relative;z-index:1;margin-top:4px!important;color:#86785f!important;font-size:9px!important}
+body.ja-design-v1 .class-card.selected{
+  border-color:rgba(218,167,78,.72)!important;box-shadow:0 9px 22px rgba(127,84,32,.14),inset 0 0 0 2px rgba(255,220,141,.34)!important;
+  transform:translateY(-2px)!important;
+}
+
+body.ja-design-v1 .status-panel[data-hero=warrior] .ja-avatar-emblem{background:linear-gradient(145deg,#f5bd6c,#9b6632)!important}
+body.ja-design-v1 .status-panel[data-hero=mage] .ja-avatar-emblem{background:linear-gradient(145deg,#c89af0,#70509a)!important}
+body.ja-design-v1 .status-panel[data-hero=ranger] .ja-avatar-emblem{background:linear-gradient(145deg,#a4d28a,#5d8b50)!important}
+
+body.ja-design-v1 .mobile-actions button,
+body.ja-design-v1 .jw-combat-dock button{
+  transition:transform .1s ease,filter .1s ease!important;
+}
+body.ja-design-v1 .mobile-actions button:active,
+body.ja-design-v1 .jw-combat-dock button:active{transform:scale(.94)!important;filter:brightness(1.12)!important}
+body.ja-design-v1 #mobile-attack{
+  position:relative!important;border:2px solid rgba(255,231,170,.52)!important;
+  background:radial-gradient(circle at 35% 28%,#ffd78d,#d88a43 58%,#8b512b 100%)!important;
+  color:#fff9e7!important;text-shadow:0 2px 3px rgba(84,41,15,.65)!important;
+  box-shadow:0 8px 20px rgba(102,55,24,.3),inset 0 1px rgba(255,255,255,.36)!important;
+}
+body.ja-design-v1 #mobile-action{
+  border:1px solid rgba(210,233,215,.35)!important;
+  background:linear-gradient(145deg,rgba(77,128,104,.96),rgba(41,82,73,.96))!important;
+  color:#f2fff5!important;
+}
+
+body.ja-design-v1 .jw21-class-meter.warrior{border-color:rgba(255,195,111,.34)!important}
+body.ja-design-v1 .jw21-class-meter.mage{border-color:rgba(198,145,255,.34)!important}
+body.ja-design-v1 .jw21-class-meter.ranger{border-color:rgba(159,214,125,.34)!important}
+
+body.ja-design-v1 .toast{
+  border:1px solid rgba(255,225,157,.52)!important;border-radius:18px!important;
+  background:linear-gradient(180deg,#fff0ba,#e9be69)!important;color:#4b341a!important;
+  box-shadow:0 12px 30px rgba(63,43,22,.24)!important;
+}
+
+@media(max-width:760px),(pointer:coarse){
+  body.ja-design-v1 .class-grid{gap:7px!important}
+  body.ja-design-v1 .class-card{min-height:94px!important;padding:10px 4px 8px!important;border-radius:13px!important}
+  body.ja-design-v1 .class-card b{width:42px!important;height:42px!important;margin-bottom:5px!important;font-size:21px!important}
+  body.ja-design-v1 .class-card span{font-size:11px!important}
+  body.ja-design-v1 .class-card small{font-size:7px!important}
+  body.ja-design-v1 .mobile-actions{gap:7px!important}
+  body.ja-design-v1 .mobile-actions button{box-shadow:0 7px 18px rgba(0,0,0,.22)!important}
+}
