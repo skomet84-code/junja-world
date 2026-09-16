@@ -1,0 +1,175 @@
+/* JUNJA ADVENTURE · PLAYFIELD POLISH v1
+   Final visual authority for modules that are loaded after the base UI. */
+
+body.ja-design-v1 #game-container canvas{
+  filter:saturate(1.15) brightness(1.045) contrast(1.018)!important;
+}
+body.ja-design-v1 .jw-world-fx::before{
+  background:radial-gradient(circle at 50% 46%,transparent 54%,rgba(7,24,23,.08) 84%,rgba(5,14,18,.16) 100%),linear-gradient(180deg,rgba(255,243,192,.04),transparent 28%,transparent 78%,rgba(9,28,26,.06))!important;
+  mix-blend-mode:normal!important;
+}
+body.ja-design-v1 .jw-world-fx.night::after{background:rgba(28,47,76,.12)!important;mix-blend-mode:multiply!important}
+body.ja-design-v1 .jw-world-fx.dawn::after{background:linear-gradient(180deg,rgba(255,201,143,.10),transparent 48%)!important}
+body.ja-design-v1 .jw-world-fx .mote{background:rgba(255,240,174,.7)!important;box-shadow:0 0 9px rgba(255,223,124,.5)!important}
+
+/* Location title: short, storybook-like, never blocks the playfield for long. */
+body.ja-design-v1 .jw-zone-title{
+  top:78px!important;
+  min-width:230px!important;
+  padding:8px 22px 9px!important;
+  border:1px solid rgba(255,226,153,.24)!important;
+  border-radius:999px!important;
+  background:linear-gradient(90deg,rgba(10,35,33,.16),rgba(10,35,33,.9) 18%,rgba(10,35,33,.9) 82%,rgba(10,35,33,.16))!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.16)!important;
+  backdrop-filter:blur(7px)!important;
+}
+body.ja-design-v1 .jw-zone-title b{color:#fff2bd!important;font-size:16px!important;letter-spacing:.05em!important}
+body.ja-design-v1 .jw-zone-title small{color:#9cd1ac!important;font-size:8px!important;letter-spacing:.16em!important}
+
+/* Compact quest compass: useful navigation without a desktop-app feel. */
+body.ja-design-v1 .jw16-compass{
+  top:133px!important;
+  min-width:200px!important;
+  max-width:430px!important;
+  padding:7px 12px!important;
+  gap:8px!important;
+  border:1px solid rgba(255,226,153,.2)!important;
+  border-radius:13px!important;
+  background:rgba(10,35,34,.78)!important;
+  box-shadow:0 9px 24px rgba(0,0,0,.18)!important;
+  color:#f6ead0!important;
+  backdrop-filter:blur(8px)!important;
+}
+body.ja-design-v1 .jw16-compass-arrow{color:#ffda77!important}
+body.ja-design-v1 .jw16-compass-copy b{font-size:9px!important;color:#fff2c5!important}
+body.ja-design-v1 .jw16-compass-copy small{color:#9dc5ad!important}
+
+/* Minimap: rounded fantasy card, visually subordinate to the actual world. */
+body.ja-design-v1 .jw16-world-panel{
+  top:288px!important;
+  right:16px!important;
+  width:286px!important;
+  padding:10px!important;
+  border:1px solid rgba(255,224,153,.28)!important;
+  border-radius:17px!important;
+  background:linear-gradient(145deg,rgba(14,44,41,.9),rgba(7,24,29,.9))!important;
+  box-shadow:0 14px 36px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.035)!important;
+  backdrop-filter:blur(10px)!important;
+}
+body.ja-design-v1 .jw16-world-head{margin-bottom:7px!important}
+body.ja-design-v1 .jw16-world-head b{color:#ffe1a0!important;font-size:10px!important;letter-spacing:.02em!important}
+body.ja-design-v1 .jw16-world-head span{color:#9bd0ac!important;font-size:8px!important}
+body.ja-design-v1 .jw16-map-wrap{
+  border:1px solid rgba(255,232,176,.18)!important;
+  border-radius:12px!important;
+  background:#15362f!important;
+  box-shadow:inset 0 0 16px rgba(0,0,0,.2)!important;
+}
+body.ja-design-v1 .jw16-map-legend{color:#a9c0b5!important}
+body.ja-design-v1 .jw16-world-stats{color:#c5d4cc!important;border-color:rgba(255,255,255,.07)!important}
+
+/* Regional mood becomes a small flavor plaque below the character card. */
+body.ja-design-v1 .jw19-zone-mood{
+  left:16px!important;
+  top:232px!important;
+  width:258px!important;
+  padding:8px 11px!important;
+  border:1px solid rgba(255,224,153,.18)!important;
+  border-radius:12px!important;
+  background:rgba(10,34,32,.68)!important;
+  box-shadow:0 8px 20px rgba(0,0,0,.16)!important;
+  backdrop-filter:blur(7px)!important;
+}
+body.ja-design-v1 .jw19-zone-mood b{color:#f6dda1!important;font-size:9px!important}
+body.ja-design-v1 .jw19-zone-mood span{color:#9dbdaf!important;font-size:7px!important}
+
+/* Combat identity only matters outside town. */
+body.ja-design-v1 .jw21-class-meter{
+  left:16px!important;
+  bottom:82px!important;
+  width:220px!important;
+  padding:9px 11px!important;
+  border:1px solid rgba(255,224,153,.24)!important;
+  border-radius:14px!important;
+  background:linear-gradient(145deg,rgba(12,38,38,.88),rgba(7,24,29,.86))!important;
+  box-shadow:0 9px 25px rgba(0,0,0,.2)!important;
+  backdrop-filter:blur(8px)!important;
+}
+body.ja-design-v1 .jw21-class-meter.is-village{display:none!important}
+body.ja-design-v1 .jw21-head b{color:#fff0bb!important;font-size:11px!important}
+body.ja-design-v1 .jw21-head span{color:#e9ce83!important;background:rgba(255,229,157,.08)!important}
+body.ja-design-v1 .jw21-pips{margin:6px 0 5px!important}
+body.ja-design-v1 .jw21-class-meter small{font-size:8px!important;color:#aec7be!important}
+
+/* Gear summary is redundant on the playfield; equipment remains visible on the character and in the bag. */
+body.ja-design-v1 .jw22-gear-status{display:none!important}
+
+body.ja-design-v1 .jw16-patrol-badge{
+  left:16px!important;
+  bottom:27px!important;
+  padding:5px 9px!important;
+  border:1px solid rgba(125,190,147,.2)!important;
+  border-radius:999px!important;
+  background:rgba(8,31,29,.58)!important;
+  color:#a8c9b8!important;
+  backdrop-filter:blur(6px)!important;
+}
+body.ja-design-v1 .jw16-patrol-badge b{color:#f0d390!important}
+
+/* Dynamic combat/result toasts share the Adventure language. */
+body.ja-design-v1 .jw21-proc-toast,
+body.ja-design-v1 .jw22-gear-toast{
+  border:1px solid rgba(255,224,153,.38)!important;
+  border-radius:16px!important;
+  background:linear-gradient(145deg,rgba(13,43,40,.95),rgba(8,24,30,.96))!important;
+  box-shadow:0 14px 36px rgba(0,0,0,.3)!important;
+}
+body.ja-design-v1 .jw21-proc-toast b,
+body.ja-design-v1 .jw22-gear-toast b{color:#ffe19a!important}
+body.ja-design-v1 .jw21-proc-toast small,
+body.ja-design-v1 .jw22-gear-toast small{color:#bed1c7!important}
+
+/* Inventory paper doll should feel like a character pane, not a debug diagram. */
+body.ja-design-v1 .jw-paperdoll{
+  height:168px!important;
+  border:1px solid rgba(255,225,153,.18)!important;
+  border-radius:15px!important;
+  background:radial-gradient(circle at 50% 42%,rgba(104,168,112,.18),transparent 42%),linear-gradient(180deg,rgba(11,39,37,.72),rgba(6,22,28,.88))!important;
+  box-shadow:inset 0 0 30px rgba(0,0,0,.16)!important;
+}
+body.ja-design-v1 .jw-paperdoll::before{color:rgba(255,225,153,.045)!important}
+body.ja-design-v1 .jw-paperdoll .slot{
+  border:1px solid rgba(255,225,153,.2)!important;
+  border-radius:10px!important;
+  background:rgba(7,28,30,.66)!important;
+  color:#f0cf83!important;
+}
+
+/* Keep map and atmospheric widgets out of the way on small screens; mobile dock opens them on demand. */
+@media(max-width:760px),(pointer:coarse){
+  body.ja-design-v1 #game-container canvas{filter:saturate(1.12) brightness(1.04) contrast(1.01)!important}
+  body.ja-design-v1 .jw-zone-title{top:39px!important;min-width:170px!important;padding:5px 13px!important;border-radius:999px!important}
+  body.ja-design-v1 .jw-zone-title b{font-size:11px!important}
+  body.ja-design-v1 .jw-zone-title small{font-size:6px!important}
+  body.ja-design-v1 .jw19-zone-mood,
+  body.ja-design-v1 .jw21-class-meter,
+  body.ja-design-v1 .jw22-gear-status,
+  body.ja-design-v1 .jw16-patrol-badge{display:none!important}
+  body.ja-design-v1 .jw16-compass{display:none!important}
+
+  body.ja-design-v1.jw272-open-map .jw16-world-panel,
+  body.ja-design-v1.jw271-open-map .jw16-world-panel{
+    border:1px solid rgba(255,224,153,.24)!important;
+    border-radius:15px!important;
+    background:linear-gradient(145deg,rgba(13,43,40,.98),rgba(7,24,30,.98))!important;
+    box-shadow:0 14px 34px rgba(0,0,0,.34)!important;
+  }
+  body.ja-design-v1.jw272-open-map .jw16-map-wrap,
+  body.ja-design-v1.jw271-open-map .jw16-map-wrap{border-radius:10px!important}
+  body.ja-design-v1 .jw-paperdoll{height:142px!important}
+}
+
+@media(max-height:650px){
+  body.ja-design-v1 .jw19-zone-mood,
+  body.ja-design-v1 .jw21-class-meter{display:none!important}
+}
