@@ -8,6 +8,6 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --check server.mjs && node --check game.js && node --check avatar3d.js && node --check world3d.js && node --check navigation.js && node test_v16.mjs"
+    "test": "node --check server.mjs && node --check game.js && node --check avatar3d.js && node --check world3d.js && node --check navigation.js && node test_v16.mjs && node test_navigation_v18.mjs"
   }
 }
