@@ -51,6 +51,7 @@ try{
  visitor.close();
  await page.locator('#shopBtn').click();
  await page.waitForSelector('#fitting3D');
+ await page.locator('#tab-classic').click();
  await page.locator('[data-try="navy"]').click();
  await page.waitForSelector('#fitting3D');
  await page.locator('#turnFitting').click();
