@@ -41,7 +41,8 @@ export function credit(s,amount,kind='other',reason='게임 보상',level=1,date
  const gross=zero(amount),e=s.economy,prior=zero(e.categories[kind]),limit=economyCeiling(kind,level);
  // Daily allowance is not a hard stop: players can always earn a little,
  // but grinding alone cannot endlessly mint near-full-price G.
- const full=Math.min(gross,Math.max(0,limit-prior));
+ const milestone=['chapter','achievement','reputation','collection','friendship'].includes(kind);
+ const full=milestone?gross:Math.min(gross,Math.max(0,limit-prior));
  const quarter=Math.min(gross-full,Math.max(0,limit*2-Math.max(limit,prior+full)))*.25;
  const remaining=Math.max(0,gross-full-Math.max(0,quarter)*4);
  const reduced=Math.max(0,Math.floor(full+quarter+remaining*.1));
