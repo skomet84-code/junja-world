@@ -1,7 +1,7 @@
 name: Junja Village Public URL Smoke
 on:
   push:
-    branches: [junja-village-vercel-online-v1]
+    branches: [junja-village-vercel-online-v1, village-friends-balance-v23]
   workflow_dispatch:
 
 jobs:
@@ -32,6 +32,10 @@ jobs:
             const body=await response.text();
             if(path==='/game.js'){
               assert(body.includes("isLegacyPlaceholder"),'nickname migration code not in production');
+              assert(body.includes("STYLE_SETS"),'five complete premium cosmetic sets missing');
+              assert(body.includes("coins:1000"),'1000G new player balance missing');
+              assert(body.includes("FESTIVAL_TASKS"),'weekly festival content missing');
+              assert(body.includes("villageClientId"),'duplicate-identity session feature missing');
               assert(body.includes("location.host+(document.querySelector"),'correct realtime WSS hostname not deployed');
             }
             if(path==='/world3d.js')assert(body.includes("Math.atan2(595-46,880)"),'camera angle update not in production');
@@ -71,5 +75,19 @@ jobs:
           assert.equal(arrival.player.fashion.hair,'fashion_hair_01');
           assert.equal(wb.players.length,1,'two connections must land in the same room');
           a.ws.close();b.ws.close();
-          console.log('PASS public village with shared same-room multiplayer');
+          // Verify that a same-browser reconnect replaces its previous avatar.
+          const c=makeConnection('old tab');
+          await c.opened;
+          c.ws.send(JSON.stringify({type:'join',room:'DUPQA',nick:'갓준자',clientId:'mobile-v23-4ccdc489-710e-43',x:1050,y:955,coat:'mint',hat:'none',dir:0}));
+          await c.receive('welcome');
+          const d=makeConnection('new tab');
+          await d.opened;
+          d.ws.send(JSON.stringify({type:'join',room:'DUPQA',nick:'갓준자',clientId:'mobile-v23-4ccdc489-710e-43',x:1050,y:955,coat:'mint',hat:'none',dir:0}));
+          const replaced=await c.receive('replaced');
+          const fresh=await d.receive('welcome');
+          assert.equal(replaced.type,'replaced');
+          assert.equal(fresh.players.length,0,'same browser should not have two avatars');
+          c.ws.close();d.ws.close();
+          console.log('PASS public premium village, live 2-player test and replaced duplicate avatar');
+
           NODE
