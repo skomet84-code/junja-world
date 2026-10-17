@@ -29,6 +29,12 @@ jobs:
             const response=await fetch(base+path,{signal:abort()});
             console.log('SCRIPT',path,response.status,response.headers.get('content-type'));
             assert.equal(response.status,200,'static asset is missing: '+path);
+            const body=await response.text();
+            if(path==='/game.js'){
+              assert(body.includes("isLegacyPlaceholder"),'nickname migration code not in production');
+              assert(body.includes("location.host+(document.querySelector"),'correct realtime WSS hostname not deployed');
+            }
+            if(path==='/world3d.js')assert(body.includes("Math.atan2(595-46,880)"),'camera angle update not in production');
           }
           function makeConnection(name){
             const ws=new WebSocket(base.replace(/^http/,'ws')+'/api/ws');
