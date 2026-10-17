@@ -1,3 +1,4 @@
+import {drawFishPortrait} from './fish-portraits.js';
 // Life systems: finite in-game progression, fishing tools and a safe virtual aquarium.
 // No avatar movement modifiers, client-only saved state, no cash purchase.
 export const RODS=Object.freeze([
@@ -896,23 +897,7 @@ export function validRodSave(saved){const owned=['branch',...(Array.isArray(save
  return {owned:unique,equipped:unique.includes(saved?.equipped)?saved.equipped:'branch'};
 }
 export function aquariumSlots(level){return level>=12?12:level>=8?9:level>=5?6:3}
-export function fishArt(fishName,size=140){
- const fish=FISH_BY_NAME[fishName];if(!fish)return '';
- const {color,dark,shape}=fish;
- const gradientId='fish_'+[...fish.name].reduce((h,c)=>((h*31+c.charCodeAt(0))>>>0),7);
- const longBody=['eel','billfish','shark'].includes(shape),flatBody=shape==='ray',octopus=shape==='octopus';
- const rx=longBody?68:flatBody?57:octopus?48:shape==='minnow'?50:64;
- const ry=longBody?19:flatBody?21:octopus?28:shape==='trout'?21:29;
- const extra=shape==='ray'?'<path d="M72 51 Q35 6 19 45 Q48 79 72 51" fill="'+color+'" stroke="'+dark+'"/>':shape==='shark'?'<path d="M79 31 L112 0 L107 35 Z" fill="'+dark+'"/>':shape==='billfish'?'<path d="M153 52 L173 48" stroke="'+dark+'" stroke-width="4"/>':shape==='octopus'?'<path d="M80 69 Q60 98 48 81 M90 70 Q82 96 76 83 M100 70 Q102 100 112 81" stroke="'+dark+'" stroke-width="9" fill="none"/>':shape==='goldcarp'||shape==='gold'?'<path d="M65 25 Q83 3 93 30" fill="'+dark+'"/><path d="M70 70 Q90 89 98 67" fill="'+dark+'"/>':shape==='bass'?'<path d="M50 28 L68 5 L89 27 Z" fill="'+dark+'"/>':'<path d="M75 24 L90 10 L105 27 Z" fill="'+dark+'"/>';
- return '<svg aria-label="'+fish.name+' 그림" role="img" viewBox="0 0 176 100" width="'+size+'" height="'+Math.round(size*.57)+'" xmlns="http://www.w3.org/2000/svg">'+
- '<defs><linearGradient id="fish_'+shape+'" x1="0" x2="0" y1="0" y2="1"><stop stop-color="'+color+'"/><stop offset="1" stop-color="'+dark+'"/></linearGradient></defs>'+
- '<path d="M43 50 L7 24 Q13 50 7 76 Z" fill="'+dark+'" stroke="#ffffff80" stroke-width="1.5"/>'+
- '<ellipse cx="95" cy="50" rx="'+(shape==='minnow'?50:64)+'" ry="'+(shape==='trout'?21:29)+'" fill="url(#'+gradientId+')" stroke="'+dark+'" stroke-width="2"/>'+
- extra+'<path d="M119 45 Q137 54 119 62" fill="none" stroke="'+dark+'" stroke-width="1.7" opacity=".45"/>'+
- '<circle cx="137" cy="45" r="5.7" fill="#fffaf0"/><circle cx="139" cy="45" r="3.4" fill="#293f3e"/>'+
- '<circle cx="140" cy="43.8" r="1" fill="#fff"/><path d="M153 57 Q161 62 167 55" stroke="'+dark+'" fill="none" stroke-width="2"/>'+
- '</svg>';
-}
+export function fishArt(fishName,size=140){return drawFishPortrait(FISH_BY_NAME[fishName],size)}
 export function dailyMissions(day,stats){
  const n=Number(String(day).replace(/\D/g,''))||1;
  const extra=[
