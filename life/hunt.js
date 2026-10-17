@@ -26,6 +26,29 @@ function save(){
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const materialCache=new Map(),mat=c=>{const k=String(c);if(!materialCache.has(k))materialCache.set(k,new T.MeshStandardMaterial({color:c,roughness:.82,metalness:.03,flatShading:false}));return materialCache.get(k)};
 const globe=new T.SphereGeometry(1,20,16),roundBox=new T.BoxGeometry(1,1,1),pillar=new T.CylinderGeometry(1,1,1,9),cone=new T.ConeGeometry(1,1,10),groundGeo=new T.PlaneGeometry(1280,900),shadowGeo=new T.CircleGeometry(1,22);
+const eyeRingGeo=new T.TorusGeometry(1,0.14,6,22,Math.PI*1.3);
+const impactGeo=new T.IcosahedronGeometry(1,0);
+const barGeometry=new T.PlaneGeometry(1,1);
+function mobLabel(text,boss){
+ const label=document.createElement('canvas');label.width=512;label.height=100;
+ const ctx=label.getContext('2d'),font=boss?'900 38px sans-serif':'bold 37px sans-serif';
+ ctx.font=font;ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.fillStyle=boss?'#70502e':'#355d55';ctx.strokeStyle='#fffdf3';ctx.lineWidth=11;
+ ctx.lineJoin='round';ctx.strokeText(text,256,51,480);ctx.fillText(text,256,51,480);
+ const tex=new T.CanvasTexture(label);tex.colorSpace=T.SRGBColorSpace;
+ const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false,depthTest:false}));
+ sprite.scale.set(boss?118:103,21,1);
+ return {sprite,tex};
+}
+function mobOverhead(root,model){
+ const ui=new T.Group();ui.position.y=model.boss?155:99;root.add(ui);
+ const label=mobLabel(model.name,model.boss);label.sprite.position.y=13;ui.add(label.sprite);
+ const under=new T.Mesh(barGeometry,new T.MeshBasicMaterial({color:0x244a46,transparent:true,opacity:.72,depthWrite:false,depthTest:false}));
+ under.position.z=1;under.scale.set(66,7,1);ui.add(under);
+ const hp=new T.Mesh(barGeometry,new T.MeshBasicMaterial({color:model.boss?0xf6c875:0x93ddb0,depthWrite:false,depthTest:false}));
+ hp.position.set(0,0,2);hp.scale.set(62,4.8,1);ui.add(hp);
+ return {ui,hp,labelTexture:label.tex};
+}
 let renderer,scene,camera,playerMesh,currentZone=null,areaIndex=0,worldDecor=null,monsters=[],fx=[],active=false;
 const VIEW_HEIGHT=650;
 let resetViewCount=0,lastTouchEnd=0,visualHitCount=0,lastImpact=0,screenShake=0,impactTimer=null;
@@ -84,11 +107,49 @@ function makeMonster(model){
  else if(kind==='fairy'){sphere(body,c,0,26,0,16,21,14);sphere(body,light,0,48,0,18,18,17);for(const x of [-19,19]){let wing=sphere(body,0xf4eafa,x,32,-4,11,22,4);wing.rotation.z=x>0?-.45:.45}}
  else if(kind==='acorn'){sphere(body,c,0,27,0,20,24,18);sphere(body,dark,0,47,0,24,10,22);makeMesh(body,cone,dark,0,61,0,8,13,8)}
  else {sphere(body,c,0,27,0,20,23,19)}
- for(const x of [-8,8]){sphere(body,eyes,x,32,17,3.8,5,2.8);sphere(body,glint,x-1.2,34,19.5,1.4,1.5,1)}
- sphere(body,0xe8a4a7,0,20,19,3,2,2);
+ // Sculpted features and small silhouette-specific accessories: not flat painted cut-outs.
+ if(kind==='slime'){
+  for(const x of [-14,14]){sphere(body,light,x,43,3,6,7,6);sphere(body,0xf5bfca,x,24,18,5,3,2)}
+  sphere(body,0xfff7df,0,48,0,7,3,6);
+ } else if(kind==='mushroom'){
+  for(const p of [[-13,39,14],[9,43,15],[0,49,-9]])sphere(body,0xfff7dc,...p,5,3.5,5);
+  for(const x of [-11,11])sphere(body,0xeed3ae,x,5,4,7,7,7);
+ } else if(kind==='golem'){
+  box(body,dark,0,27,15,17,10,2);sphere(body,light,0,29,18,6,6,2);
+  for(const x of [-9,9])sphere(body,0xd5ecf0,x,50,13,5,4,3);
+ } else if(kind==='bat'){
+  for(const x of [-13,13]){const ear=makeMesh(body,cone,light,x,53,0,7,17,7);ear.rotation.z=x<0?.14:-.14}
+  sphere(body,0xffd0c5,0,18,18,6,6,3);
+ } else if(kind==='dragon'){
+  for(let k=0;k<4;k++)makeMesh(body,cone,light,0,52-k*10,-15-k*8,7,13-k,8);
+  sphere(body,0xffebbd,0,44,35,7,5,3);
+ } else if(kind==='fairy'){
+  sphere(body,0xfff0b7,0,67,0,7,10,7);
+  for(const x of [-20,20])sphere(body,0xfff8ea,x,42,7,4,10,3);
+ } else if(kind==='ghost'){
+  for(const x of [-11,0,11])sphere(body,light,x,9,16,5,10,5);
+ } else if(kind==='beetle'){
+  box(body,dark,0,34,15,4,13,5);
+  for(const x of [-14,14])sphere(body,0xece8d3,x,24,14,4,4,4);
+ } else if(kind==='acorn'){
+  makeMesh(body,cone,0x95c78a,0,65,0,7,18,8);
+  for(const x of [-18,18])sphere(body,light,x,24,6,6,8,7);
+ }
+ for(const x of [-8,8]){
+  sphere(body,0xfffaf3,x,32,17.5,5.1,6.3,3.3);
+  sphere(body,eyes,x,32,20,3.7,4.8,2.6);
+  sphere(body,glint,x-1.1,34,22,1.5,1.6,1);
+  sphere(body,0xf2b8ac,x*2.25,23,13,4.3,2.5,2);
+ }
+ const smile=new T.Mesh(eyeRingGeo,mat(0x74534a));smile.position.set(0,20,20);smile.scale.set(4,3,1);smile.rotation.z=-.25;body.add(smile);
  const halo=new T.Mesh(shadowGeo,new T.MeshBasicMaterial({color:0x293a35,transparent:true,opacity:.13,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.7;halo.scale.setScalar(boss?57:28);root.add(halo);
- if(boss){for(let i=0;i<7;i++){const a=i*Math.PI*2/7;let g=sphere(body,0xf7dc89,Math.cos(a)*26,72+Math.sin(a*2)*5,Math.sin(a)*12,4,8,4);g.rotation.z=a}}
- return {root,body};
+ if(boss){
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;const g=sphere(body,0xf7dc89,Math.cos(a)*26,72+Math.sin(a*2)*5,Math.sin(a)*12,4,8,4);g.rotation.z=a}
+  const gem=sphere(body,0xffe48a,0,59,20,7,9,4);
+  for(const x of [-17,0,17])makeMesh(body,cone,0xf6d889,x,79,0,8,16,8);
+ }
+ const overhead=mobOverhead(root,model);
+ return {root,body,...overhead,baseScale:scale};
 }
 function makeTree(parent,x,z,seed,zone){const height=50+seed%33;const c=zone.tree;
  makeMesh(parent,pillar,0x947b5c,x,height*.49,z,6,height,6);
@@ -111,10 +172,11 @@ function decorate(zone){
 }
 function spawnMonster(model,x,z,index){
  const m=makeMonster(model);m.root.position.set(x,0,z);scene.add(m.root);
- return {...m,model,x,z,homeX:x,homeZ:z,maxHp:model.hp,hp:model.hp,lastHit:0,attackAt:0,deadUntil:0,index,velX:0,velZ:0};
+ return {...m,model,x,z,homeX:x,homeZ:z,maxHp:model.hp,hp:model.hp,lastHit:0,attackAt:0,deadUntil:0,index,velX:0,velZ:0,hitFlashUntil:0,hitCount:0};
 }
 function clearZone(){
- for(const m of monsters)scene.remove(m.root);monsters.length=0;target=null;
+ for(const m of monsters){scene.remove(m.root);m.labelTexture?.dispose();m.root.traverse(o=>{if(o.material?.type==='SpriteMaterial'||o.material?.type==='MeshBasicMaterial'&&o.material.depthTest===false)o.material.dispose()})}
+ monsters.length=0;target=null;
  if(worldDecor){scene.remove(worldDecor);worldDecor=null}
  for(const f of fx)scene.remove(f.mesh);fx.length=0;
 }
@@ -187,7 +249,14 @@ function effect(x,z,color=0xfbe7a9){
 function mobHit(m,damage){
  if(!m||m.hp<=0)return;
  const critical=Math.random()<.09,amount=Math.max(1,Math.round(damage*(critical?1.5:1)));
- m.hp=Math.max(0,m.hp-amount);m.lastHit=performance.now();effect(m.x,m.z,m.model.boss?0xffd484:0xe8ffca);
+ m.hp=Math.max(0,m.hp-amount);m.lastHit=performance.now();m.hitFlashUntil=m.lastHit+260;m.hitCount++;
+ const hpRatio=healthRatio(m);m.hp.scale.x=62*hpRatio;m.hp.position.x=-31*(1-hpRatio);
+ effect(m.x,m.z,m.model.boss?0xffd484:0xe8ffca);
+ hitBurst(m.x,m.z,critical||m.model.boss);
+ screenShake=Math.min(6.5,screenShake+(critical?4.1:1.5));
+ visualHitCount++;lastImpact=m.lastHit;
+ if(critical||m.model.boss)navigator.vibrate?.(15);
+ if(critical){document.body.classList.add('screen-hit');clearTimeout(impactTimer);impactTimer=setTimeout(()=>document.body.classList.remove('screen-hit'),110)}
  floatNumber(m.x,m.z,(critical?'💥 ':'')+'-'+amount,critical?'#ffe595':'#fff');
  if(m.hp===0){
   const loot=m.model.material,boss=m.model.boss,amount=boss?1:Math.random()<.24?2:1;
@@ -269,8 +338,14 @@ function update(time,dt){
    const speed=mob.model.boss?34:30;
    mob.x+=(hero.x-mob.x)/d*speed*dt;mob.z+=(hero.z-mob.z)/d*speed*dt;
   }else if(d>280){const to=Math.hypot(mob.homeX-mob.x,mob.homeZ-mob.z);if(to>8){mob.x+=(mob.homeX-mob.x)/to*15*dt;mob.z+=(mob.homeZ-mob.z)/to*15*dt}}
-  mob.root.position.set(mob.x,0,mob.z);mob.body.position.y=Math.sin(time*(mob.model.boss?1.4:2.7)+mob.index)*2.5;
-  mob.body.rotation.z=Math.sin(time*1.5+mob.index)*.035;
+  mob.root.position.set(mob.x,0,mob.z);
+  const hitRemaining=Math.max(0,(mob.hitFlashUntil-now)/260);
+  const breathing=1+Math.sin(time*(mob.model.boss?1.5:3.1)+mob.index)*.028;
+  mob.body.scale.set(mob.baseScale*breathing*(1+hitRemaining*.13),mob.baseScale*breathing*(1-hitRemaining*.22),mob.baseScale*breathing*(1+hitRemaining*.13));
+  mob.body.position.y=Math.sin(time*(mob.model.boss?1.4:2.7)+mob.index)*2.5+hitRemaining*13;
+  mob.body.rotation.z=Math.sin(time*1.5+mob.index)*.035+hitRemaining*(mob.index%2?-.13:.13);
+  mob.ui.quaternion.copy(camera.quaternion);
+  if(mob.hp>0)mob.hp.material.color.setHex(hitRemaining>.05?0xffe7a1:mob.model.boss?0xf6c875:0x93ddb0);
   if(d<70&&now>mob.attackAt&&now>hero.hurtAt+350){
    mob.attackAt=now+(mob.model.boss?2200:2550);hero.hurtAt=now;
    const amount=enemyDamage(areaIndex,mob.model.boss,level());
