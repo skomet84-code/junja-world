@@ -178,11 +178,24 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   }
   return null;
  }
- const previewCanvas=document.createElement('canvas');previewCanvas.id='fitting3D';previewCanvas.setAttribute('aria-label','입체 캐릭터 착용 미리보기');
+ const previewCanvas=document.createElement('canvas');previewCanvas.id='fitting3D';previewCanvas.setAttribute('aria-label','입체 캐릭터 전신 착용 미리보기 · 손가락으로 돌려보기');
+ let fittingPointer=null,lastFittingX=0;
+ previewCanvas.addEventListener('pointerdown',e=>{if(!e.isPrimary)return;fittingPointer=e.pointerId;lastFittingX=e.clientX;try{previewCanvas.setPointerCapture(e.pointerId)}catch{}});
+ previewCanvas.addEventListener('pointermove',e=>{if(fittingPointer!==e.pointerId)return;previewAngle+=(e.clientX-lastFittingX)*.014;lastFittingX=e.clientX;e.preventDefault()});
+ const endFittingPointer=e=>{if(fittingPointer!==e.pointerId)return;fittingPointer=null;try{previewCanvas.releasePointerCapture(e.pointerId)}catch{}};
+ previewCanvas.addEventListener('pointerup',endFittingPointer);previewCanvas.addEventListener('pointercancel',endFittingPointer);
  let previewRenderer=null,previewScene=null,previewCamera=null,previewAvatar=null,previewPet=null,previewAngle=0,previewWalking=false,previewLook={coat:'mint',hat:'none',fashion:{}};
  function fitting(parent,coat,hat,fashion={}){
-  if(!previewRenderer){previewRenderer=new T.WebGLRenderer({canvas:previewCanvas,antialias:true,alpha:true});previewRenderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));previewRenderer.setSize(300,280,false);previewRenderer.outputColorSpace=T.SRGBColorSpace;previewRenderer.toneMapping=T.ACESFilmicToneMapping;previewRenderer.toneMappingExposure=1.3;previewScene=new T.Scene();previewScene.add(new T.HemisphereLight(0xfff5df,0x8b9c86,3));const l=new T.DirectionalLight(0xffeed6,3);l.position.set(-70,160,100);previewScene.add(l);previewCamera=new T.OrthographicCamera(-70,70,126,-5,.1,1000);previewCamera.position.set(0,86,240);previewCamera.lookAt(0,65,0);previewAvatar=createAvatar();previewScene.add(previewAvatar.root);cylinder(previewScene,0xdce5cc,0,-4,0,40,6)}
+  if(!previewRenderer){previewRenderer=new T.WebGLRenderer({canvas:previewCanvas,antialias:true,alpha:true});previewRenderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));previewRenderer.setSize(300,320,false);previewRenderer.outputColorSpace=T.SRGBColorSpace;previewRenderer.toneMapping=T.ACESFilmicToneMapping;previewRenderer.toneMappingExposure=1.3;previewScene=new T.Scene();previewScene.add(new T.HemisphereLight(0xfff5df,0x8b9c86,3));const l=new T.DirectionalLight(0xffeed6,3);l.position.set(-70,160,100);previewScene.add(l);/* symmetric camera bounds center the whole character rather than burying its feet below the viewport */previewCamera=new T.OrthographicCamera(-79.7,79.7,85,-85,.1,1000);previewCamera.position.set(0,99,255);previewCamera.lookAt(0,69,0);previewAvatar=createAvatar();previewScene.add(previewAvatar.root);cylinder(previewScene,0xdce5cc,0,-4,0,40,6)}
   parent.appendChild(previewCanvas);
+  // Match the real phone-sized container without squashing the horizontal silhouette.
+  const fitWidth=Math.min(300,Math.max(200,parent.clientWidth||300));
+  if(previewCanvas.style.width!==fitWidth+'px'){
+   previewRenderer.setSize(fitWidth,320,false);
+   previewCamera.left=-85*fitWidth/320;previewCamera.right=85*fitWidth/320;
+   previewCamera.top=85;previewCamera.bottom=-85;previewCamera.updateProjectionMatrix();
+   previewCanvas.style.width=fitWidth+'px';previewCanvas.style.height='320px';
+  }
   previewLook={coat,hat,fashion};
   previewAvatar.equip(fashion.outfit||coat,hat);
   previewAvatar.setFashion(fashion);
@@ -241,5 +254,5 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(650-46,845)*180/Math.PI),coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();renderer.dispose();previewRenderer?.dispose()}};
+ return {render,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(650-46,845)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();renderer.dispose();previewRenderer?.dispose()}};
 }

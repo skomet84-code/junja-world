@@ -1,3 +1,15 @@
+# JUNJA VILLAGE LIFE v21 — Full-body Atelier + owner preview grant
+
+[▶ Open the v21 full-body fitting preview](https://raw.githack.com/skomet84-code/junja-world/junja-village-atelier-v21/life/index.html)
+
+- Fixed asymmetric fitting camera framing. Default preview now shows hairstyle, torso, trousers/skirt, shoes and the floor within a centered 320px fitting canvas. Its orthographic bounds scale with mobile container width; world navigation camera and movement are unchanged.
+- Touch/mouse dragging the preview turns the avatar directly. The rotate and walking buttons still work.
+- A **private preview-only, one-time 100,000,000 G top-up link** can fund the operator's current browser save. Other visitors who open the ordinary preview receive no extra money. The secret link is intentionally not recorded in this public README.
+- This is **not an authenticated operator role**: all funds are stored locally in the browser, and anyone who obtains the claim link can redeem it on their own device. A secure shared online economy still requires user authentication, server-authoritative balances and a database.
+- QA runs Node syntax and real phone-sized Chromium/WebGL tests; iOS Safari should still be verified on-device.
+
+---
+
 # JUNJA VILLAGE LIFE v20 — Personal Village / Fishing Collection
 
 [▶ Open v20 single-player preview](https://raw.githack.com/skomet84-code/junja-world/junja-village-life-v20/life/index.html)
