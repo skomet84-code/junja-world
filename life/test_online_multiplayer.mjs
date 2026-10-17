@@ -8,7 +8,7 @@ async function awaitReady(){
  for(let i=0;i<100;i++){try{if((await fetch(url+'/health')).ok)return}catch{}await new Promise(r=>setTimeout(r,50))}
  throw Error('WebSocket relay never became ready');
 }
-async function connect(nick,room='SPRING',fashion={}){
+async function connect(nick,room='SPRING',fashion={},clientId=null){
  const ws=new WebSocket(url.replace('http:','ws:')+'/ws');
  const messages=[],waiters=[];
  ws.addEventListener('message',e=>{
@@ -25,7 +25,7 @@ async function connect(nick,room='SPRING',fashion={}){
  });
  sockets.push(ws);
  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',()=>reject(Error('WebSocket connect failed')),{once:true})});
- ws.send(JSON.stringify({type:'join',room,nick,x:1050,y:955,coat:'mint',hat:'none',dir:0,fashion}));
+ ws.send(JSON.stringify({type:'join',room,nick,x:1050,y:955,coat:'mint',hat:'none',dir:0,fashion,clientId}));
  return {ws,next};
 }
 try{
@@ -56,7 +56,21 @@ try{
  assert.match((await full.next('error')).message,/8명/,'ninth player should get capacity error');
  const status=await fetch(url+'/health').then(r=>r.json());
  assert.equal(status.rooms,2);
- console.log('PASS: WebSocket two-person cosmetics, movement, preset speech, room isolation and 8-person capacity');
+ // Same session reopens in another tab -> previous avatar disappears, no duplicates.
+ const first=await connect('갓준자','DUPQA',{},'client-87c8a081-cc33-4fb2-bbea');
+ await first.next('welcome');
+ const second=await connect('갓준자','DUPQA',{},'client-87c8a081-cc33-4fb2-bbea');
+ const replaced=await first.next('replaced');
+ assert.equal(replaced.type,'replaced');
+ const welcomeSecond=await second.next('welcome');
+ assert.equal(welcomeSecond.players.length,0,'same browser must show only one avatar');
+ assert.equal(welcomeSecond.nick,'갓준자');
+ // Different browser with same nickname is uniquely identified on screen.
+ const distinct=await connect('갓준자','DUPQA',{},'client-c31c6b7c-d9a8-4fea-b118');
+ const welcomeDistinct=await distinct.next('welcome');
+ assert.equal(welcomeDistinct.nick,'갓준자·2');
+ assert.equal(welcomeDistinct.players.length,1);
+ console.log('PASS: WebSocket outfits, chat, room capacity and deduplication with unique names');
 }finally{
  for(const ws of sockets){try{ws.close()}catch{}}
  server.kill('SIGTERM');
