@@ -51,7 +51,7 @@ try{
  const c=await connect('친구C','OTHER');
  const welcomeC=await c.next('welcome');
  assert.equal(welcomeC.players.length,0,'different rooms must be isolated');
- for(let i=0;i<6;i++){const guest=await connect('guest'+i);await guest.next('welcome')}
+ for(let i=0;i<6;i++){const guest=await connect('guest'+i);const w=await guest.next('welcome');console.log('capacity QA',i+1,w.players.length);assert.equal(w.players.length,i+2,'room population before guest '+i)}
  const full=await connect('ninth');
  assert.match((await full.next('error')).message,/8명/,'ninth player should get capacity error');
  const status=await fetch(url+'/health').then(r=>r.json());
