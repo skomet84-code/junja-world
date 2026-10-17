@@ -31,7 +31,7 @@ const safeRoom=s=>clean(s,12).toUpperCase().replace(/[^A-Z0-9_-]/g,'')||'SPRING'
 function send(peer,msg){try{if(!peer?.sock?.destroyed){let data=Buffer.from(JSON.stringify(msg));if(data.length>65535)return;const header=data.length<126?Buffer.from([0x81,data.length]):Buffer.from([0x81,126,data.length>>8,data.length&255]);peer.sock.write(Buffer.concat([header,data]));}}catch{}}
 function broadcast(room,msg,except){for(const p of room.values())if(p!==except)send(p,msg)}
 function removePeer(p){if(p.dead)return;p.dead=true;if(p.room){const r=rooms.get(p.room);r?.delete(p.id);if(r){broadcast(r,{type:'leave',id:p.id});if(r.size===0)rooms.delete(p.room)}}try{p.sock.destroy()}catch{}}
-const allowedCoats=new Set(['mint','blue','rose','amber','lavender','coral','navy','cream','forest','pink']);
+const allowedCoats=new Set(['mint','blue','rose','amber','lavender','coral','navy','cream','forest','pink','linen']);
 const allowedHats=new Set(['none','straw','beret','crown','flower','navycap','beanie','cat','ribbon','captain']);
 function onMessage(p,msg){
  if(!msg||typeof msg!=='object'||Array.isArray(msg))return;
@@ -39,13 +39,13 @@ function onMessage(p,msg){
   if(p.room)return;
   const roomCode=safeRoom(msg.room);const room=rooms.get(roomCode)||new Map();
   if(room.size>=8){send(p,{type:'error',message:'방이 가득 찼어요 (최대 8명)'});return}
-  p.room=roomCode;p.nick=clean(msg.nick,12)||'마을 주민';p.x=clamp(msg.x,85,1915);p.y=clamp(msg.y,120,1560);p.coat=allowedCoats.has(msg.coat)?msg.coat:'mint';p.hat=allowedHats.has(msg.hat)?msg.hat:'none';p.dir=clamp(msg.dir,0,3);
+  p.room=roomCode;p.nick=clean(msg.nick,12)||'마을 주민';p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.coat=allowedCoats.has(msg.coat)?msg.coat:'mint';p.hat=allowedHats.has(msg.hat)?msg.hat:'none';p.dir=clamp(msg.dir,0,3);
   send(p,{type:'welcome',id:p.id,room:roomCode,players:[...room.values()].map(q=>({id:q.id,nick:q.nick,x:q.x,y:q.y,coat:q.coat,hat:q.hat,dir:q.dir}))});
   rooms.set(roomCode,room);room.set(p.id,p);
   broadcast(room,{type:'join',player:{id:p.id,nick:p.nick,x:p.x,y:p.y,coat:p.coat,hat:p.hat,dir:p.dir}},p);
  }else if(msg.type==='pos'&&p.room){
   const now=Date.now();if(now-p.lastPos<85)return;p.lastPos=now;
-  p.x=clamp(msg.x,85,1915);p.y=clamp(msg.y,120,1560);p.dir=clamp(msg.dir,0,3);
+  p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.dir=clamp(msg.dir,0,3);
   p.coat=allowedCoats.has(msg.coat)?msg.coat:p.coat;p.hat=allowedHats.has(msg.hat)?msg.hat:p.hat;
   broadcast(rooms.get(p.room),{type:'pos',id:p.id,x:p.x,y:p.y,dir:p.dir,coat:p.coat,hat:p.hat},p);
  }else if(msg.type==='chat'&&p.room){
