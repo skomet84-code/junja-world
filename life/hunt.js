@@ -3,6 +3,8 @@ import {createAvatar} from './avatar3d.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {HUNT_ZONES,HUNT_BOSSES,HUNT_SKILLS,HUNT_CRAFTS,MAX_ACTIVE_ENEMIES,huntLevel,combatStats,enemyDamage,canCraft,dailyBossKey,zoneUnlocked} from './hunt-data.js';
 import {initEconomy,credit,debit} from './economy-v28.js';
+import {initBag,bagCapacity,bagUsed,canStore,addBagItems} from './inventory-v29.js';
+import {POTIONS,ensurePotions,purchasePotion,consumePotion} from './combat-potions-v29.js';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
 const saveKey='junja-harbor-v1',room=new URLSearchParams(location.search).get('room')||'SPRING';
@@ -18,6 +20,8 @@ state.hunt=state.hunt&&typeof state.hunt==='object'?state.hunt:{};
 state.hunt.materials=state.hunt.materials||{};
 state.hunt.bossDates=state.hunt.bossDates||{};
 state.hunt.kills=Math.max(0,state.hunt.kills||0);
+ensurePotions(state);initBag(state);
+state.hunt.potionCooldowns=state.hunt.potionCooldowns||{};
 const level=()=>huntLevel(state.xp),stats=()=>combatStats(level()),today=()=>new Date().toLocaleDateString('en-CA');
 function save(){
  state.hunt.hp=Math.max(1,Math.ceil(hero.hp));state.hunt.mp=Math.max(0,Math.ceil(hero.mp));
@@ -205,6 +209,11 @@ function updateHud(){
  const current=target&&target.hp>0?target:null;$('target').classList.toggle('visible',!!current);
  if(current){$('targetName').textContent=(current.model.boss?'👑 ':'')+current.model.name;$('targetHp').style.width=healthRatio(current)*100+'%'}
  const t=performance.now();
+ for(const item of ['hp','mp']){
+  const el=$(item+'Potion'),rest=Math.max(0,Math.ceil(((state.hunt.potionCooldowns[item]||0)-Date.now())/1000)),qty=state.hunt.potions?.[item]||0;
+  el.disabled=rest>0||qty<1||(item==='hp'?hero.hp>=s.maxHp:hero.mp>=s.maxMp);
+  el.querySelector('small').textContent=rest?rest+'초':qty+'개';
+ }
  for(const skill of HUNT_SKILLS){const node=$(skill.id),sec=Math.ceil(Math.max(0,cooldowns[skill.id]-t)/1000),locked=level()<skill.level||hero.mp<skill.mp;node.classList.toggle('cooling',sec>0||locked);
   node.disabled=sec>0||locked;node.querySelector('em').textContent=level()<skill.level?'Lv.'+skill.level:sec>0?sec+'초':skill.mp+'MP'}
 }
@@ -279,12 +288,17 @@ function mobHit(m,damage){
  floatNumber(m.x,m.z,(critical?'💥 ':'')+'-'+amount,critical?'#ffe595':'#fff');
  if(m.hp===0){
   const loot=m.model.material,boss=m.model.boss,amount=boss?1:Math.random()<.24?2:1;
-  state.hunt.materials[loot]=(state.hunt.materials[loot]||0)+amount;
+  const added=addBagItems(state,'hunt',loot,amount);
+  if(!added){
+   state.hunt.overflow=state.hunt.overflow||{};
+   state.hunt.overflow[loot]=(state.hunt.overflow[loot]||0)+amount;
+  }
   state.hunt.kills++;
   const paid=credit(state,m.model.coins,'hunt','몬스터 토벌 · '+m.model.name,huntLevel(state.xp));
   state.xp+=m.model.xp;
   hero.hp=clamp(hero.hp+8,0,stats().maxHp);
   m.root.visible=false;m.deadUntil=performance.now()+(boss?Infinity:7000);
+  if(!added)toast('📦 전리품이 임시 보관함에 저장됐어요');
   if(boss){state.hunt.bossDates[dailyBossKey(currentZone.id,today())]=true;toast('🏆 '+m.model.name+' 토벌 성공! +'+paid.amount+'G · '+loot+' 획득')}
   else toast('✨ '+m.model.name+' 토벌! +'+paid.amount+'G · '+loot+' 획득');
   if(target===m)target=null;save();
@@ -344,7 +358,7 @@ function update(time,dt){
  if(!active||!currentZone)return;
  const s=stats(),now=performance.now();
  hero.hp=clamp(hero.hp+(now-hero.hurtAt>2400?2.5:0)*dt,0,s.maxHp);
- hero.mp=clamp(hero.mp+4.6*dt,0,s.maxMp);
+ hero.mp=clamp(hero.mp+(1.9+Math.min(1,level()*.035))*dt,0,s.maxMp);
  if(target?.hp>0){const d=Math.hypot(target.x-hero.x,target.z-hero.z);
   if(d>85){hero.moveX=target.x;hero.moveZ=target.z}
   else{hero.moveX=hero.x;hero.moveZ=hero.z;
@@ -379,7 +393,7 @@ function update(time,dt){
   if(mob.hp>0)mob.hpFill.material.color.setHex(hitRemaining>.05?0xffe7a1:mob.model.boss?0xf6c875:0x93ddb0);
   if(d<70&&now>mob.attackAt&&now>hero.hurtAt+350){
    mob.attackAt=now+(mob.model.boss?2200:2550);hero.hurtAt=now;
-   const amount=enemyDamage(areaIndex,mob.model.boss,level());
+   const amount=Math.max(2,enemyDamage(areaIndex,mob.model.boss,level())-Math.floor(s.defense*.32));
    hero.hp=Math.max(0,hero.hp-amount);floatNumber(hero.x,hero.z,'-'+amount,'#ff9e98');
    effect(hero.x,hero.z,0xf79c8a);
    if(hero.hp<=0){
