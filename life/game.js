@@ -246,7 +246,7 @@ function lifeBonus(kind){
 function lifePerkGuide(){
  const lv=lifeLevel();
  return [['Lv.2','대나무 낚싯대 구매',2],['Lv.3','채집 재료 +1개',3],['Lv.4','수확 수입 +12G',4],
- ['Lv.5','목조주택·어항 6칸',5],['Lv.7','은빛 낚싯대 구매',7],['Lv.8','낚시 수입 +15G · 어항 9칸',8],
+ ['Lv.3','마을 밖 슬라임 사냥터 오픈',3],['Lv.5','목조주택·어항 6칸',5],['Lv.7','은빛 낚싯대 구매',7],['Lv.8','낚시 수입 +15G · 어항 9칸',8],
  ['Lv.10','정원이 있는 집 업그레이드',10],['Lv.12','어항 전시 12칸',12],['Lv.18','로열 주택·별빛 낚싯대',18]].map(([label,name,need])=>'<p>'+(lv>=need?'✅':'🔒')+' '+label+' · '+name+'</p>').join('');
 }
 function initJourney(){
@@ -280,9 +280,14 @@ function openJourney(){
  if(q){document.getElementById('journeyGo').onclick=()=>goStation(q.station);document.getElementById('journeyClaim').onclick=()=>{if(chapters[state.chapter]!==q||q.done()<q.total)return;state.chapter++;state.coins+=q.reward;state.xp+=60;save();hud();updateJourney(true);toast('생활 목표 완료! +'+q.reward+'G');openJourney()}}
  document.getElementById('journeyMap').onclick=openWorldMap;document.getElementById('journeyDaily').onclick=openJournal;document.getElementById('journeyHelp').onclick=guide;
 }
+function goToHunting(){
+ save();const room=(new URLSearchParams(location.search).get('room')||'SPRING').replace(/[^A-Za-z0-9_-]/g,'').slice(0,12);
+ location.assign('/hunt.html?room='+encodeURIComponent(room||'SPRING'));
+}
 function openWorldMap(){
- openModal(`<span class="titlebadge">JUNJA ISLAND · 3,600 × 2,400</span><h2>길 따라 만나는 마을</h2><p>장소를 누르면 길을 찾아 걸어가요. 이동 중 바닥을 누르면 목적지가 바뀝니다.</p><div class="map-overview"><span>서쪽 · 마을과 바다</span><span>동쪽 · 숲과 공방</span><div>🏠 ⛲ 🌱 🎣</div><div>🌲 🪵 👒 ⛏️ 📦</div></div><div class="card-grid">${stations.map(s=>`<div class="mini-card"><span class="emoji">${s.icon}</span><strong>${s.name}</strong><p>${s.desc}</p><button data-station="${s.id}">${state.visits[s.id]?'방문한 장소':'새로운 장소'} · 이동</button></div>`).join('')}</div>`);
+ openModal(`<span class="titlebadge">JUNJA ISLAND · 3,600 × 2,400</span><h2>길 따라 만나는 마을</h2><p>장소를 누르면 길을 찾아 걸어가요. 이동 중 바닥을 누르면 목적지가 바뀝니다.</p><div class="map-overview"><span>서쪽 · 마을과 바다</span><span>동쪽 · 숲과 공방</span><div>🏠 ⛲ 🌱 🎣</div><div>🌲 🪵 👒 ⛏️ 📦</div></div><div class="mini-card"><strong>⚔️ 마을 밖 사냥터</strong><p>네 개의 독립된 3D 사냥터에서 몬스터를 잡고 스킬을 사용해 전리품을 모아봐요. Lv.3부터 입장할 수 있어요.</p><button type="button" id="mapHuntGo">⚔️ 사냥터 지역 지도 열기</button></div><div class="card-grid">${stations.map(s=>`<div class="mini-card"><span class="emoji">${s.icon}</span><strong>${s.name}</strong><p>${s.desc}</p><button data-station="${s.id}">${state.visits[s.id]?'방문한 장소':'새로운 장소'} · 이동</button></div>`).join('')}</div>`);
  els.panelBody.querySelectorAll('[data-station]').forEach(b=>b.onclick=()=>goStation(b.dataset.station));
+ document.getElementById('mapHuntGo').onclick=goToHunting;
 }
 function goStation(id){const s=stations.find(s=>s.id===id);if(!s)return;closeModal();if(distance(player,s)<90){openStation(id);return}if(moveTo(s.x,s.y,{type:'station',id}))toast(s.icon+' '+s.name+'까지 걸어가요')}
 function openStation(id){
@@ -306,6 +311,7 @@ function openDelivery(){
 function hud(){els.coins.textContent=Math.floor(state.coins).toLocaleString('ko-KR');const lv=lifeLevel();els.level.textContent='Lv.'+lv+' · '+(lv>=18?'로열 마을의 주인':lv>=10?'생활 장인':lv>3?'하버 주민':'새싹 주민');els.xp.style.width=((state.xp%160)/160*100)+'%';updateJourney(true)}
 hud();setInterval(save,5500);ensureFestival();
 const festivalBtn=document.getElementById('festivalBtn');if(festivalBtn)festivalBtn.onclick=openFestival;
+const huntPortal=document.getElementById('huntPortal');if(huntPortal)huntPortal.onclick=goToHunting;
 let toastTimer;function toast(s){els.toast.textContent=s;els.toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>els.toast.classList.remove('show'),2200)}
 function resize(){CW=innerWidth;CH=innerHeight;scale=Math.max(.62,Math.min(1,CW/620));}window.addEventListener('resize',resize);resize();
 
