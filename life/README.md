@@ -1,3 +1,28 @@
+# JUNJA VILLAGE LIFE v17 — improved mobile 3D / costumes / life progression
+
+[▶ Play the v17 preview](https://raw.githack.com/skomet84-code/junja-world/junja-village-life-v17/life/index.html)
+
+**Branch-only preview.** The main JUNJA LAND and Adventure live deployments have not been changed.
+
+## Improvements after v16
+
+- Mobile renderer: fewer unnecessary click raycasts, adaptive resolution and less frequent expensive shadow-map updates.
+- Distinct rigged 3D clothes: sailor details, navy jacket, knitted/linen seams, satchel, dress ribbons, sleeve cuffs and matching leg materials. Original assets are procedural meshes on one avatar skeleton rather than flat PNG paper-doll layers.
+- Island progression: HUD now says *what to do next*, level bonuses unlock at Lv3/4/6/8, and payout labels reflect the actual amounts.
+- NPC chat can no longer grant unlimited XP/friendship through repeat clicking.
+- Multiplayer: online friends now appear as animated dressed 3D characters; the authoritative relay recognizes the entire expanded eastern island and the crafted linen outfit. Nicknames are editable in the friends panel.
+- Real Chromium mobile/WebGL testing is configured in `.github/workflows/village-life-preview.yml`. The workflow also saves screenshots of the mobile village and wardrobe.
+
+## QA
+
+`cd life && npm test` validates JavaScript syntax, joint hierarchy, 110 combinations and deterministic exact-target navigation.
+
+The GitHub Actions browser smoke additionally opens the actual 3D scene on a 390×844 mobile viewport, checks an accurate walking stop, opens the wardrobe, renders a network guest and verifies positions in the east district. Results and screenshots appear under the branch workflow run.
+
+**Known limits:** this is not a completed Animal Crossing-level commercial-quality game; graphic art direction needs further refinement, multiplayer on the static RawGitHack preview is intentionally offline, and production persistent multiplayer/economy databases are not connected.
+
+---
+
 # JUNJA VILLAGE LIFE v16 — 3D character / touch preview (2026-10-17)
 
 > This is an experimental **branch preview**, not the live JUNJA LAND or Adventure build.
