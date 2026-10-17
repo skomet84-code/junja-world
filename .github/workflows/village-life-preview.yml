@@ -1,7 +1,7 @@
 name: Junja Village Life Preview QA
 on:
   push:
-    branches: [junja-village-life-v17]
+    branches: [junja-village-life-v17, junja-village-life-v18]
   workflow_dispatch:
 
 jobs:
@@ -23,7 +23,9 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verify actual mobile 3D render, navigation and wardrobe
         working-directory: life
-        run: node test_browser.mjs
+        run: |
+          node test_browser.mjs
+          node test_real_tap_v18.mjs
       - name: Keep mobile screenshots for visual review
         if: always()
         uses: actions/upload-artifact@v4
