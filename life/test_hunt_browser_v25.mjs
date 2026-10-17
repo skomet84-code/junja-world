@@ -32,11 +32,32 @@ try{
  assert.equal(battle.zone,'meadow');
  assert.equal(battle.monsterCount,7);
  assert.equal(battle.level,3);
+ assert.equal(battle.enemyLabelCount,7,'Every sculpted monster has an overhead name & life bar');
+ assert.equal(battle.viewHeight,650,'Fixed world view is zoomed out on mobile');
+ assert.equal(battle.cameraZoom,1,'Camera scale starts at 1');
+ assert(battle.enemyModelMeshes.every(x=>x.count>=12),'Monsters should have detailed geometric faces and accessories');
+ const screenBefore=await page.evaluate(()=>document.documentElement.clientWidth);
+ await page.locator('#resetView').click();
+ assert.equal((await page.evaluate(()=>window.__JUNJA_HUNT_QA__.getState())).resetViewCount,1,'User screen reset works');
+ assert.equal((await page.evaluate(()=>window.__JUNJA_HUNT_QA__.getState())).cameraZoom,1,'Reset button restores camera zoom');
+ await page.touchscreen.tap(188,405);await page.touchscreen.tap(188,405);
+ assert.equal(await page.evaluate(()=>document.documentElement.clientWidth),screenBefore,'Double tap must not expand layout viewport');
+ assert.equal((await page.evaluate(()=>window.__JUNJA_HUNT_QA__.getState())).cameraZoom,1,'Double tap cannot modify in-game camera');
  assert.equal(await page.locator('[data-skill]').count(),3);
  assert(await page.locator('#strike').isEnabled());
  assert(await page.locator('#star').isDisabled(),'star skill level gated');
+ // Test real screen input: select one visible monster and wait for automatic attacking effects.
+ await page.waitForTimeout(400);
+ const targets=await page.evaluate(()=>window.__JUNJA_HUNT_QA__.getTargets());
+ const clickOn=targets.find(t=>t.x>28&&t.x<362&&t.y>215&&t.y<670&&!t.boss);
+ assert(clickOn,'At least one attackable monster must be visible on mobile');
+ await page.touchscreen.tap(Math.round(clickOn.x),Math.round(clickOn.y));
+ await page.waitForFunction(()=>window.__JUNJA_HUNT_QA__.getState().visualHitCount>0,null,{timeout:15000});
+ const hit=await page.evaluate(()=>window.__JUNJA_HUNT_QA__.getState());
+ assert(hit.hitCount>0&&hit.lastImpact>0,'Touching monster should trigger actual damage and recoil');
+ assert(hit.effects>=0,'Visual attack effects maintain a finite scene state');
  await mkdir('artifacts',{recursive:true});
- await page.screenshot({path:'artifacts/v25-hunting-3d-mobile.png'});
+ await page.screenshot({path:'artifacts/v26-hunting-3d-hit-mobile.png'});
  await page.locator('#craft').click();
  assert.equal(await page.locator('[data-craft]').count(),4);
  await page.locator('[data-craft="forest-look"]').click();
@@ -51,5 +72,5 @@ try{
  assert(saved.fashion.owned.includes('fashion_outfit_19'),'cosmetic should survive return to the village');
  assert.equal(saved.xp,320,'revisiting village must preserve character level');
  assert(!errors.length,'No JS errors: '+errors.join('; '));
- console.log('PASS independent 3D hunting map, four unlockable zones, 7 active enemies, three skills, crafted village cosmetics and safe return');
+ console.log('PASS v26: mobile anti-zoom reset, detailed 3D enemy labels, touch-target auto-hit effects, 4 regions, 3 skills and village return');
 }finally{await browser?.close();server.kill('SIGTERM')}
