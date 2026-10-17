@@ -499,7 +499,60 @@ function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],sta
 function farmAll(){let p=bedCenters.findIndex((_,i)=>state.beds[i].crop&&cropStage(state.beds[i])===3);if(p>=0){moveTo(bedCenters[p].x,bedCenters[p].y+56,{type:'farm',idx:p});toast('🌿 수확할 밭으로 이동해요');return}const v=bedCenters.findIndex((_,i)=>!state.beds[i].crop);if(v>=0){moveTo(bedCenters[v].x,bedCenters[v].y+56,{type:'farm',idx:v});toast('🌱 빈 밭으로 이동해요');return}openFarmShop()}
 function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*6).toLocaleString()}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${(o.cost*6).toLocaleString()}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*6;if(state.coins<cost){toast('코인이 부족해요');return}state.coins-=cost;state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
 function openMarket(){const fishCount=state.collection.length,uniq=new Set(state.collection).size;openModal(`<span class="titlebadge">HARBOR EXCHANGE</span><h2>⚓ 준자 교역소</h2><p>축제 시장에서 오늘의 특별 납품을 완료해보세요.</p><div class="mini-card"><strong>🐟 물고기 수집 도감</strong><p>잡은 물고기 총 ${state.fish}마리 · 발견 어종 ${uniq}/${FISH.length}</p><button id="marketBag">수집 가방 열기</button></div><div class="mini-card" style="margin-top:10px"><strong>🎁 오늘의 마을 의뢰</strong>${dailyTask().map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} ${o.done}/${o.target}</p>`).join('')}<p>오늘 선택된 5개를 완료하면 550G + 경험치 150 획득</p></div>`);document.getElementById('marketBag').onclick=openAquarium}
-function openNpc(npc){state.friends[npc.name]=state.friends[npc.name]||0;state.talkDays=state.talkDays||{};state.friendBondDay=state.friendBondDay||{};if(state.talkDays[npc.name]!==nowDay()){state.talkDays[npc.name]=nowDay();state.dailyTalk++;addXp(3)}let heart=state.friends[npc.name];completeDaily();openModal(`<span class="titlebadge">VILLAGER</span><h2>💗 ${npc.name}와 대화하기</h2><p>${npc.text}</p><h3>친밀도 ${'💗'.repeat(Math.min(5,Math.floor(heart/2)+1))}</h3><p>친밀도 ${heart} · 이야기를 나누거나 선물을 줄 수 있어요.</p><div class="pill-row"><button class="pill-btn" id="friendTalk">이야기 나누기</button><button class="pill-btn alt" id="friendGift">🎁 꽃 선물하기 (50G)</button></div>`);document.getElementById('friendTalk').onclick=()=>{if(state.friendBondDay[npc.name]===nowDay()){toast(npc.name+'와 오늘의 대화는 마쳤어요. 내일 또 인사해요!');return}state.friendBondDay[npc.name]=nowDay();const texts=['마을 바람이 정말 상쾌해요!','오늘은 좋은 일이 생길 것 같은데요?','부두 근처에 희귀한 물고기가 있대요.','새로운 옷을 입고 오셨군요!'];state.friends[npc.name]++;toast('💞 '+npc.name+': '+texts[Math.floor(Math.random()*texts.length)]);save();openNpc(npc)};document.getElementById('friendGift').onclick=()=>{if(state.coins<50){toast('코인이 부족해요');return}state.coins-=50;state.friends[npc.name]+=2;hud();party(npc.x,npc.y-80,12);toast('💝 '+npc.name+'가 정말 기뻐해요!');save();openNpc(npc)}}
+function openNpc(npc){
+ state.friends[npc.name]=Number(state.friends[npc.name])||0;
+ state.talkDays=state.talkDays||{};
+ state.friendBondDay=state.friendBondDay||{};
+ state.friendGiftDay=state.friendGiftDay||{};
+ state.npcRequests=state.npcRequests||{};
+ state.npcMementos=Array.isArray(state.npcMementos)?state.npcMementos:[];
+ if(state.talkDays[npc.name]!==nowDay()){
+  state.talkDays[npc.name]=nowDay();state.dailyTalk++;addXp(3);
+ }
+ const today=nowDay(),heart=state.friends[npc.name],talked=state.friendBondDay[npc.name]===today,gifted=state.friendGiftDay[npc.name]===today;
+ const request={리나:{label:'작은 제작품 1개',metric:'dailyCraft',goal:1,icon:'🧵'},토비:{label:'물고기 2마리',metric:'dailyFish',goal:2,icon:'🎣'},유니:{label:'작물 2회 수확',metric:'dailyHarvest',goal:2,icon:'🌷'}}[npc.name]||{label:'작물 2회 수확',metric:'dailyHarvest',goal:2,icon:'🌱'};
+ const progress=Math.min(request.goal,state[request.metric]||0),claimed=state.npcRequests[npc.name]===today;
+ const tiers=[{id:'1',love:6,reward:900,name:'인연의 리본',item:'fashion_accessory_02'},
+  {id:'2',love:16,reward:2200,name:'소중한 단짝',item:'fashion_accessory_08'},
+  {id:'3',love:36,reward:6500,name:'영원한 친구',item:'fashion_accessory_13'}];
+ const esc=s=>String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+ completeDaily();
+ openModal('<span class="titlebadge">VILLAGER FRIENDSHIP · '+esc(npc.name)+'</span><h2>💗 '+esc(npc.name)+'와의 우정</h2>'+
+  '<p>'+esc(npc.text)+'</p><div class="mini-card"><strong>친밀도 '+heart+' · '+ '💗'.repeat(Math.min(5,Math.floor(heart/7)+1))+
+  '</strong><p>하루 한 번 대화하고 선물을 건네면서 진짜 친구가 돼보세요. 매일 부탁도 달라져요.</p>'+
+  '<div class="pill-row"><button class="pill-btn" id="friendTalk" '+(talked?'disabled':'')+'>💬 '+(talked?'오늘 인사 완료':'오늘의 이야기')+'</button>'+
+  '<button class="pill-btn alt" id="friendGift" '+(gifted?'disabled':'')+'>🎁 '+(gifted?'오늘 선물 완료':'꽃 선물 180G')+'</button></div></div>'+
+  '<div class="mini-card"><strong>'+request.icon+' '+esc(npc.name)+'의 오늘 부탁</strong><p>'+request.label+' · '+progress+'/'+request.goal+'</p>'+
+  '<button id="npcCommission" '+(claimed||progress<request.goal?'disabled':'')+'>'+(claimed?'✅ 수령 완료':progress>=request.goal?'보상 받기 · 650G + 친밀도 2':'부탁 진행 중')+'</button></div>'+
+  '<h3>💝 우정의 기념 선물</h3><div class="card-grid">'+tiers.map(t=>{
+   const key=npc.name+'-'+t.id,done=state.npcMementos.includes(key);
+   return '<div class="mini-card"><strong>'+t.name+'</strong><p>친밀도 '+t.love+' 이상 · '+t.reward.toLocaleString('ko-KR')+'G · 특별 장신구</p>'+
+    '<button data-npctier="'+t.id+'" '+(done||heart<t.love?'disabled':'')+'>'+(done?'✅ 이미 받은 선물':'기념 선물 받기')+'</button></div>';
+  }).join('')+'</div>');
+ document.getElementById('friendTalk').onclick=()=>{
+  if(state.friendBondDay[npc.name]===nowDay())return;
+  state.friendBondDay[npc.name]=nowDay();state.friends[npc.name]++;
+  toast('💞 '+npc.name+'와 새로운 추억을 만들었어요');save();openNpc(npc);
+ };
+ document.getElementById('friendGift').onclick=()=>{
+  if(state.friendGiftDay[npc.name]===nowDay()||state.coins<180){toast('선물에 180G가 필요하거나 오늘 이미 건넸어요');return}
+  state.friendGiftDay[npc.name]=nowDay();state.coins-=180;state.friends[npc.name]+=2;
+  hud();party(npc.x,npc.y-80,12);toast('💝 '+npc.name+'가 정말 기뻐해요!');save();openNpc(npc);
+ };
+ document.getElementById('npcCommission').onclick=()=>{
+  if(state.npcRequests[npc.name]===nowDay()||(state[request.metric]||0)<request.goal)return;
+  state.npcRequests[npc.name]=nowDay();state.friends[npc.name]+=2;state.coins+=650;addXp(40);
+  save();hud();toast('💌 주민 부탁 완료! +650G · 친밀도 +2');openNpc(npc);
+ };
+ els.panelBody.querySelectorAll('[data-npctier]').forEach(btn=>btn.onclick=()=>{
+  const t=tiers.find(x=>x.id===btn.dataset.npctier);
+  if(!t||state.friends[npc.name]<t.love)return;
+  const key=npc.name+'-'+t.id;if(state.npcMementos.includes(key))return;
+  state.npcMementos.push(key);state.coins+=t.reward;
+  if(CATALOG_BY_ID[t.item]&&!state.fashion.owned.includes(t.item))state.fashion.owned.push(t.item);
+  save();hud();toast('💗 '+npc.name+'의 우정 선물 '+t.name+' 획득!');openNpc(npc);
+ });
+}
 function openDecor(){const cards=decorCatalog.map(o=>`<div class="mini-card"><span class="emoji">${o.emoji}</span><strong>${o.label}</strong><p>${state.crafted[o.id]>0?'제작품 '+state.crafted[o.id]+'개 · 무료 배치':'🪙 '+(o.cost*5).toLocaleString()+'G · 구매 배치'}</p><button data-decor="${o.id}">배치하기</button></div>`).join('');openModal(`<span class="titlebadge">GARDEN ATELIER</span><h2>🏡 내 마을 꾸미기</h2><p>장식을 선택하고, 마을의 원하는 빈 바닥을 터치해 배치해요.</p><div class="card-grid">${cards}</div><div class="pill-row"><button class="pill-btn ghost" id="removeDecoration">설치된 장식 회수하기</button><button class="pill-btn ghost" id="openHomeLink">내 집 꾸미기</button></div>`);els.panelBody.querySelectorAll('[data-decor]').forEach(btn=>btn.onclick=()=>{placeDecor=btn.dataset.decor;closeModal();toast('👆 비어 있는 바닥을 터치해 배치해요!');els.hint.textContent='장식 배치 모드 · 바닥 터치 / 취소는 꾸미기 버튼';els.hint.classList.remove('hidden')});document.getElementById('removeDecoration').onclick=()=>{placeDecor='remove';closeModal();toast('원래 설치한 장식을 터치하면 회수해요!')};document.getElementById('openHomeLink').onclick=openHome}
 function placeAt(x,y){if(placeDecor==='remove'){const i=state.decorations.findIndex(o=>Math.hypot(o.x-x,o.y-y)<70);if(i<0){toast('회수할 장식을 터치해주세요');return}let old=state.decorations.splice(i,1)[0],v=decorCatalog.find(a=>a.id===old.id);state.coins+=Math.floor((v?.cost||0)*.4);placeDecor=null;toast('📦 장식 회수 완료 · 일부 코인 환급');hud();save();return}
  const o=decorCatalog.find(v=>v.id===placeDecor);if(!o)return; if(!walkable(x,y)||Math.hypot(player.x-x,player.y-y)<40||[...props,...expansionProps].some(p=>Math.hypot(p.x-x,p.y-y)<185)||state.decorations.some(p=>Math.hypot(p.x-x,p.y-y)<48)){toast('여기에는 배치할 수 없어요');return}if(!(state.crafted[o.id]>0)&&state.coins<o.cost*5){toast('코인이 부족해요');placeDecor=null;return}if(state.crafted[o.id]>0)state.crafted[o.id]--;else state.coins-=o.cost*5;state.decorations.push({id:o.id,x:Math.round(x),y:Math.round(y)});placeDecor=null;els.hint.classList.add('hidden');hud();save();party(x,y-10,22);checkAchievements();toast('🏡 '+o.label+' 설치 완료!')}
