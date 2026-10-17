@@ -271,26 +271,50 @@ function arrive(){const p=popup;popup=null;goal=null;player.vx=player.vy=0;if(!p
  if(p.type==='gather')gather(p.id);
 }
 // Optional LAN / server-hosted friends. The static downloadable preview remains a real offline game.
-const peers={},chatHistory=[];
+const peers={};
 let socialNickname='준자';
 try{socialNickname=(localStorage.getItem('junja-village-nickname')||('마을주민'+Math.floor(1000+Math.random()*9000))).slice(0,12);localStorage.setItem('junja-village-nickname',socialNickname)}catch{}
 let socialSocket=null,socialRoom='SPRING',socialId=null,lastPositionSent=0,retryCount=0;
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function socialSend(o){if(socialSocket?.readyState===1)socialSocket.send(JSON.stringify(o))}
-function updateSocialBadge(){const b=document.getElementById('socialStatus');if(!b)return;b.textContent=socialSocket?.readyState===1&&socialId?'🟢 친구 '+(Object.keys(peers).length+1)+'명 · '+socialRoom:'👫 친구 · 오프라인';}
-function openSocial(){const connected=socialSocket?.readyState===1&&socialId;const url=(location.origin==='null'?null:location.origin)+'/?room='+encodeURIComponent(socialRoom);
- const chats=chatHistory.slice(-15).map(c=>`<p style="border-bottom:1px solid #e4dccb;padding:7px 0"><b>${esc(c.nick)}:</b> ${esc(c.text)}</p>`).join('');
- openModal(`<span class="titlebadge">VILLAGE FRIENDS</span><h2>👫 친구들과 함께</h2><p>${connected?'🟢 실시간 접속 중 · '+socialRoom+' 방':'⚪ 오프라인 체험 모드'}</p><div class="mini-card"><strong>내 캐릭터 이름</strong><div style="display:flex;gap:6px;margin-top:7px"><input id="villageNickname" maxlength="12" value="${esc(socialNickname)}" aria-label="캐릭터 이름" style="min-width:0;flex:1;border-radius:12px;padding:10px;border:1px solid #d8c7a7"><button id="saveVillageNickname">저장</button></div></div>${connected?`<div class="mini-card"><strong>초대 링크</strong><p style="overflow-wrap:anywhere">${esc(url)}</p><button id="copyInvite">🔗 초대 링크 복사</button></div>`:'<p>온라인 친구 방문은 멀티플레이 서버에서 접속했을 때 사용 가능해요. 지금은 혼자 플레이하는 미리보기입니다.</p>'}<h3>💬 마을 채팅</h3><div id="chatLog" style="min-height:90px;max-height:170px;overflow:auto">${chats||'<p>친구와 만나면 이곳에 메시지가 보여요.</p>'}</div>${connected?`<div style="display:flex;gap:6px"><input id="chatInput" maxlength="120" placeholder="친구에게 인사하기" style="min-width:0;flex:1;border-radius:12px;padding:10px;border:1px solid #d8c7a7"><button class="pill-btn" id="chatSend">보내기</button></div>`:''}<div class="pill-row"><button class="pill-btn ghost" id="roomPlayers">접속자 ${Object.keys(peers).length+Number(Boolean(connected))}명</button></div>`);
+function updateSocialBadge(){const b=document.getElementById('socialStatus');if(!b)return;b.textContent=socialSocket?.readyState===1&&socialId?'🟢 친구 '+(Object.keys(peers).length+1)+'/8명 · '+socialRoom:'👫 친구 · 오프라인';}
+function openSocial(){
+ const connected=socialSocket?.readyState===1&&socialId;
+ const url=(location.origin==='null'?null:location.origin)+'/?room='+encodeURIComponent(socialRoom);
+ openModal(`<span class="titlebadge">VILLAGE FRIENDS · 8명/방</span><h2>👫 친구와 말풍선</h2>
+  <p>${connected?'🟢 같은 마을 '+(Object.keys(peers).length+1)+'명':'⚪ 혼자 미리보기'} · 자유 채팅은 지원하지 않아요.</p>
+  <div class="mini-card"><strong>내 이름</strong><div style="display:flex;gap:6px;margin-top:7px">
+  <input id="villageNickname" maxlength="12" value="${esc(socialNickname)}" aria-label="캐릭터 이름" style="min-width:0;flex:1;border-radius:12px;padding:10px;border:1px solid #d8c7a7">
+  <button id="saveVillageNickname">저장</button></div></div>
+  ${connected?`<div class="mini-card"><strong>초대 링크</strong><p style="overflow-wrap:anywhere">${esc(url)}</p><button id="copyInvite">복사</button></div>`:
+  '<p>친구들과 함께하려면 실시간 멀티플레이 서버 주소로 접속해야 해요. 이 GitHACK 미리보기는 혼자 체험하는 버전이에요.</p>'}
+  <h3>💬 말풍선 선택</h3><div class="speech-grid">${PHRASES.map((p,i)=>`<button type="button" data-phrase="${i}">${p}</button>`).join('')}</div>
+  <p class="item-note">문구를 선택하면 캐릭터 위에 약 3초 동안 표시됩니다.</p>
+  <div class="pill-row"><button class="pill-btn ghost" id="roomPlayers">접속 인원 ${Object.keys(peers).length+Number(Boolean(connected))}/8명</button></div>`);
  const saveNick=document.getElementById('saveVillageNickname');
- if(saveNick)saveNick.onclick=()=>{const field=document.getElementById('villageNickname');const nick=String(field?.value||'').replace(/[<>\x00-\x1f\x7f]/g,'').trim().slice(0,12);if(!nick){toast('이름을 입력해주세요');return}socialNickname=nick;try{localStorage.setItem('junja-village-nickname',nick)}catch{}world3D?.setNickname(nick);if(socialSocket?.readyState===1)socialSocket.close(1000,'nickname update');toast('🌸 캐릭터 이름을 저장했어요');};
- const copy=document.getElementById('copyInvite');if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(url);toast('🔗 초대 링크 복사 완료')}catch{toast('주소창 링크를 친구에게 보내주세요')}};
- const sendBtn=document.getElementById('chatSend');if(sendBtn)sendBtn.onclick=()=>{const input=document.getElementById('chatInput'),text=input?.value.trim();if(!text)return;socialSend({type:'chat',text});chatHistory.push({nick:'나',text});input.value='';openSocial()};const inp=document.getElementById('chatInput');if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')sendBtn.click()});
- document.getElementById('roomPlayers').onclick=()=>{toast(connected?'👫 같은 마을 친구 '+(Object.keys(peers).length+1)+'명':'🌿 서버 연결 전에는 혼자 플레이합니다')};
+ if(saveNick)saveNick.onclick=()=>{
+  const field=document.getElementById('villageNickname');
+  const nick=String(field?.value||'').replace(/[<>\x00-\x1f\x7f]/g,'').trim().slice(0,12);
+  if(!nick){toast('이름을 입력해주세요');return}
+  socialNickname=nick;try{localStorage.setItem('junja-village-nickname',nick)}catch{}
+  els.name.textContent=nick;world3D?.setNickname(nick);
+  if(socialSocket?.readyState===1)socialSocket.close(1000,'nickname update');
+  toast('🌸 캐릭터 이름을 저장했어요');
+ };
+ const copy=document.getElementById('copyInvite');
+ if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(url);toast('초대 링크 복사 완료')}catch{toast('주소를 복사해주세요')}};
+ els.panelBody.querySelectorAll('[data-phrase]').forEach(b=>b.onclick=()=>{
+  const phrase=PHRASES[Number(b.dataset.phrase)];if(!phrase)return;
+  closeModal();world3D?.sayLocal(phrase);socialSend({type:'say',phrase});
+ });
+ document.getElementById('roomPlayers').onclick=()=>toast(connected?'같은 방에 '+(Object.keys(peers).length+1)+'명 접속':'현재 혼자 플레이 중');
 }
 function connectSocial(){if(!document.querySelector('meta[name="junja-relay"][content="yes"]')){updateSocialBadge();return}
  socialRoom=(new URLSearchParams(location.search).get('room')||'SPRING').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,12)||'SPRING';
  try{socialSocket=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');socialSocket.addEventListener('open',()=>{socialId=null;retryCount=0;socialSend({type:'join',room:socialRoom,nick:socialNickname,x:player.x,y:player.y,coat:state.coat,hat:state.hat,dir:player.dir});updateSocialBadge()});
- socialSocket.addEventListener('message',e=>{let msg;try{msg=JSON.parse(e.data)}catch{return}if(msg.type==='welcome'){socialId=msg.id;for(const id of Object.keys(peers))delete peers[id];for(const o of msg.players||[])peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('👫 '+socialRoom+' 마을에 접속했어요');updateSocialBadge()}else if(msg.type==='join'){const o=msg.player;if(o&&o.id!==socialId){peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('🌸 '+o.nick+'님이 놀러왔어요!');updateSocialBadge()}}else if(msg.type==='pos'&&peers[msg.id]){Object.assign(peers[msg.id],{targetX:msg.x,targetY:msg.y,dir:msg.dir,coat:msg.coat,hat:msg.hat})}else if(msg.type==='leave'){delete peers[msg.id];updateSocialBadge()}else if(msg.type==='chat'){chatHistory.push({nick:msg.nick,text:msg.text});if(chatHistory.length>40)chatHistory.shift();toast('💬 '+msg.nick+': '+msg.text.slice(0,25));if(document.getElementById('chatLog'))openSocial()}else if(msg.type==='error'){toast('⚠️ '+msg.message)}});
+ socialSocket.addEventListener('message',e=>{let msg;try{msg=JSON.parse(e.data)}catch{return}if(msg.type==='welcome'){socialId=msg.id;for(const id of Object.keys(peers))delete peers[id];for(const o of msg.players||[])peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('👫 '+socialRoom+' 마을에 접속했어요');updateSocialBadge()}else if(msg.type==='join'){const o=msg.player;if(o&&o.id!==socialId){peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('🌸 '+o.nick+'님이 놀러왔어요!');updateSocialBadge()}}else if(msg.type==='pos'&&peers[msg.id]){Object.assign(peers[msg.id],{targetX:msg.x,targetY:msg.y,dir:msg.dir,coat:msg.coat,hat:msg.hat})}else if(msg.type==='leave'){delete peers[msg.id];updateSocialBadge()}else if(msg.type==='speech'&&peers[msg.id]&&PHRASES.includes(msg.phrase)){
+ peers[msg.id].phrase=msg.phrase;peers[msg.id].phraseUntil=Date.now()+3200;
+}else if(msg.type==='error'){toast('⚠️ '+msg.message)}});
  socialSocket.addEventListener('close',()=>{socialId=null;for(const id of Object.keys(peers))delete peers[id];updateSocialBadge();if(retryCount++<6)setTimeout(connectSocial,Math.min(16000,2000*retryCount))});
  socialSocket.addEventListener('error',()=>{updateSocialBadge()});
  }catch{updateSocialBadge()}}
@@ -467,6 +491,6 @@ function showRenderError(error){
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();save();showRenderError('그래픽 컨텍스트가 중단됐습니다. 다시 열기를 눌러 복구하세요.');});
 cv.addEventListener('webglcontextrestored',()=>location.reload());
 try{world3D=createWorld({canvas:cv,width:W,height:H,stations,resources:resourceNodes,beds:bedCenters,npcs,animals:animalFriends,walkable,nickname:socialNickname})}catch(error){console.error(error);showRenderError(error);}
-initJourney();connectSocial();setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
+els.name.textContent=socialNickname;initJourney();connectSocial();setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
 })();
 
