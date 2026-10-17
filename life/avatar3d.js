@@ -157,5 +157,8 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   }
   const blink=(time%4.7)>4.58;for(const e of eyes)e.scale.y=blink?.55:4.4;
  }
- equip(coat,hat);return {root,equip,animate,equipped,rig:root.userData.rig};
+ function dispose(){
+  root.traverse(o=>{if(o.geometry&&!Object.values(sharedGeometries).includes(o.geometry)&&!capsuleCacheHas(o.geometry))o.geometry.dispose()});
+ }
+ equip(coat,hat);return {root,equip,animate,dispose,equipped,rig:root.userData.rig};
 }
