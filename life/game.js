@@ -464,7 +464,7 @@ function openHome(){
    <button id="homeCare" ${available?'':'disabled'}>${available?'집 돌보고 '+dailyReward+'G 받기':'오늘 보상 수령 완료'}</button>
   </div>
   ${next?`<div class="mini-card"><strong>🔨 다음 단계 · ${next.name}</strong>
-  <p>Lv.${next.minLevel} 필요 · 건축 비용 ${next.price.toLocaleString()}G · ${next.rooms}개 공간</p>
+  <p>Lv.${next.minLevel} 필요 · 건축 비용 ${(next.price*5).toLocaleString()}G · ${next.rooms}개 공간</p>
   <button id="upgradeHome" ${!eligible?'disabled':''}>${!eligible?'레벨을 더 올려야 해요':'집 업그레이드'}</button></div>`:
   '<div class="mini-card"><strong>👑 최고 단계 주택 완성</strong><p>앞으로 가구와 어항을 더 꾸며봐요.</p></div>'}
   <h3>🎨 벽지 선택</h3><div class="pill-row">
@@ -473,7 +473,7 @@ function openHome(){
   <h3>🪑 가구 구매</h3><div class="pill-row">
    ${[['table','식탁','🪑',150],['lamp','조명','🪔',240],['plant','화분','🪴',120],
    ['cat','고양이 인형','🐈',380],['piano','피아노','🎹',850]]
-   .map(([id,label,emoji,price])=>`<button class="pill-btn alt" data-furn="${id}">${emoji} ${label} ${price}G</button>`).join('')}
+   .map(([id,label,emoji,price])=>`<button class="pill-btn alt" data-furn="${id}">${emoji} ${label} ${price*6}G</button>`).join('')}
   </div>
   <button class="pill-btn ghost" id="homeAquarium">🐠 나만의 어항 구경하기</button>`);
  document.getElementById('homeCare').onclick=()=>{
@@ -483,8 +483,8 @@ function openHome(){
  };
  if(next)document.getElementById('upgradeHome').onclick=()=>{
   if(lifeLevel()<next.minLevel||state.home.level+1!==next.level)return;
-  if(state.coins<next.price){toast('집 업그레이드 코인이 부족해요');return}
-  state.coins-=next.price;state.home.level=next.level;state.xp+=80;
+  if(state.coins<next.price*5){toast('집 업그레이드 코인이 부족해요');return}
+  state.coins-=next.price*5;state.home.level=next.level;state.xp+=80;
   save();hud();toast('🏠 새 집 완성 · '+next.name);openHome();
  };
  els.panelBody.querySelectorAll('[data-wall]').forEach(b=>b.onclick=()=>{state.home.wall=b.dataset.wall;save();openHome()});
