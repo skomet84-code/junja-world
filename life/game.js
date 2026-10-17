@@ -86,7 +86,7 @@ function openFestival(){
     <p>🎁 ${q.prize.toLocaleString('ko-KR')}G + 50XP</p>
     <button data-festival="${q.id}" ${claimed||done<q.goal?'disabled':''}>${claimed?'✅ 수령 완료':done>=q.goal?'완료 보상 받기':'도전 중'}</button></div>`;
   }).join('')}</div>
-  <div class="mini-card"><strong>🏆 수족관 컬렉터</strong><p>물고기 6종 모두 발견 시 8,000G · 계정당 최초 1회</p>
+  <div class="mini-card"><strong>🏆 수족관 컬렉터</strong><p>물고기 6종 모두 발견 시 8,000G · 이 브라우저에서 최초 1회</p>
    <button id="festivalMuseum" ${state.festivalMuseumClaimed||new Set(state.collection).size<6?'disabled':''}>${state.festivalMuseumClaimed?'✅ 보상 받음':'컬렉션 보상 수령'}</button></div>
   <p style="font-size:12px;color:#627b68">돈을 모으면 프리미엄 아틀리에의 로열 코디 세트를 완성할 수 있어요.</p>`);
  document.getElementById('festivalAttendance').onclick=()=>{claimAttendance();openFestival()};
