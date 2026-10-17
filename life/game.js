@@ -518,7 +518,73 @@ function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],sta
 }
 function farmAll(){let p=bedCenters.findIndex((_,i)=>state.beds[i].crop&&cropStage(state.beds[i])===3);if(p>=0){moveTo(bedCenters[p].x,bedCenters[p].y+56,{type:'farm',idx:p});toast('🌿 수확할 밭으로 이동해요');return}const v=bedCenters.findIndex((_,i)=>!state.beds[i].crop);if(v>=0){moveTo(bedCenters[v].x,bedCenters[v].y+56,{type:'farm',idx:v});toast('🌱 빈 밭으로 이동해요');return}openFarmShop()}
 function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*6).toLocaleString()}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${(o.cost*6).toLocaleString()}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*6;if(state.coins<cost){toast('코인이 부족해요');return}spend(cost,'씨앗 3개');state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
-function openMarket(){const fishCount=state.collection.length,uniq=new Set(state.collection).size;openModal(`<span class="titlebadge">HARBOR EXCHANGE</span><h2>⚓ 준자 교역소</h2><p>축제 시장에서 오늘의 특별 납품을 완료해보세요.</p><div class="mini-card"><strong>🐟 물고기 수집 도감</strong><p>잡은 물고기 총 ${state.fish}마리 · 발견 어종 ${uniq}/${FISH.length}</p><button id="marketBag">수집 가방 열기</button></div><div class="mini-card" style="margin-top:10px"><strong>🎁 오늘의 마을 의뢰</strong>${dailyTask().map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} ${o.done}/${o.target}</p>`).join('')}<p>오늘 선택된 5개를 완료하면 550G + 경험치 150 획득</p></div>`);document.getElementById('marketBag').onclick=openAquarium}
+function openEconomyDashboard(){
+ const stats=initEconomy(state),ledger=moneyHistory(state),cash=Math.floor(state.coins);
+ const major=[['harvest','농사'],['fish','어시장'],['hunt','사냥'],['deliver','납품'],['quest','의뢰'],['festival','축제'],['social','생활 보상']];
+ openModal('<span class="titlebadge">JUNJA ECONOMY · '+stats.day+'</span><h2>🏦 준자마을 경제 수첩</h2>'+
+ '<div class="mini-card"><strong>💰 내 자산 · '+cash.toLocaleString('ko-KR')+'G</strong><p>오늘 새로 얻은 돈 '+stats.earned.toLocaleString('ko-KR')+'G · 상점 등에 쓴 돈 '+stats.spent.toLocaleString('ko-KR')+'G</p>'+
+ '<p>경제 개편 이후 내 계정 통계: 게임 보상 발행 '+stats.totalMinted.toLocaleString('ko-KR')+'G · 소비·제작 회수 '+stats.totalBurned.toLocaleString('ko-KR')+'G</p></div>'+
+ '<p>경제 가치가 유지되도록 하루 동안 활동별 보상이 점차 줄어들 수 있어요. 메인 스토리·영구 업적 보상은 별도예요.</p>'+
+ '<h3>📊 오늘의 활동별 수입 기준</h3><div class="card-grid">'+major.map(([id,name])=>{
+  const gross=Math.floor(stats.categories[id]||0),cap=economyCeiling(id,lifeLevel());
+  return '<div class="mini-card"><strong>'+name+'</strong><p>기준 '+cap.toLocaleString()+'G · 오늘 보상 발생 '+gross.toLocaleString()+'G</p>'+
+   '<div class="mini-progress"><i style="width:'+Math.min(100,gross/cap*100)+'%"></i></div>'+
+   '<p>'+(gross>=cap?'🔹 추가 보상은 감소해요':'✅ 기본 보상 구간')+'</p></div>';
+ }).join('')+'</div>'+
+ '<h3>🧾 최근 수입·지출 내역</h3>'+
+ (ledger.length?ledger.slice(0,24).map(tx=>'<div class="economy-ledger"><span>'+(tx.type==='earn'?'🟢':'🔴')+' '+tx.reason+'</span><strong>'+(tx.type==='earn'?'+':'−')+tx.value.toLocaleString('ko-KR')+'G</strong></div>').join(''):'<p>경제 개편 후의 거래 내역이 여기 쌓여요.</p>')+
+ '<div class="mini-card"><strong>🔐 함께 쓰는 경제의 조건</strong><p>지금은 이 기기의 거래 기록만 볼 수 있어요. 다른 사람과 실제로 거래하는 기능은 서버 인증·위변조 방지·중복 결제 방지가 준비된 뒤 열어야 해요.</p></div>'+
+ '<div class="pill-row"><button class="pill-btn" id="economyGoMarket">⚓ 어시장으로</button><button class="pill-btn ghost" id="economyGoBait">🎣 미끼 상점</button></div>');
+ document.getElementById('economyGoMarket').onclick=openMarket;
+ document.getElementById('economyGoBait').onclick=openBaitShop;
+}
+function openBaitShop(){
+ const baitCount=Object.values(state.baitInventory||{}).reduce((sum,n)=>sum+(Number(n)||0),0);
+ openModal('<span class="titlebadge">COASTAL FISHING SUPPLY</span><h2>🪱 부두 미끼 상점</h2>'+
+ '<p>미끼는 구매 후 사용할 때마다 한 개씩 소모돼요. 장비를 얻고 돈을 모으는 것뿐 아니라, 어떤 낚시에 투자할지도 선택해 보세요.</p>'+
+ '<div class="mini-card"><strong>🎣 보유 미끼 '+baitCount+'개</strong><p>현재 자동 사용: '+(BAITS.find(b=>b.id===state.baitEquipped)?.name||'사용 안 함')+'</p>'+
+ '<button data-bait-equip="none">미끼 사용하지 않기</button></div><div class="card-grid">'+BAITS.map(b=>'<div class="mini-card"><strong>'+b.icon+' '+b.name+'</strong>'+
+ '<p>'+b.desc+'</p><p>보유: '+Math.floor(state.baitInventory?.[b.id]||0)+'개 · '+b.price.toLocaleString('ko-KR')+'G</p>'+
+ '<button data-bait-purchase="'+b.id+'" '+(state.coins<b.price?'disabled':'')+'>10개 구매</button>'+
+ '<button data-bait-equip="'+b.id+'" '+(!state.baitInventory?.[b.id]?'disabled':'')+'>'+(state.baitEquipped===b.id?'✅ 장착 중':'다음 낚시부터 사용')+'</button></div>').join('')+'</div>'+
+ '<button class="pill-btn ghost" id="baitToMarket">⚓ 어시장 가기</button>');
+ els.panelBody.querySelectorAll('[data-bait-purchase]').forEach(btn=>btn.onclick=()=>{
+  const b=BAITS.find(b=>b.id===btn.dataset.baitPurchase);if(!b)return;
+  const result=buyBait(state,b.id);if(!result.ok){toast(result.error);return}
+  save();hud();toast('🪱 '+b.name+' 구매 · 소비 '+b.price+'G');openBaitShop();
+ });
+ els.panelBody.querySelectorAll('[data-bait-equip]').forEach(btn=>btn.onclick=()=>{
+  chooseBait(state,btn.dataset.baitEquip);save();openBaitShop();
+ });
+ document.getElementById('baitToMarket').onclick=openMarket;
+}
+function openMarket(){
+ const day=marketDay(),species=FISH.filter(f=>state.fishStock?.[f.name]>0);
+ const stock=species.reduce((n,f)=>n+state.fishStock[f.name],0);
+ const quotes=species.slice().sort((a,b)=>quoteFish(b)-quoteFish(a)).slice(0,24);
+ openModal('<span class="titlebadge">HARBOR EXCHANGE · '+day.day+'</span><h2>⚓ '+day.name+'</h2>'+
+ '<p>물고기를 잡으면 바로 돈이 생기지 않고 <b>판매용 가방</b>에 보관돼요. 매일 어종별 매입 시세가 변해서 언제 어떤 물고기를 팔지 선택할 수 있어요.</p>'+
+ '<div class="mini-card"><strong>🎒 판매 가능한 물고기 '+stock+'마리</strong><p>누적 포획 '+state.fish+'마리 · 발견 도감 '+new Set(state.collection).size+'/'+FISH.length+'종</p>'+
+ '<p>🎣 수산시장 오늘의 특별 시세 · 물고기별로 조금씩 변동 · 마을 돈은 판매할 때 지급</p></div>'+
+ '<h3>💰 물고기 개별 판매</h3>'+
+ (quotes.length?'<div class="card-grid">'+quotes.map(f=>'<div class="mini-card"><div style="text-align:center">'+fishArt(f.name,125)+'</div>'+
+ '<strong>'+f.rarity+' · '+f.name+'</strong><p>보유 '+state.fishStock[f.name]+'마리 · 오늘 매입가 '+quoteFish(f).toLocaleString('ko-KR')+'G</p>'+
+ '<button data-sell-fish="'+f.name+'">1마리 판매</button></div>').join('')+'</div>':
+ '<div class="mini-card"><strong>🎣 아직 판매할 물고기가 없어요</strong><p>이번 경제 업데이트 이후 낚은 물고기부터 판매 가방에 쌓여요. 예전에 잡은 물고기는 이미 보상을 받았으므로 중복 지급되지 않아요.</p></div>')+
+ '<div class="pill-row"><button class="pill-btn" id="marketEconomy">🏦 경제 수첩</button>'+
+ '<button class="pill-btn ghost" id="marketBait">🪱 미끼 상점</button><button class="pill-btn ghost" id="marketBag">🐠 어항 도감</button></div>');
+ els.panelBody.querySelectorAll('[data-sell-fish]').forEach(btn=>btn.onclick=()=>{
+  const fish=FISH_BY_NAME[btn.dataset.sellFish];if(!fish)return;
+  const result=sellFish(state,fish,new Date(),lifeLevel());
+  if(!result.ok){toast(result.error||'거래 실패');return}
+  save();hud();
+  toast('💰 '+fish.name+' 매입 완료 · +'+result.amount.toLocaleString('ko-KR')+'G'+(result.softCapped?' · 오늘 보상 감소 적용':''));
+  openMarket();
+ });
+ document.getElementById('marketEconomy').onclick=openEconomyDashboard;
+ document.getElementById('marketBait').onclick=openBaitShop;
+ document.getElementById('marketBag').onclick=openAquarium;
+}
 function openNpc(npc){
  state.friends[npc.name]=Number(state.friends[npc.name])||0;
  state.talkDays=state.talkDays||{};
@@ -716,13 +782,14 @@ function openReputation(){
  document.getElementById('rankJourney').onclick=openJourney;
  document.getElementById('rankMonthly').onclick=openLivingCalendar;
 }
-function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button><button class="pill-btn" id="journalVault">🗂️ 저장 백업</button><button class="pill-btn" id="journalCalendar">📅 월간 목표</button><button class="pill-btn" id="journalReputation">⭐ 마을 평판</button></div><p class="item-note">접속 기기 브라우저에 자동 저장됩니다. 온라인 계정 연동은 추후 서버 배포가 필요합니다.</p>`);
+function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button><button class="pill-btn" id="journalVault">🗂️ 저장 백업</button><button class="pill-btn" id="journalCalendar">📅 월간 목표</button><button class="pill-btn" id="journalReputation">⭐ 마을 평판</button><button class="pill-btn" id="journalEconomy">🏦 내 경제 수첩</button></div><p class="item-note">접속 기기 브라우저에 자동 저장됩니다. 온라인 계정 연동은 추후 서버 배포가 필요합니다.</p>`);
  document.getElementById('journalGear').onclick=openFishingGear;
  document.getElementById('journalAquarium').onclick=openAquarium;
  document.getElementById('journalHome').onclick=openHome;
  document.getElementById('journalVault').onclick=openSaveVault;
  document.getElementById('journalCalendar').onclick=openLivingCalendar;
  document.getElementById('journalReputation').onclick=openReputation;
+ document.getElementById('journalEconomy').onclick=openEconomyDashboard;
 }
 function interaction(kind){if(kind==='seeds'){openFarmShop();return}if(kind.startsWith('farm:')){farmAt(Number(kind.split(':')[1]));return}if(kind==='shop'){openShop();return}if(kind==='fish'){beginFishing();return}if(kind==='market'){openMarket();return}if(kind==='fountain'){party(player.x,player.y-50,20);if(!state.fountainDate||state.fountainDate!==nowDay()){earn(35,'social','분수 소원');state.fountainDate=nowDay();toast('⛲ 오늘의 소원! +35G')}else toast('⛲ 반짝이는 행운의 분수');hud();save();return}if(kind==='home'){openHome();return}if(kind==='harvest'){farmAll();return}}
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
