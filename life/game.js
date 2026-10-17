@@ -76,6 +76,34 @@ function dailyRallyStops(){
  const day=Math.floor(Date.UTC(...nowDay().split('-').map((v,i)=>i===1?Number(v)-1:Number(v)))/86400000);
  return [0,1,2].map(i=>choices[(day+i*2)%choices.length]);
 }
+function openLivingCalendar(){
+ initialMonth(state,new Date(),FISH_BY_NAME);
+ const festival=realSeason(),board=state.livingMonth;
+ const count=MONTHLY_GOALS.filter(g=>board.claimed.includes(g.id)).length;
+ openModal('<span class="titlebadge">JUNJA LIVING WORLD · '+board.id+'</span><h2>'+festival.icon+' '+festival.name+'</h2>'+
+ '<p>현실 달력과 함께 열리는 월간 목표예요. 계절마다 풍경과 추천 활동이 달라지고, 매달 첫 방문 때 이번 달 기록을 새로 시작해요.</p>'+
+ '<div class="mini-card"><strong>🌿 이번 계절 추천</strong><p>'+festival.focus+' · 추천 어종: '+festival.fish.join(' · ')+'</p></div>'+
+ '<h3>📅 월간 도전 · '+count+'/'+MONTHLY_GOALS.length+'</h3>'+
+ '<div class="card-grid">'+MONTHLY_GOALS.map(q=>{
+ const progress=monthProgress(state,q,FISH_BY_NAME),done=board.claimed.includes(q.id);
+ return '<div class="mini-card"><strong>'+q.label+'</strong><p>'+progress+' / '+q.goal+'</p><div class="mini-progress"><i style="width:'+(progress/q.goal*100)+'%"></i></div><p>🎁 '+q.reward.toLocaleString('ko-KR')+'G · 100XP</p><button data-month="'+q.id+'" '+(done||progress<q.goal?'disabled':'')+'>'+(done?'✅ 이번 달 수령 완료':progress>=q.goal?'보상 받기':'도전 중')+'</button></div>'
+ }).join('')+'</div>'+
+ '<div class="mini-card"><strong>🏅 월간 기념 배지</strong><p>월간 목표 5개를 모두 완료하면 이번 달만의 기념 배지가 컬렉션에 추가돼요.</p><p>누적 획득: '+(state.seasonBadges||[]).length+'개월</p><button id="monthlyBadge" '+(count<MONTHLY_GOALS.length||(state.seasonBadges||[]).includes(board.id)?'disabled':'')+'>이번 달 배지 받기</button></div>'+
+ '<div class="pill-row"><button id="calendarFestival" class="pill-btn">🎪 주간 축제로 돌아가기</button><button id="calendarAlbum" class="pill-btn ghost">🐠 어항 도감</button></div>');
+ els.panelBody.querySelectorAll('[data-month]').forEach(btn=>btn.onclick=()=>{
+  const q=MONTHLY_GOALS.find(g=>g.id===btn.dataset.month);
+  if(!q||board.claimed.includes(q.id)||monthProgress(state,q,FISH_BY_NAME)<q.goal)return;
+  board.claimed.push(q.id);state.coins+=q.reward;state.xp+=100;save();hud();
+  toast('📅 월간 의뢰 완료! +'+q.reward.toLocaleString('ko-KR')+'G');openLivingCalendar();
+ });
+ document.getElementById('monthlyBadge').onclick=()=>{
+  state.seasonBadges=Array.isArray(state.seasonBadges)?state.seasonBadges:[];
+  if(board.claimed.length<MONTHLY_GOALS.length||state.seasonBadges.includes(board.id))return;
+  state.seasonBadges.push(board.id);save();toast('🏅 '+board.id+' 월간 마을 배지 획득!');openLivingCalendar();
+ };
+ document.getElementById('calendarFestival').onclick=openFestival;
+ document.getElementById('calendarAlbum').onclick=openAquarium;
+}
 function openFestival(){
  ensureFestival();const a=state.attendance||{};
  openModal(`<span class="titlebadge">JUNJA VILLAGE FESTIVAL · ${state.festival.week}</span>
@@ -93,7 +121,7 @@ function openFestival(){
   }).join('')}</div>
   <div class="mini-card"><strong>${dailyRallyStops().filter(id=>state.dailyVisits.includes(id)).length}/3곳 방문</strong>
   <button id="festivalRallyClaim" ${state.festivalRallyDay===nowDay()||!dailyRallyStops().every(id=>state.dailyVisits.includes(id))?'disabled':''}>${state.festivalRallyDay===nowDay()?'✅ 오늘 탐험 완료':'스탬프 보상 수령'}</button></div>
-  <h3>⭐ 주간 의뢰</h3>
+  <div class="mini-card"><strong>📅 ${realSeason().icon} 월간 · ${realSeason().name}</strong><p>30일 단위로 이어지는 장기 도전과 계절 기념 배지</p><button id="openMonthlyLife">월간 도전 살펴보기</button></div><h3>⭐ 주간 의뢰</h3>
   <div class="card-grid">${FESTIVAL_TASKS.map(q=>{
    const done=festivalProgress(q),claimed=state.festival.claimed.includes(q.id);
    return `<div class="mini-card"><span class="emoji">${q.icon}</span><strong>${q.name}</strong>
@@ -105,6 +133,7 @@ function openFestival(){
    <button id="festivalMuseum" ${state.festivalMuseumClaimed||!STARTER_FISH_NAMES.every(name=>state.collection.includes(name))?'disabled':''}>${state.festivalMuseumClaimed?'✅ 보상 받음':'컬렉션 보상 수령'}</button></div>
   <p style="font-size:12px;color:#627b68">돈을 모으면 프리미엄 아틀리에의 로열 코디 세트를 완성할 수 있어요.</p>`);
  document.getElementById('festivalAttendance').onclick=()=>{claimAttendance();openFestival()};
+ document.getElementById('openMonthlyLife').onclick=openLivingCalendar;
  els.panelBody.querySelectorAll('[data-rally]').forEach(btn=>btn.onclick=()=>goStation(btn.dataset.rally));
  document.getElementById('festivalRallyClaim').onclick=()=>{
   if(state.festivalRallyDay===nowDay()||!dailyRallyStops().every(id=>state.dailyVisits.includes(id)))return;
