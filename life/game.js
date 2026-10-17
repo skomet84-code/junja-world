@@ -40,6 +40,68 @@ function dailyTask(){return dailyMissions(nowDay(),{
   gather:state.dailyGather,craft:state.dailyCraft,deliver:state.dailyDeliver,
   fishVariety:new Set(state.dailyFishNames).size,visit:new Set(state.dailyVisits).size
  })}
+// Weekly festival: rolling quests, attendance, and a one-time aquarium collection milestone.
+const festivalWeek=()=>{
+ const d=new Date(),utc=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()),th=new Date(utc);
+ th.setUTCDate(th.getUTCDate()+4-(th.getUTCDay()||7));
+ const first=Date.UTC(th.getUTCFullYear(),0,1);
+ return th.getUTCFullYear()+'-W'+String(Math.ceil((((th-first)/86400000)+1)/7)).padStart(2,'0');
+};
+const FESTIVAL_TASKS=[
+ {id:'fish',name:'바다 탐험가',icon:'🎣',goal:9,prize:3200,description:'물고기 9마리 낚기',count:()=>state.fish||0},
+ {id:'harvest',name:'풍요로운 농장',icon:'🌱',goal:12,prize:2600,description:'작물 12회 수확하기',count:()=>state.harvest||0},
+ {id:'gather',name:'숲속 탐험가',icon:'🌲',goal:18,prize:3000,description:'광석·나무·꽃 18회 채집하기',count:()=>state.gathered||0},
+ {id:'craft',name:'작은 공방 장인',icon:'🪵',goal:5,prize:4200,description:'물품 5번 제작하기',count:()=>state.craftCount||0},
+ {id:'deliver',name:'마을 상인',icon:'📦',goal:3,prize:3900,description:'교역소에 상자 3번 납품하기',count:()=>state.deliveries||0}
+];
+function ensureFestival(){
+ const week=festivalWeek();
+ if(state.festival?.week!==week)state.festival={week,baseline:Object.fromEntries(FESTIVAL_TASKS.map(q=>[q.id,q.count()])),claimed:[]};
+ if(!Array.isArray(state.festival.claimed))state.festival.claimed=[];
+}
+function festivalProgress(q){ensureFestival();return Math.min(q.goal,Math.max(0,q.count()-(state.festival.baseline[q.id]||0)))}
+function claimAttendance(){
+ if(state.attendance?.last===nowDay())return 0;
+ const yesterday=new Date(Date.now()-86400000).toLocaleDateString('en-CA');
+ const streak=state.attendance?.last===yesterday?Math.min(30,(state.attendance?.streak||0)+1):1;
+ const coins=400+Math.min(streak,10)*100;
+ state.attendance={last:nowDay(),streak,total:(state.attendance?.total||0)+1};
+ state.coins+=coins;save();hud();toast('🎟 출석 '+streak+'일차 · '+coins.toLocaleString('ko-KR')+'G');
+ return coins;
+}
+function openFestival(){
+ ensureFestival();const a=state.attendance||{};
+ openModal(`<span class="titlebadge">JUNJA VILLAGE FESTIVAL · ${state.festival.week}</span>
+  <h2>🎪 마을 축제 & 도전</h2>
+  <p>이번 주의 생활 목표를 달성하고 특별 보상을 모아보세요. 매주 월요일 새 도전이 열려요.</p>
+  <div class="mini-card"><strong>🎟 출석 도장</strong>
+   <p>${a.last===nowDay()?'✅ 오늘 출석 완료 · '+(a.streak||1)+'일 연속':'오늘 출석 보상 수령 가능'} · 누적 ${a.total||0}일</p>
+   <button id="festivalAttendance" ${a.last===nowDay()?'disabled':''}>출석 보상 받기</button>
+  </div>
+  <h3>⭐ 주간 의뢰</h3>
+  <div class="card-grid">${FESTIVAL_TASKS.map(q=>{
+   const done=festivalProgress(q),claimed=state.festival.claimed.includes(q.id);
+   return `<div class="mini-card"><span class="emoji">${q.icon}</span><strong>${q.name}</strong>
+    <p>${q.description} · ${done}/${q.goal}</p><div class="mini-progress"><i style="width:${done/q.goal*100}%"></i></div>
+    <p>🎁 ${q.prize.toLocaleString('ko-KR')}G + 50XP</p>
+    <button data-festival="${q.id}" ${claimed||done<q.goal?'disabled':''}>${claimed?'✅ 수령 완료':done>=q.goal?'완료 보상 받기':'도전 중'}</button></div>`;
+  }).join('')}</div>
+  <div class="mini-card"><strong>🏆 수족관 컬렉터</strong><p>물고기 6종 모두 발견 시 8,000G · 계정당 최초 1회</p>
+   <button id="festivalMuseum" ${state.festivalMuseumClaimed||new Set(state.collection).size<6?'disabled':''}>${state.festivalMuseumClaimed?'✅ 보상 받음':'컬렉션 보상 수령'}</button></div>
+  <p style="font-size:12px;color:#627b68">돈을 모으면 프리미엄 아틀리에의 로열 코디 세트를 완성할 수 있어요.</p>`);
+ document.getElementById('festivalAttendance').onclick=()=>{claimAttendance();openFestival()};
+ els.panelBody.querySelectorAll('[data-festival]').forEach(b=>b.onclick=()=>{
+  const q=FESTIVAL_TASKS.find(x=>x.id===b.dataset.festival);
+  if(!q||festivalProgress(q)<q.goal||state.festival.claimed.includes(q.id))return;
+  state.festival.claimed.push(q.id);state.coins+=q.prize;state.xp+=50;
+  save();hud();toast('🏆 '+q.name+' 완료! +'+q.prize.toLocaleString('ko-KR')+'G');openFestival();
+ });
+ document.getElementById('festivalMuseum').onclick=()=>{
+  if(state.festivalMuseumClaimed||new Set(state.collection).size<6)return;
+  state.festivalMuseumClaimed=true;state.coins+=8000;state.xp+=150;save();hud();
+  toast('🐠 물고기 도감 완성! +8,000G');openFestival();
+ };
+}
 function completeDaily(){if(state.dailyReward)return;const ok=dailyTask().every(q=>q.done>=q.target);if(ok){state.dailyReward=true;state.coins+=550;state.xp+=150;toast('🎉 오늘의 의뢰 완료! +550G');party(player.x,player.y-55,32);save()}hud()}
 function addXp(n){state.xp+=n;hud()}
 
@@ -204,7 +266,8 @@ function openDelivery(){
 }
 
 function hud(){els.coins.textContent=Math.floor(state.coins).toLocaleString('ko-KR');const lv=lifeLevel();els.level.textContent='Lv.'+lv+' · '+(lv>=18?'로열 마을의 주인':lv>=10?'생활 장인':lv>3?'하버 주민':'새싹 주민');els.xp.style.width=((state.xp%160)/160*100)+'%';updateJourney(true)}
-hud();setInterval(save,5500);
+hud();setInterval(save,5500);ensureFestival();
+const festivalBtn=document.getElementById('festivalBtn');if(festivalBtn)festivalBtn.onclick=openFestival;
 let toastTimer;function toast(s){els.toast.textContent=s;els.toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>els.toast.classList.remove('show'),2200)}
 function resize(){CW=innerWidth;CH=innerHeight;scale=Math.max(.62,Math.min(1,CW/620));}window.addEventListener('resize',resize);resize();
 
@@ -700,6 +763,6 @@ function redeemOperatorPreviewGift(){
  }).catch(()=>{});
 }
 redeemOperatorPreviewGift();
-setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getLifeSystems:()=>({rod:{...state.fishingGear},aquarium:{...state.aquarium},home:{...state.home},fish:FISH.length,missions:dailyTask()}),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({nickname:socialNickname,player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
+setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getLifeSystems:()=>({rod:{...state.fishingGear},aquarium:{...state.aquarium},home:{...state.home},fish:FISH.length,missions:dailyTask()}),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({nickname:socialNickname,festival:{week:state.festival?.week,claimed:state.festival?.claimed,attendance:state.attendance},player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
 })();
 
