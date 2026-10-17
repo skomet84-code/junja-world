@@ -8,7 +8,7 @@ const els=Object.fromEntries(['name','level','xp','coins','questText','questCoun
 let world3D=null;
 const W=3600,H=2400; let CW=innerWidth,CH=innerHeight,dpr=1,scale=1,camera={x:1000,y:900},t=0,last=performance.now();
 const A={};
-const seedData={x:1050,y:955,dir:0,coins:800,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
+const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
 let saved={};try{saved=JSON.parse(localStorage.getItem('junja-harbor-v1')||'{}')}catch{}
 const state={...seedData,...saved};state.x=Math.max(180,Math.min(W-85,state.x||1050));state.y=Math.max(180,Math.min(H-85,state.y||955));if(!Array.isArray(state.collection))state.collection=[];
 if(!['spring','summer','autumn','winter'].includes(state.season))state.season='spring';
@@ -287,12 +287,23 @@ try{
 }catch{socialNickname=state.operatorGiftV21?OPERATOR_NICK:newVisitorNick()}
 function showOperatorNickname(){
  socialNickname=OPERATOR_NICK;
+ effectiveDisplayNick=OPERATOR_NICK;
  try{localStorage.setItem(PLAYER_NICK_KEY,socialNickname)}catch{}
  els.name.textContent=socialNickname;
  world3D?.setNickname(socialNickname);
  // The relay stores the nickname at join, so reconnect with the updated name.
  if(socialSocket?.readyState===WebSocket.OPEN)socialSocket.close(1000,'operator name refresh');
 }
+const VILLAGE_CLIENT_KEY='junja-village-client-id';
+let villageClientId='';
+try{
+ villageClientId=localStorage.getItem(VILLAGE_CLIENT_KEY)||'';
+ if(!/^[a-zA-Z0-9-]{18,64}$/.test(villageClientId)){
+  villageClientId=crypto.randomUUID?crypto.randomUUID():'device-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  localStorage.setItem(VILLAGE_CLIENT_KEY,villageClientId);
+ }
+}catch{villageClientId='ephemeral-'+Date.now()+'-'+Math.random().toString(36).slice(2)}
+let effectiveDisplayNick=socialNickname,oldSocketReplaced=false;
 let socialSocket=null,socialRoom='SPRING',socialId=null,lastPositionSent=0,retryCount=0;
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function socialSend(o){if(socialSocket?.readyState===1)socialSocket.send(JSON.stringify(o))}
@@ -331,11 +342,11 @@ function openSocial(){
 }
 function connectSocial(){if(!document.querySelector('meta[name="junja-relay"][content="yes"]')){updateSocialBadge();return}
  socialRoom=(new URLSearchParams(location.search).get('room')||'SPRING').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,12)||'SPRING';
- try{socialSocket=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+(document.querySelector('meta[name="junja-socket-path"]')?.content||'/ws'));socialSocket.addEventListener('open',()=>{socialId=null;retryCount=0;socialSend({type:'join',room:socialRoom,nick:socialNickname,x:player.x,y:player.y,coat:state.coat,hat:state.hat,dir:player.dir,fashion:state.fashion.equipped});updateSocialBadge()});
- socialSocket.addEventListener('message',e=>{let msg;try{msg=JSON.parse(e.data)}catch{return}if(msg.type==='welcome'){socialId=msg.id;for(const id of Object.keys(peers))delete peers[id];for(const o of msg.players||[])peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('👫 '+socialRoom+' 마을에 접속했어요');updateSocialBadge()}else if(msg.type==='join'){const o=msg.player;if(o&&o.id!==socialId){peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('🌸 '+o.nick+'님이 놀러왔어요!');updateSocialBadge()}}else if(msg.type==='pos'&&peers[msg.id]){Object.assign(peers[msg.id],{targetX:msg.x,targetY:msg.y,dir:msg.dir,coat:msg.coat,hat:msg.hat,fashion:msg.fashion||{}})}else if(msg.type==='leave'){delete peers[msg.id];updateSocialBadge()}else if(msg.type==='speech'&&peers[msg.id]&&PHRASES.includes(msg.phrase)){
+ try{socialSocket=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+(document.querySelector('meta[name="junja-socket-path"]')?.content||'/ws'));socialSocket.addEventListener('open',()=>{socialId=null;retryCount=0;socialSend({type:'join',room:socialRoom,nick:socialNickname,clientId:villageClientId,x:player.x,y:player.y,coat:state.coat,hat:state.hat,dir:player.dir,fashion:state.fashion.equipped});updateSocialBadge()});
+ socialSocket.addEventListener('message',e=>{let msg;try{msg=JSON.parse(e.data)}catch{return}if(msg.type==='welcome'){socialId=msg.id;effectiveDisplayNick=msg.nick||socialNickname;els.name.textContent=effectiveDisplayNick;world3D?.setNickname(effectiveDisplayNick);for(const id of Object.keys(peers))delete peers[id];for(const o of msg.players||[])peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('👫 '+socialRoom+' 마을에 접속했어요');updateSocialBadge()}else if(msg.type==='join'){const o=msg.player;if(o&&o.id!==socialId){peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('🌸 '+o.nick+'님이 놀러왔어요!');updateSocialBadge()}}else if(msg.type==='pos'&&peers[msg.id]){Object.assign(peers[msg.id],{targetX:msg.x,targetY:msg.y,dir:msg.dir,coat:msg.coat,hat:msg.hat,fashion:msg.fashion||{}})}else if(msg.type==='leave'){delete peers[msg.id];updateSocialBadge()}else if(msg.type==='speech'&&peers[msg.id]&&PHRASES.includes(msg.phrase)){
  peers[msg.id].phrase=msg.phrase;peers[msg.id].phraseUntil=Date.now()+3200;
-}else if(msg.type==='error'){toast('⚠️ '+msg.message)}});
- socialSocket.addEventListener('close',()=>{socialId=null;for(const id of Object.keys(peers))delete peers[id];updateSocialBadge();if(retryCount++<6)setTimeout(connectSocial,Math.min(16000,2000*retryCount))});
+}else if(msg.type==='replaced'){oldSocketReplaced=true;toast('이 브라우저의 다른 탭에서 접속했어요')}else if(msg.type==='error'){toast('⚠️ '+msg.message)}});
+ socialSocket.addEventListener('close',()=>{socialId=null;for(const id of Object.keys(peers))delete peers[id];updateSocialBadge();if(!oldSocketReplaced&&retryCount++<6)setTimeout(connectSocial,Math.min(16000,2000*retryCount))});
  socialSocket.addEventListener('error',()=>{updateSocialBadge()});
  }catch{updateSocialBadge()}}
 
@@ -345,12 +356,12 @@ function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],sta
  openModal(`<span class="titlebadge">FARMING</span><h2>🌱 씨앗을 심을까요?</h2><p>씨앗을 선택하면 즉시 심어요.</p><div class="card-grid">${cards}</div><button class="pill-btn ghost" id="buySeedLink">씨앗 상점 열기</button>`);els.panelBody.querySelectorAll('[data-seed]').forEach(btn=>btn.onclick=()=>{const type=btn.dataset.seed;if(!(state.seeds[type]>0)){toast('씨앗이 부족해요. 상점에서 구매해요');return}state.seeds[type]--;state.beds[i]={crop:type,at:Date.now()};addXp(4);closeModal();toast('🌱 '+crops[type].name+' 심기 완료!');party(bedCenters[i].x,bedCenters[i].y,8);save()});document.getElementById('buySeedLink').onclick=openFarmShop;
 }
 function farmAll(){let p=bedCenters.findIndex((_,i)=>state.beds[i].crop&&cropStage(state.beds[i])===3);if(p>=0){moveTo(bedCenters[p].x,bedCenters[p].y+56,{type:'farm',idx:p});toast('🌿 수확할 밭으로 이동해요');return}const v=bedCenters.findIndex((_,i)=>!state.beds[i].crop);if(v>=0){moveTo(bedCenters[v].x,bedCenters[v].y+56,{type:'farm',idx:v});toast('🌱 빈 밭으로 이동해요');return}openFarmShop()}
-function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*3)}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${o.cost*3}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*3;if(state.coins<cost){toast('코인이 부족해요');return}state.coins-=cost;state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
+function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*6).toLocaleString()}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${(o.cost*6).toLocaleString()}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*6;if(state.coins<cost){toast('코인이 부족해요');return}state.coins-=cost;state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
 function openMarket(){const fishCount=state.collection.length,uniq=new Set(state.collection).size;openModal(`<span class="titlebadge">HARBOR EXCHANGE</span><h2>⚓ 준자 교역소</h2><p>축제 시장에서 오늘의 특별 납품을 완료해보세요.</p><div class="mini-card"><strong>🐟 물고기 수집 도감</strong><p>잡은 물고기 총 ${state.fish}마리 · 발견 어종 ${uniq}/6</p><button id="marketBag">수집 가방 열기</button></div><div class="mini-card" style="margin-top:10px"><strong>🎁 오늘의 마을 의뢰</strong>${dailyTask().map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} ${o.done}/${o.target}</p>`).join('')}<p>오늘 선택된 5개를 완료하면 550G + 경험치 150 획득</p></div>`);document.getElementById('marketBag').onclick=openAquarium}
 function openNpc(npc){state.friends[npc.name]=state.friends[npc.name]||0;state.talkDays=state.talkDays||{};state.friendBondDay=state.friendBondDay||{};if(state.talkDays[npc.name]!==nowDay()){state.talkDays[npc.name]=nowDay();state.dailyTalk++;addXp(3)}let heart=state.friends[npc.name];completeDaily();openModal(`<span class="titlebadge">VILLAGER</span><h2>💗 ${npc.name}와 대화하기</h2><p>${npc.text}</p><h3>친밀도 ${'💗'.repeat(Math.min(5,Math.floor(heart/2)+1))}</h3><p>친밀도 ${heart} · 이야기를 나누거나 선물을 줄 수 있어요.</p><div class="pill-row"><button class="pill-btn" id="friendTalk">이야기 나누기</button><button class="pill-btn alt" id="friendGift">🎁 꽃 선물하기 (50G)</button></div>`);document.getElementById('friendTalk').onclick=()=>{if(state.friendBondDay[npc.name]===nowDay()){toast(npc.name+'와 오늘의 대화는 마쳤어요. 내일 또 인사해요!');return}state.friendBondDay[npc.name]=nowDay();const texts=['마을 바람이 정말 상쾌해요!','오늘은 좋은 일이 생길 것 같은데요?','부두 근처에 희귀한 물고기가 있대요.','새로운 옷을 입고 오셨군요!'];state.friends[npc.name]++;toast('💞 '+npc.name+': '+texts[Math.floor(Math.random()*texts.length)]);save();openNpc(npc)};document.getElementById('friendGift').onclick=()=>{if(state.coins<50){toast('코인이 부족해요');return}state.coins-=50;state.friends[npc.name]+=2;hud();party(npc.x,npc.y-80,12);toast('💝 '+npc.name+'가 정말 기뻐해요!');save();openNpc(npc)}}
-function openDecor(){const cards=decorCatalog.map(o=>`<div class="mini-card"><span class="emoji">${o.emoji}</span><strong>${o.label}</strong><p>${state.crafted[o.id]>0?'제작품 '+state.crafted[o.id]+'개 · 무료 배치':'🪙 '+o.cost+'G · 구매 배치'}</p><button data-decor="${o.id}">배치하기</button></div>`).join('');openModal(`<span class="titlebadge">GARDEN ATELIER</span><h2>🏡 내 마을 꾸미기</h2><p>장식을 선택하고, 마을의 원하는 빈 바닥을 터치해 배치해요.</p><div class="card-grid">${cards}</div><div class="pill-row"><button class="pill-btn ghost" id="removeDecoration">설치된 장식 회수하기</button><button class="pill-btn ghost" id="openHomeLink">내 집 꾸미기</button></div>`);els.panelBody.querySelectorAll('[data-decor]').forEach(btn=>btn.onclick=()=>{placeDecor=btn.dataset.decor;closeModal();toast('👆 비어 있는 바닥을 터치해 배치해요!');els.hint.textContent='장식 배치 모드 · 바닥 터치 / 취소는 꾸미기 버튼';els.hint.classList.remove('hidden')});document.getElementById('removeDecoration').onclick=()=>{placeDecor='remove';closeModal();toast('원래 설치한 장식을 터치하면 회수해요!')};document.getElementById('openHomeLink').onclick=openHome}
+function openDecor(){const cards=decorCatalog.map(o=>`<div class="mini-card"><span class="emoji">${o.emoji}</span><strong>${o.label}</strong><p>${state.crafted[o.id]>0?'제작품 '+state.crafted[o.id]+'개 · 무료 배치':'🪙 '+(o.cost*5).toLocaleString()+'G · 구매 배치'}</p><button data-decor="${o.id}">배치하기</button></div>`).join('');openModal(`<span class="titlebadge">GARDEN ATELIER</span><h2>🏡 내 마을 꾸미기</h2><p>장식을 선택하고, 마을의 원하는 빈 바닥을 터치해 배치해요.</p><div class="card-grid">${cards}</div><div class="pill-row"><button class="pill-btn ghost" id="removeDecoration">설치된 장식 회수하기</button><button class="pill-btn ghost" id="openHomeLink">내 집 꾸미기</button></div>`);els.panelBody.querySelectorAll('[data-decor]').forEach(btn=>btn.onclick=()=>{placeDecor=btn.dataset.decor;closeModal();toast('👆 비어 있는 바닥을 터치해 배치해요!');els.hint.textContent='장식 배치 모드 · 바닥 터치 / 취소는 꾸미기 버튼';els.hint.classList.remove('hidden')});document.getElementById('removeDecoration').onclick=()=>{placeDecor='remove';closeModal();toast('원래 설치한 장식을 터치하면 회수해요!')};document.getElementById('openHomeLink').onclick=openHome}
 function placeAt(x,y){if(placeDecor==='remove'){const i=state.decorations.findIndex(o=>Math.hypot(o.x-x,o.y-y)<70);if(i<0){toast('회수할 장식을 터치해주세요');return}let old=state.decorations.splice(i,1)[0],v=decorCatalog.find(a=>a.id===old.id);state.coins+=Math.floor((v?.cost||0)*.4);placeDecor=null;toast('📦 장식 회수 완료 · 일부 코인 환급');hud();save();return}
- const o=decorCatalog.find(v=>v.id===placeDecor);if(!o)return; if(!walkable(x,y)||Math.hypot(player.x-x,player.y-y)<40||[...props,...expansionProps].some(p=>Math.hypot(p.x-x,p.y-y)<185)||state.decorations.some(p=>Math.hypot(p.x-x,p.y-y)<48)){toast('여기에는 배치할 수 없어요');return}if(!(state.crafted[o.id]>0)&&state.coins<o.cost){toast('코인이 부족해요');placeDecor=null;return}if(state.crafted[o.id]>0)state.crafted[o.id]--;else state.coins-=o.cost;state.decorations.push({id:o.id,x:Math.round(x),y:Math.round(y)});placeDecor=null;els.hint.classList.add('hidden');hud();save();party(x,y-10,22);checkAchievements();toast('🏡 '+o.label+' 설치 완료!')}
+ const o=decorCatalog.find(v=>v.id===placeDecor);if(!o)return; if(!walkable(x,y)||Math.hypot(player.x-x,player.y-y)<40||[...props,...expansionProps].some(p=>Math.hypot(p.x-x,p.y-y)<185)||state.decorations.some(p=>Math.hypot(p.x-x,p.y-y)<48)){toast('여기에는 배치할 수 없어요');return}if(!(state.crafted[o.id]>0)&&state.coins<o.cost*5){toast('코인이 부족해요');placeDecor=null;return}if(state.crafted[o.id]>0)state.crafted[o.id]--;else state.coins-=o.cost*5;state.decorations.push({id:o.id,x:Math.round(x),y:Math.round(y)});placeDecor=null;els.hint.classList.add('hidden');hud();save();party(x,y-10,22);checkAchievements();toast('🏡 '+o.label+' 설치 완료!')}
 function openHome(){
  const opts=[['cream','크림 벽지','🤍'],['blue','바다빛 벽지','🌊'],['pink','봄꽃 벽지','🌷'],['gold','로열 벽지','👑']];
  const wallColor={cream:'#f8edd5',blue:'#c5e5ee',pink:'#f6d7e1',gold:'#e2c486'}[state.home.wall]||'#f8edd5';
@@ -481,19 +492,38 @@ function drawMini(){const w=mini.width,h=mini.height,sx=w/W,sy=h/H;
 function closeModal(){els.modal.classList.remove('open');}
 function openModal(html){stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
 document.getElementById('close').onclick=closeModal;els.modal.addEventListener('click',e=>{if(e.target===els.modal)closeModal()});
+const STYLE_SETS=[
+ {id:'spring',name:'봄날 피크닉',icon:'🌷',tier:'DAILY',detail:'화사한 봄 산책 스타일',items:{hair:'fashion_hair_03',outfit:'fashion_outfit_03',accessory:'fashion_accessory_02'}},
+ {id:'rose',name:'벚꽃 데이트',icon:'🎀',tier:'PREMIUM',detail:'라벤더 룩과 동행하는 고양이',items:{hair:'fashion_hair_07',outfit:'fashion_outfit_09',accessory:'fashion_accessory_08',pet:'fashion_pet_06'}},
+ {id:'forest',name:'숲속 탐험가',icon:'🌲',tier:'RARE',detail:'울프컷·트렌치·숲속 여우',items:{hair:'fashion_hair_09',outfit:'fashion_outfit_19',accessory:'fashion_accessory_06',pet:'fashion_pet_08'}},
+ {id:'ocean',name:'화이트 오션',icon:'🤍',tier:'ROYAL',detail:'화이트 로열 의상과 액세서리',items:{hair:'fashion_hair_15',outfit:'fashion_outfit_22',accessory:'fashion_accessory_13',pet:'fashion_pet_12'}},
+ {id:'royal',name:'갓준자 황실',icon:'👑',tier:'MYTHIC',detail:'백금 신화 예복과 최상급 코디',items:{hair:'fashion_hair_20',outfit:'fashion_outfit_39',accessory:'fashion_accessory_20',pet:'fashion_pet_20'}}
+];
+const neededStyleItems=set=>Object.values(set.items).map(id=>CATALOG_BY_ID[id]).filter(item=>item&&!state.fashion.owned.includes(item.id));
+const setPrice=set=>Math.round(neededStyleItems(set).reduce((n,item)=>n+item.price,0)*.88);
 let fittingLook=null,wardrobeTab='outfit';
 function fashionSnapshot(){return {coat:state.coat,hat:state.hat,fashion:{...state.fashion.equipped}}}
 function openShop(section=wardrobeTab){
  if(typeof section!=='string')section=wardrobeTab;
- if(!['classic',...CATEGORIES.map(x=>x.id)].includes(section))section='outfit';
+ if(!['sets','classic',...CATEGORIES.map(x=>x.id)].includes(section))section='outfit';
  wardrobeTab=section;
  if(!fittingLook)fittingLook=fashionSnapshot();
- const selected=section==='classic'?outfits:CATALOG.filter(o=>o.type===section);
- const cards=selected.map(o=>{
+ const selected=section==='classic'?outfits:section==='sets'?[]:CATALOG.filter(o=>o.type===section);
+ const cards=section==='sets'?STYLE_SETS.map(set=>{
+  const needed=neededStyleItems(set),price=setPrice(set);
+  return `<div class="premium-set">
+   <span class="titlebadge">${set.icon} ${set.tier}</span><h3>${set.name}</h3>
+   <p>${set.detail}</p>
+   <p>✦ ${Object.values(set.items).map(id=>CATALOG_BY_ID[id]?.name||'').join(' · ')}</p>
+   <p>${needed.length?'미보유 '+needed.length+'개 · 정가 대비 12% 할인':'이미 모든 아이템 보유'}<strong> · ${price.toLocaleString('ko-KR')}G</strong></p>
+   <div class="pill-row"><button type="button" data-preview-set="${set.id}">전신 미리보기</button>
+   <button type="button" data-buy-set="${set.id}">${needed.length?'세트 구매·착용':'세트 전체 착용'}</button></div>
+  </div>`;
+ }).join(''):selected.map(o=>{
   const legacy=section==='classic',id=o.id,category=legacy?o.type:o.type,have=legacy?owned.includes(id):state.fashion.owned.includes(id);
   const current=legacy?(fittingLook[category]===id):(fittingLook.fashion[category]===id);
   const equipped=legacy?(state[category]===id&&!state.fashion.equipped.outfit):state.fashion.equipped[category]===id;
-  const price=legacy?o.cost:o.price;
+  const price=legacy?o.cost*12:o.price;
   const color=legacy?(o.col||'#e8dac2'):'#'+o.color.toString(16).padStart(6,'0');
   const grade=legacy?null:GRADES[o.grade];
   return `<div class="item fashion-item" data-catalog="${id}">
@@ -505,20 +535,32 @@ function openShop(section=wardrobeTab){
     <button type="button" data-outfit="${id}">${equipped?'착용 중':have?'장착하기':o.craftOnly?'공방으로 가기':'구매 · 착용'}</button>
   </div>`;
  }).join('');
- const buttons=[{id:'classic',label:'기존 옷·모자',icon:'👒'},...CATEGORIES].map(x=>`<button type="button" id="tab-${x.id}" data-tab="${x.id}" aria-pressed="${section===x.id}" class="fashion-tab ${section===x.id?'selected':''}">${x.icon} ${x.label}</button>`).join('');
- openModal(`<span class="titlebadge">JUNJA ATELIER · 3D / 100</span>
+ const buttons=[{id:'sets',label:'코디 세트',icon:'👑'},{id:'classic',label:'기존 옷·모자',icon:'👒'},...CATEGORIES].map(x=>`<button type="button" id="tab-${x.id}" data-tab="${x.id}" aria-pressed="${section===x.id}" class="fashion-tab ${section===x.id?'selected':''}">${x.icon} ${x.label}</button>`).join('');
+ openModal(`<span class="titlebadge">JUNJA ATELIER · PREMIUM 3D</span>
   <h2>나만의 스타일 부티크</h2>
-  <p>헤어 20 · 의상 40 · 장신구 20 · 펫 20. 가격이 높을수록 디테일과 등급이 달라져요.</p>
+  <p>헤어·의상·장신구·펫 100종 + 테마 세트 5종. 수집과 코디의 즐거움을 찾아보세요.</p>
   <div id="fittingHost"></div>
   <p class="fitting-tip">👟 머리부터 신발까지 전신 확인 · 캐릭터를 좌우로 드래그해 돌려보세요</p>
   <div class="pill-row fitting-controls"><button class="pill-btn ghost" id="turnFitting">↻ 돌려보기</button>
    <button class="pill-btn ghost" id="walkFitting">걷는 모습</button><button class="pill-btn ghost" id="resetFitting">현재 착용</button></div>
   <nav class="fashion-tabs" aria-label="꾸미기 상점 분류">${buttons}</nav>
   ${section!=='classic'&&fittingLook.fashion[section]?`<button type="button" class="pill-btn ghost" id="unequipFashion">↩ ${CATEGORIES.find(c=>c.id===section).label} 해제</button>`:''}
-  <p class="fashion-total">${selected.length}종 · 보유 코인 ${Math.floor(state.coins).toLocaleString('ko-KR')}G</p>
+  <p class="fashion-total">${section==='sets'?STYLE_SETS.length:selected.length}종 · 보유 코인 ${Math.floor(state.coins).toLocaleString('ko-KR')}G</p>
   <div class="goods">${cards}</div>`);
  world3D?.fitting(document.getElementById('fittingHost'),fittingLook.coat,fittingLook.hat,fittingLook.fashion);
  els.panelBody.querySelectorAll('[data-tab]').forEach(btn=>btn.onclick=()=>openShop(btn.dataset.tab));
+ els.panelBody.querySelectorAll('[data-preview-set]').forEach(btn=>btn.onclick=()=>{
+  const set=STYLE_SETS.find(s=>s.id===btn.dataset.previewSet);if(!set)return;
+  fittingLook.fashion={...fittingLook.fashion,...set.items};openShop('sets');
+ });
+ els.panelBody.querySelectorAll('[data-buy-set]').forEach(btn=>btn.onclick=()=>{
+  const set=STYLE_SETS.find(s=>s.id===btn.dataset.buySet);if(!set)return;
+  const needed=neededStyleItems(set),price=setPrice(set);
+  if(state.coins<price){toast('코인 부족 · '+price.toLocaleString('ko-KR')+'G 필요');return}
+  state.coins-=price;for(const item of needed)state.fashion.owned.push(item.id);
+  Object.assign(state.fashion.equipped,set.items);fittingLook.fashion={...state.fashion.equipped};
+  save();hud();toast('👑 '+set.name+' 코디 완성!');openShop('sets');
+ });
  els.panelBody.querySelectorAll('[data-try]').forEach(btn=>btn.onclick=()=>{
   const id=btn.dataset.try,item=CATALOG_BY_ID[id],old=outfits.find(o=>o.id===id);
   if(item)fittingLook.fashion[item.type]=id;
@@ -537,8 +579,8 @@ function openShop(section=wardrobeTab){
   }else if(old){
    if(old.craftOnly&&!owned.includes(id)){goStation('workshop');return}
    if(!owned.includes(id)){
-    if(state.coins<old.cost){toast('코인이 부족해요');return}
-    state.coins-=old.cost;owned.push(id);
+    if(state.coins<old.cost*12){toast('코인이 부족해요');return}
+    state.coins-=old.cost*12;owned.push(id);
    }
    state[old.type]=id;fittingLook[old.type]=id;
    if(old.type==='coat'){state.fashion.equipped.outfit=null;fittingLook.fashion.outfit=null}
@@ -563,7 +605,7 @@ function openFishingGear(){
    const owned=state.fishingGear.owned.includes(rod.id);
    const unlocked=lifeLevel()>=rod.level;
    return `<div class="mini-card"><span class="emoji">${rod.icon}</span><strong>${rod.name}</strong>
-    <p>Lv.${rod.level} 필요 · ${rod.price.toLocaleString()}G</p>
+    <p>Lv.${rod.level} 필요 · ${(rod.price*4).toLocaleString()}G</p>
     <p>대기 -${Math.round((1-rod.wait)*100)}% · 판정 +${Math.round(rod.window*200)}%p · 보상 +${Math.round(rod.coins*100)}%</p>
     <button data-rod="${rod.id}" ${!unlocked?'disabled':''}>${state.fishingGear.equipped===rod.id?'사용 중':owned?'장착하기':unlocked?'구매하기':'레벨 부족'}</button>
    </div>`;
@@ -573,8 +615,8 @@ function openFishingGear(){
   const rod=RODS.find(r=>r.id===btn.dataset.rod);
   if(!rod||lifeLevel()<rod.level)return;
   if(!state.fishingGear.owned.includes(rod.id)){
-   if(state.coins<rod.price){toast('장비 구매 코인이 부족해요');return}
-   state.coins-=rod.price;state.fishingGear.owned.push(rod.id);
+   if(state.coins<rod.price*4){toast('장비 구매 코인이 부족해요');return}
+   state.coins-=rod.price*4;state.fishingGear.owned.push(rod.id);
   }
   state.fishingGear.equipped=rod.id;save();hud();toast(rod.name+' 장착했어요');openFishingGear();
  });
