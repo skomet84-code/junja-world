@@ -1,6 +1,6 @@
 import {createWorld} from './world3d.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
-import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
+import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -126,6 +126,24 @@ function completeDaily(){if(state.dailyReward)return;const ok=dailyTask().every(
 function addXp(n){state.xp+=n;hud()}
 
 let player={x:state.x,y:state.y,vx:0,vy:0,dir:state.dir||0},path=[],goal=null,fx=[],popup=null,bite=0,fishPhase='idle',fishAttempts=0,gaugePos=0,gaugeDir=1,castUntil=0,castX=1470,castY=1290,castMode=false;
+let hookedFish=null,reelProfile=null,reelMisses=0,reelDeadline=0,reelZone=.5;
+const fishTierText={common:'일반',fine:'고급',rare:'희귀',hero:'영웅',legend:'전설',mythic:'신화'};
+function setFishingZone(){
+ const width=Math.max(.075,reelProfile?.width||.36);
+ const lower=Math.max(0,reelZone-width/2),upper=Math.min(1,reelZone+width/2);
+ els.gauge.style.setProperty('--catch-low',(lower*100).toFixed(2)+'%');
+ els.gauge.style.setProperty('--catch-high',(upper*100).toFixed(2)+'%');
+ return {lower,upper};
+}
+function shiftFishingZone(){
+ const step=fishAttempts,base=[.50,.29,.71,.44,.63,.36,.55][step%7];
+ reelZone=base;setFishingZone();
+}
+function fishingProgress(){
+ const remaining=Math.max(0,Math.ceil((reelDeadline-performance.now())/1000));
+ const tier=fishTierText[hookedFish?.tier]||'일반';
+ els.fishDesc.textContent=`${tier} ${hookedFish?.size>=1.7?'대형 물고기':'물고기'} · ${fishAttempts}/${reelProfile.hits} 성공 · 실수 ${reelMisses}/${reelProfile.maxMisses} · 남은 시간 ${remaining}초`;
+}
 const trees=[];let rngSeed=20261;function rnd(){rngSeed=(rngSeed*1664525+1013904223)>>>0;return rngSeed/4294967296}const rand=(a,b)=>a+rnd()*(b-a);
 for(let i=0;i<115;i++){let x=rand(70,1930),y=rand(120,1580);let near=(x>420&&x<1620&&y>260&&y<1100)||(!walkable(x,y));if(near)continue;trees.push({x,y,s:rand(.72,1.26),pink:rnd()<.31,kind:rnd()<.2?'pine':'tree',phase:rnd()*6.28})}
 const props=[{type:'shop',x:515,y:470,w:365,h:366,label:'🐟 바다상점'},{type:'home',x:1430,y:465,w:340,h:347,label:'🏡 우리집'},{type:'fountain',x:1010,y:695,w:276,h:270,label:'⛲ 중앙광장'},{type:'market',x:1585,y:837,w:315,h:329,label:'🎪 교역소'}];
@@ -548,9 +566,26 @@ window.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(
 window.addEventListener('keyup',e=>{delete keys[e.key]});
 window.addEventListener('blur',()=>{keys={};pointer=null;stopWalking()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){keys={};pointer=null;stopWalking();save()}last=performance.now()});
-function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers)){let k=1-Math.exp(-dt*9);o.x+=(o.targetX-o.x)*k;o.y+=(o.targetY-o.y)*k}if(socialId&&t-lastPositionSent>.13){lastPositionSent=t;socialSend({type:'pos',x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped})}if(Math.floor(t)%4===0&&Math.floor(t)!==lastClock){lastClock=Math.floor(t);const clock=document.getElementById('worldClock');const hour=new Date().getHours();clock.textContent=seasonLabels[state.season]+' · '+(hour<11?'산뜻한 아침':hour<17?'따스한 낮':'노을빛 저녁')+' · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});} if(fishPhase==='wait'&&performance.now()>castUntil){fishPhase='bite';castUntil=performance.now()+2200+rodById(state.fishingGear.equipped).window*5000;els.fishTitle.textContent='❗ 입질이 왔어요!';els.fishDesc.textContent='시간 안에 챔질하기를 눌러주세요';els.fishAction.textContent='🐟 지금 챔질하기!';els.gauge.style.display='none';party(1558,1353,10)}
- if(fishPhase==='bite'&&performance.now()>castUntil){fishFailure('물고기가 도망갔어요!');}
- if(fishPhase==='reel'){gaugePos+=dt*gaugeDir*1.36;if(gaugePos>1){gaugePos=1;gaugeDir=-1}if(gaugePos<0){gaugePos=0;gaugeDir=1}els.needle.style.left=`calc(${gaugePos*100}% - 2px)`}
+function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers)){let k=1-Math.exp(-dt*9);o.x+=(o.targetX-o.x)*k;o.y+=(o.targetY-o.y)*k}if(socialId&&t-lastPositionSent>.13){lastPositionSent=t;socialSend({type:'pos',x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped})}if(Math.floor(t)%4===0&&Math.floor(t)!==lastClock){lastClock=Math.floor(t);const clock=document.getElementById('worldClock');const hour=new Date().getHours();clock.textContent=seasonLabels[state.season]+' · '+(hour<11?'산뜻한 아침':hour<17?'따스한 낮':'노을빛 저녁')+' · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});} if(fishPhase==='wait'&&performance.now()>castUntil){
+  hookedFish=FISH[fishRoll(Math.random(),state.fishingGear.equipped,lifeLevel())];
+  reelProfile=reelChallenge(hookedFish,state.fishingGear.equipped);
+  fishPhase='bite';
+  castUntil=performance.now()+Math.max(1300,2100-hookedFish.size*175)+rodById(state.fishingGear.equipped).window*3200;
+  els.fishTitle.textContent=hookedFish.size>=1.8?'❗ 엄청난 대어가 걸렸어요!':'❗ 물고기가 입질했어요!';
+  els.fishDesc.textContent=(fishTierText[hookedFish.tier]||'일반')+' 등급 · 챔질을 서두르세요!';
+  els.fishAction.textContent='🐟 지금 챔질하기!';els.gauge.style.display='none';party(1558,1353,10);
+ }
+ if(fishPhase==='bite'&&performance.now()>castUntil){fishFailure('챔질이 늦어서 놓쳤어요!')}
+ if(fishPhase==='reel'){
+  if(performance.now()>reelDeadline){fishFailure('제한시간 초과! 큰 물고기가 달아났어요')}
+  else {
+   gaugePos+=dt*gaugeDir*(reelProfile?.speed||1.36);
+   if(gaugePos>1){gaugePos=2-gaugePos;gaugeDir=-1}
+   if(gaugePos<0){gaugePos=-gaugePos;gaugeDir=1}
+   els.needle.style.left=`calc(${gaugePos*100}% - 2px)`;
+   if(Math.floor(performance.now()/500)!==Math.floor((performance.now()-dt*1000)/500))fishingProgress();
+  }
+ }
   if(els.modal.classList.contains('open')){player.vx=player.vy=0;return}
   // Pointer paths are updated from pointermove events, not a drifting frame loop.
   const kvx=Number(!!(keys.ArrowRight||keys.d||keys.D))-Number(!!(keys.ArrowLeft||keys.a||keys.A)),kvy=Number(!!(keys.ArrowDown||keys.s||keys.S))-Number(!!(keys.ArrowUp||keys.w||keys.W));
@@ -745,11 +780,51 @@ function openBag(){const fishIcons={'송사리':'🐟','붕어':'🐠','금붕�
  document.getElementById('rodInBag').onclick=openFishingGear;
 }
 function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 준자마을 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
-function beginFishing(){closeModal();stopWalking();if(distance(player,{x:1465,y:1177})>190){moveTo(1464,1168,{type:'action',kind:'fish'});toast('🎣 부두로 이동하고 있어요');return}
- fishPhase='wait';fishAttempts=0;castMode=true;castUntil=performance.now()+(1300+Math.random()*1700)*rodById(state.fishingGear.equipped).wait;els.fishTitle.textContent='🎣 낚싯대를 던졌어요';els.fishDesc.textContent='물고기가 입질할 때까지 기다려요…';els.fishAction.textContent='찌를 바라보는 중…';els.gauge.style.display='none';els.fishing.classList.add('open');}
-function fishFailure(s){els.fishing.classList.remove('open');fishPhase='idle';castMode=false;toast('💨 '+s)}
-function fishingAction(){if(fishPhase==='bite'){fishPhase='reel';fishAttempts=0;gaugePos=0;gaugeDir=1;els.fishTitle.textContent='🐟 릴을 감아 올려요!';els.fishDesc.textContent='초록 영역에서 두 번 터치해서 성공하세요';els.fishAction.textContent='✨ 지금 릴 감기';els.gauge.style.display='block';return}if(fishPhase==='reel'){if(gaugePos>.30-rodById(state.fishingGear.equipped).window&&gaugePos<.70+rodById(state.fishingGear.equipped).window){fishAttempts++;party(player.x,player.y-30,9);if(fishAttempts>=2){const idx=fishRoll(Math.random(),state.fishingGear.equipped);
- let fish=FISH[idx].name,money=rewardForFish(FISH[idx],state.fishingGear.equipped,lifeBonus('fish'));state.fish++;state.dailyFish++;state.collection.push(fish);if(!state.dailyFishNames.includes(fish))state.dailyFishNames.push(fish);state.xp+=36;state.coins+=money;hud();save();completeDaily();checkAchievements();fishPhase='idle';castMode=false;els.fishing.classList.remove('open');toast(`🐟 ${fish} 획득! +${money}G`);party(player.x,player.y-75,26);return}els.fishDesc.textContent='좋아요! 한 번 더 맞춰보세요 ('+fishAttempts+'/2)'}else{fishAttempts=Math.max(0,fishAttempts-1);els.fishDesc.textContent='앗! 초록 영역에서 눌러주세요'}}}
+function beginFishing(){
+ closeModal();stopWalking();
+ if(distance(player,{x:1465,y:1177})>190){moveTo(1464,1168,{type:'action',kind:'fish'});toast('🎣 부두로 이동하고 있어요');return}
+ fishPhase='wait';hookedFish=null;reelProfile=null;reelMisses=0;fishAttempts=0;castMode=true;
+ castUntil=performance.now()+(1300+Math.random()*1700)*rodById(state.fishingGear.equipped).wait;
+ els.fishTitle.textContent='🎣 바다에 낚싯대를 던졌어요';
+ els.fishDesc.textContent='작은 물고기는 쉽지만 희귀 대어는 여러 번 정확히 릴을 감아야 해요';
+ els.fishAction.textContent='찌를 바라보는 중…';els.gauge.style.display='none';els.fishing.classList.add('open');
+}
+function fishFailure(msg){
+ els.fishing.classList.remove('open');fishPhase='idle';castMode=false;hookedFish=null;reelProfile=null;
+ toast('💨 '+msg);
+}
+function fishingAction(){
+ if(fishPhase==='bite'){
+  fishPhase='reel';fishAttempts=0;reelMisses=0;gaugePos=0;gaugeDir=1;
+  reelDeadline=performance.now()+(reelProfile?.seconds||18)*1000;
+  shiftFishingZone();
+  els.fishTitle.textContent=hookedFish?.size>=1.8?'💪 대어와 힘겨루기!':'🐟 릴을 감아 올려요!';
+  els.fishAction.textContent='✨ 초록 구간에서 릴 감기';
+  els.gauge.style.display='block';fishingProgress();return;
+ }
+ if(fishPhase!=='reel'||!hookedFish||!reelProfile)return;
+ const {lower,upper}=setFishingZone();
+ if(gaugePos>=lower&&gaugePos<=upper){
+  fishAttempts++;party(player.x,player.y-30,8);
+  if(fishAttempts>=reelProfile.hits){
+   const f=hookedFish,money=rewardForFish(f,state.fishingGear.equipped,lifeBonus('fish'));
+   const isFirst=!state.collection.includes(f.name);
+   state.fish++;state.dailyFish++;state.collection.push(f.name);
+   if(!state.dailyFishNames.includes(f.name))state.dailyFishNames.push(f.name);
+   state.xp+=32+reelProfile.tier*17+(isFirst?30:0);
+   state.coins+=money;hud();save();completeDaily();checkAchievements();
+   fishPhase='idle';castMode=false;hookedFish=null;reelProfile=null;
+   els.fishing.classList.remove('open');
+   toast('🏆 '+f.rarity+' '+f.name+' 포획! '+(isFirst?'✨ 도감 신규 등록 · ':'')+'+'+money.toLocaleString('ko-KR')+'G');
+   party(player.x,player.y-75,30);return;
+  }
+  shiftFishingZone();fishingProgress();
+ }else{
+  reelMisses++;
+  if(reelMisses>=reelProfile.maxMisses){fishFailure('낚싯줄이 끊어졌어요! 다음엔 더 좋은 장비로 도전하세요');return}
+  fishAttempts=Math.max(0,fishAttempts-1);fishingProgress();
+ }
+}
 els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing;
  const gearShortcut=document.getElementById('fishGear');
  if(gearShortcut)gearShortcut.onclick=()=>{els.fishing.classList.remove('open');fishPhase='idle';openFishingGear()};document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 준자마을 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
