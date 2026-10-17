@@ -126,7 +126,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  const guestAvatars=new Map();
  function updateGuests(peers,dt,time){
   for(const id of guestAvatars.keys())if(!Object.hasOwn(peers,id)){
-   const old=guestAvatars.get(id);scene.remove(old.avatar.root);old.avatar.dispose();guestAvatars.delete(id);
+   const old=guestAvatars.get(id);scene.remove(old.avatar.root);old.avatar.dispose();if(old.pet){scene.remove(old.pet.root);old.pet.dispose()}guestAvatars.delete(id);
   }
   for(const [id,p] of Object.entries(peers)){
    let rec=guestAvatars.get(id);
@@ -134,12 +134,20 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
     const avatar=createAvatar({coat:p.coat||'mint',hat:p.hat||'none'});
     scene.add(avatar.root);label(avatar.root,String(p.nick||'마을친구').slice(0,12),0,139,0,120);
     const speech=label(avatar.root,'',0,186,0,171);speech.visible=false;
-    rec={avatar,speech,spoken:'',prevX:p.x,prevY:p.y,distance:0};
+    rec={avatar,speech,spoken:'',prevX:p.x,prevY:p.y,distance:0,pet:null,petId:null};
     guestAvatars.set(id,rec);
    }
    const dx=p.x-rec.prevX,dy=p.y-rec.prevY,movement=Math.hypot(dx,dy);
    rec.distance+=movement/70*Math.PI*2;rec.prevX=p.x;rec.prevY=p.y;
-   rec.avatar.equip(p.coat||'mint',p.hat||'none');
+   rec.avatar.equip(p.fashion?.outfit||p.coat||'mint',p.hat||'none');
+   rec.avatar.setFashion(p.fashion||{});
+   const nextPet=CATALOG_BY_ID[p.fashion?.pet]?.type==='pet'?p.fashion.pet:null;
+   if(nextPet!==rec.petId){
+    if(rec.pet){scene.remove(rec.pet.root);rec.pet.dispose();rec.pet=null}
+    rec.petId=nextPet;
+    if(nextPet){rec.pet=createPet(CATALOG_BY_ID[nextPet]);scene.add(rec.pet.root)}
+   }
+   if(rec.pet)rec.pet.update(p.x+41,p.y+21,dt,time);
    const phrase=p.phraseUntil>Date.now()?p.phrase:null;
    if(phrase!==rec.spoken){
     rec.spoken=phrase;
@@ -254,5 +262,5 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(650-46,845)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();renderer.dispose();previewRenderer?.dispose()}};
+ return {render,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(650-46,845)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();for(const guest of guestAvatars.values())if(guest.pet)guest.pet.dispose();renderer.dispose();previewRenderer?.dispose()}};
 }

@@ -1,3 +1,18 @@
+# JUNJA VILLAGE ONLINE — multiplayer deployment
+
+This branch is a Railway-ready deployment of Junja Village v21, with a shared WebSocket relay.
+
+- Players in the same `?room=SPRING` lobby see each other's real-time movements, nicknames, selected outfit/hair/accessories/pets, and preset speech bubbles.
+- Max **8 players per room** (not a concurrency/load guarantee). Different room codes separate groups.
+- Free-form chat is disabled. The server validates all preset speech and cosmetic IDs.
+- Node HTTP + WebSocket are served from a **single process and public domain**, allowing secure `wss://` multiplayer under Railway.
+- The browser still owns coins, inventories, quests, animals, home, and gathering. There is **no persistent server-side account or economy**, no cross-device progress sync, no moderation account controls, and no global load test yet. Do not advertise it as secure MMO persistence.
+- For production: use one service instance/replica. The in-memory room relay is not cross-replica.
+- Deploy via `Dockerfile.village` and `railway.toml` in repository root; Node health endpoint: `/health`.
+- The owner's special coin credit is preview-style browser storage (requires separate redemption on any newly deployed domain). Never publish the private owner claim URL as the multiplayer invite URL.
+
+---
+
 # JUNJA VILLAGE LIFE v21 — Full-body Atelier + owner preview grant
 
 [▶ Open the v21 full-body fitting preview](https://raw.githack.com/skomet84-code/junja-world/junja-village-atelier-v21/life/index.html)

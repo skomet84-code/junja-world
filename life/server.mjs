@@ -8,6 +8,7 @@ import fs from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
 import crypto from 'node:crypto';
 import {PHRASES} from './life-systems-v20.js';
+import {CATALOG_BY_ID} from './fashion-catalog.js';
 import { fileURLToPath } from 'node:url';
 const root=fileURLToPath(new URL('.',import.meta.url));
 const rooms=new Map();
@@ -34,21 +35,29 @@ function broadcast(room,msg,except){for(const p of room.values())if(p!==except)s
 function removePeer(p){if(p.dead)return;p.dead=true;if(p.room){const r=rooms.get(p.room);r?.delete(p.id);if(r){broadcast(r,{type:'leave',id:p.id});if(r.size===0)rooms.delete(p.room)}}try{p.sock.destroy()}catch{}}
 const allowedCoats=new Set(['mint','blue','rose','amber','lavender','coral','navy','cream','forest','pink','linen']);
 const allowedHats=new Set(['none','straw','beret','crown','flower','navycap','beanie','cat','ribbon','captain']);
+// Only allow known, typed cosmetic assets in multiplayer messages.
+const fashionSlots=['hair','outfit','accessory','pet'];
+function cleanFashion(input){
+ const f=input&&typeof input==='object'&&!Array.isArray(input)?input:{};
+ return Object.fromEntries(fashionSlots.map(type=>[type,
+   typeof f[type]==='string'&&CATALOG_BY_ID[f[type]]?.type===type?f[type]:null]));
+}
 function onMessage(p,msg){
  if(!msg||typeof msg!=='object'||Array.isArray(msg))return;
  if(msg.type==='join'){
   if(p.room)return;
   const roomCode=safeRoom(msg.room);const room=rooms.get(roomCode)||new Map();
   if(room.size>=8){send(p,{type:'error',message:'방이 가득 찼어요 (최대 8명)'});return}
-  p.room=roomCode;p.nick=clean(msg.nick,12)||'마을 주민';p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.coat=allowedCoats.has(msg.coat)?msg.coat:'mint';p.hat=allowedHats.has(msg.hat)?msg.hat:'none';p.dir=clamp(msg.dir,0,3);
-  send(p,{type:'welcome',id:p.id,room:roomCode,players:[...room.values()].map(q=>({id:q.id,nick:q.nick,x:q.x,y:q.y,coat:q.coat,hat:q.hat,dir:q.dir}))});
+  p.room=roomCode;p.nick=clean(msg.nick,12)||'마을 주민';p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.coat=allowedCoats.has(msg.coat)?msg.coat:'mint';p.hat=allowedHats.has(msg.hat)?msg.hat:'none';p.dir=clamp(msg.dir,0,3);p.fashion=cleanFashion(msg.fashion);
+  send(p,{type:'welcome',id:p.id,room:roomCode,players:[...room.values()].map(q=>({id:q.id,nick:q.nick,x:q.x,y:q.y,coat:q.coat,hat:q.hat,dir:q.dir,fashion:q.fashion}))});
   rooms.set(roomCode,room);room.set(p.id,p);
-  broadcast(room,{type:'join',player:{id:p.id,nick:p.nick,x:p.x,y:p.y,coat:p.coat,hat:p.hat,dir:p.dir}},p);
+  broadcast(room,{type:'join',player:{id:p.id,nick:p.nick,x:p.x,y:p.y,coat:p.coat,hat:p.hat,dir:p.dir,fashion:p.fashion}},p);
  }else if(msg.type==='pos'&&p.room){
   const now=Date.now();if(now-p.lastPos<85)return;p.lastPos=now;
   p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.dir=clamp(msg.dir,0,3);
   p.coat=allowedCoats.has(msg.coat)?msg.coat:p.coat;p.hat=allowedHats.has(msg.hat)?msg.hat:p.hat;
-  broadcast(rooms.get(p.room),{type:'pos',id:p.id,x:p.x,y:p.y,dir:p.dir,coat:p.coat,hat:p.hat},p);
+  p.fashion=cleanFashion(msg.fashion);
+  broadcast(rooms.get(p.room),{type:'pos',id:p.id,x:p.x,y:p.y,dir:p.dir,coat:p.coat,hat:p.hat,fashion:p.fashion},p);
  }else if(msg.type==='say'&&p.room){
   // No free-form chat. Only six server-validated prewritten speech balloons.
   const now=Date.now();if(now-p.lastChat<1000)return;
