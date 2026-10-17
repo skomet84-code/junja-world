@@ -1,7 +1,7 @@
 name: Junja Village Public URL Smoke
 on:
   push:
-    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25, village-hunt-polish-v26, village-living-world-v27]
+    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25, village-hunt-polish-v26, village-living-world-v27, village-economy-v28]
   workflow_dispatch:
 
 jobs:
@@ -37,6 +37,10 @@ jobs:
               assert(body.includes("openSaveVault"),'local backup/export not available');
               assert(body.includes("openLivingCalendar"),'monthly calendar not deployed');
               assert(body.includes("openFishProfile"),'fish specimen details missing');
+              assert(body.includes("openEconomyDashboard"),'game economy ledger UI missing');
+              assert(body.includes("openBaitShop"),'bait purchase shop missing');
+              assert(body.includes("addFishStock(state,f.name,1)"),'no-instant-cash catch logic missing');
+              assert(body.includes("sellFish(state,fish"),'actual fish stock market missing');
               assert(body.includes("goToHunting"),'hunting entry button not deployed');
               assert(body.includes("reelChallenge("),'fish rarity difficulty not in production');
               assert(body.includes("STARTER_FISH_NAMES"),'collection compatibility not deployed');
@@ -81,6 +85,13 @@ jobs:
             assert.equal(r.status,200,'Missing living world bundle '+asset);
             assert((await r.text()).includes(keyword),'Wrong version deployed: '+asset);
           }
+          const economyAsset=await fetch(base+'/economy-v28.js',{signal:abort()});
+          assert.equal(economyAsset.status,200,'economic policy bundle missing');
+          const economyLogic=await economyAsset.text();
+          assert(economyLogic.includes('export function sellFish('),'NPC fish sale missing');
+          assert(economyLogic.includes('export function debit('),'coin sink ledger missing');
+          assert(economyLogic.includes('export function credit('),'coin issuer ledger missing');
+          console.log('PASS live economy v28 NPC market, ledgers, player sinks and preserved multiplayer');
           function makeConnection(name){
             const ws=new WebSocket(base.replace(/^http/,'ws')+'/api/ws');
             const inbox=[],waiting=[];
