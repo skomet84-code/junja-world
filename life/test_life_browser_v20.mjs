@@ -34,8 +34,15 @@ try{
  assert.equal(await page.locator('[data-rod]').count(),6);
  assert(await page.locator('[data-rod="gold"]').isDisabled(),'Rod level gate should work');
  await page.locator('#openAquariumFromGear').click();
- assert.equal(await page.locator('.aquarium-item').count(),6);
- assert.equal(await page.locator('.aquarium-item svg').count(),6);
+ assert.equal(await page.locator('.aquarium-item').count(),12);
+ assert.equal(await page.locator('.aquarium-item svg').count(),12);
+ assert.equal(await page.locator('[data-fishfilter]').count(),8);
+ await page.locator('[data-fishfilter="mythic"]').click();
+ assert.equal(await page.locator('.aquarium-item').count(),8);
+ await page.locator('[data-fishfilter="all"]').click();
+ await page.locator('#aquariumNext').click();
+ assert.equal(await page.locator('.aquarium-item').count(),12);
+ await page.locator('#aquariumPrev').click();
  assert.equal(await page.locator('.aquarium-fish').count(),0,'Uncaught fish should not appear');
  await page.locator('#close').click();
  // Test-only save patch is applied after beforeunload auto-save, preserving production behavior.
