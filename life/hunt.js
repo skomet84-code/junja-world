@@ -2,6 +2,7 @@ import * as T from './vendor/three.module.js';
 import {createAvatar} from './avatar3d.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {HUNT_ZONES,HUNT_BOSSES,HUNT_SKILLS,HUNT_CRAFTS,MAX_ACTIVE_ENEMIES,huntLevel,combatStats,enemyDamage,canCraft,dailyBossKey,zoneUnlocked} from './hunt-data.js';
+import {initEconomy,credit,debit} from './economy-v28.js';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
 const saveKey='junja-harbor-v1',room=new URLSearchParams(location.search).get('room')||'SPRING';
@@ -9,6 +10,7 @@ let state={};
 try{state=JSON.parse(localStorage.getItem(saveKey)||'{}')}catch{}
 if(!state||typeof state!=='object'||Array.isArray(state))state={};
 state.coins=Math.max(0,Number(state.coins)||0);state.xp=Math.max(0,Number(state.xp)||0);
+initEconomy(state);
 state.fashion=state.fashion||{owned:[],equipped:{}};
 state.fashion.owned=Array.isArray(state.fashion.owned)?state.fashion.owned:[];
 state.fashion.equipped=state.fashion.equipped||{};
@@ -230,7 +232,8 @@ function craftMenu(){
   const r=HUNT_CRAFTS.find(x=>x.id===b.dataset.craft);
   if(!r||!canCraft(r,state.hunt.materials,state.fashion.owned,state.coins))return;
   for(const [key,n] of r.requires)state.hunt.materials[key]-=n;
-  state.coins-=r.coins;state.fashion.owned.push(r.gives);save();toast('✨ '+r.name+' 제작 완료!');craftMenu();
+  if(!debit(state,r.coins,'craft','사냥 전리품 코디 제작').ok)return;
+  state.fashion.owned.push(r.gives);save();toast('✨ '+r.name+' 제작 완료!');craftMenu();
  });
  $('backHuntMap').onclick=zoneMenu;
 }
@@ -277,12 +280,13 @@ function mobHit(m,damage){
  if(m.hp===0){
   const loot=m.model.material,boss=m.model.boss,amount=boss?1:Math.random()<.24?2:1;
   state.hunt.materials[loot]=(state.hunt.materials[loot]||0)+amount;
-  state.hunt.kills++;state.coins+=m.model.coins;
+  state.hunt.kills++;
+  const paid=credit(state,m.model.coins,'hunt','몬스터 토벌 · '+m.model.name,huntLevel(state.xp));
   state.xp+=m.model.xp;
   hero.hp=clamp(hero.hp+8,0,stats().maxHp);
   m.root.visible=false;m.deadUntil=performance.now()+(boss?Infinity:7000);
-  if(boss){state.hunt.bossDates[dailyBossKey(currentZone.id,today())]=true;toast('🏆 '+m.model.name+' 토벌 성공! 한정 재료 '+loot+' 획득')}
-  else toast('✨ '+m.model.name+' 토벌! +'+m.model.coins+'G · '+loot+' 획득');
+  if(boss){state.hunt.bossDates[dailyBossKey(currentZone.id,today())]=true;toast('🏆 '+m.model.name+' 토벌 성공! +'+paid.amount+'G · '+loot+' 획득')}
+  else toast('✨ '+m.model.name+' 토벌! +'+paid.amount+'G · '+loot+' 획득');
   if(target===m)target=null;save();
  }
  updateHud();
