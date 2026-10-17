@@ -1,3 +1,14 @@
+# JUNJA VILLAGE — Vercel Free WebSocket Trial
+
+This branch is the Vercel deployment variant with a static 3D village and a WebSocket Function at `/api/ws`.
+
+- Set **Vercel project Root Directory** to `life`, framework Other, Node 22+, Fluid Compute enabled; deploy this branch to production.
+- Browser loads the same-origin `/api/ws` realtime endpoint. The Node server only listens when run directly, and exports a server to Vercel Functions.
+- **Known limitation:** Vercel Functions may assign connected players to *different* server instances; the current in-memory room relay does not share presence across instances. This is a public trial, **not a reliable persistent multiplayer release**. Add Redis or another shared coordination store for cross-instance rooms before announcing guaranteed multiplayer.
+- Coins, inventory and character progression remain browser-local. Public operator money gift links must never be shared.
+- Vercel's Fluid WebSocket beta requires a Vercel account with the necessary feature available; standard quotas and invocation limits apply. Vercel may terminate connections at max function duration; client retries.
+
+---
 # JUNJA VILLAGE ONLINE — multiplayer deployment
 
 This branch is a Railway-ready deployment of Junja Village v21, with a shared WebSocket relay.

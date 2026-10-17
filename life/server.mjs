@@ -78,7 +78,7 @@ function decodeFrames(p,buf){
 }
 server.on('upgrade',(req,sock,head)=>{
  try{
-  const u=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`);if(u.pathname!=='/ws'){sock.destroy();return}
+  const u=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`);if(u.pathname!=='/ws'&&u.pathname!=='/api/ws'){sock.destroy();return}
   if(req.headers.upgrade?.toLowerCase()!=='websocket'||req.headers['sec-websocket-version']!=='13'){sock.destroy();return}
   const key=req.headers['sec-websocket-key'];if(typeof key!=='string'||Buffer.from(key,'base64').length!==16){sock.destroy();return}
   const accept=crypto.createHash('sha1').update(key+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
@@ -87,4 +87,5 @@ server.on('upgrade',(req,sock,head)=>{
   sock.on('data',b=>decodeFrames(peer,b));sock.on('close',()=>removePeer(peer));sock.on('error',()=>removePeer(peer));if(head?.length)decodeFrames(peer,head);
  }catch{sock.destroy()}
 });
-server.listen(port,'0.0.0.0',()=>console.log(`JUNJA VILLAGE http://localhost:${port}`));
+if(!process.env.VERCEL)server.listen(port,'0.0.0.0',()=>console.log(`JUNJA VILLAGE http://localhost:${port}`));
+export default server;
