@@ -54,6 +54,7 @@ try{
  assert.equal(await page.locator('.aquarium-fish').count(),1);
  await page.locator('[data-fish="금붕어"]').click();
  assert.equal(await page.locator('.aquarium-fish').count(),2);
+ await mkdir('artifacts',{recursive:true});
  await page.screenshot({path:'artifacts/v20-illustrated-aquarium.png'});
  await page.locator('#aquariumRodShop').click();
  await page.locator('[data-rod="carbon"]').click();
