@@ -8,6 +8,6 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --check server.mjs && node --check game.js && node --check avatar3d.js && node --check fashion-catalog.js && node --check fashion-3d.js && node --check world3d.js && node --check navigation.js && node test_v16.mjs && node test_navigation_v18.mjs && node test_fashion_v19.mjs"
+    "test": "node --check server.mjs && node --check game.js && node --check avatar3d.js && node --check fashion-catalog.js && node --check fashion-3d.js && node --check life-systems-v20.js && node --check world3d.js && node --check navigation.js && node test_v16.mjs && node test_navigation_v18.mjs && node test_fashion_v19.mjs && node test_life_v20.mjs"
   }
 }
