@@ -52,11 +52,11 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   tube(arm,skin,4.3,17,0,-7,0);tube(elbow,skin,3.7,15,0,-6,0);ball(elbow,skin,0,-14,0,4.5,5,4.5);
   arm.rotation.z=side*.11;
   const hip=group(pelvis,side*7.5,-1),knee=group(hip,0,-15),ankle=group(knee,0,-13);
-  tube(hip,pants,6,20,0,-7,0);tube(knee,pants,5.1,16,0,-6,0);
+  const upperPant=tube(hip,pants,6,20,0,-7,0),lowerPant=tube(knee,pants,5.1,16,0,-6,0);
   disc(knee,white,0,-11,0,5.3,3);
   ball(ankle,shoeMat,0,-1,3.5,7,5.3,10);ball(ankle,soleMat,0,-4.2,3.8,7.3,1.8,10.2);
   curve(ankle,[[-3,2,8],[0,2.8,9],[3,2,8]],white,.65);
-  limbs.push({side,arm,elbow,hip,knee,ankle,armCloth,foreCloth});
+  limbs.push({side,arm,elbow,hip,knee,ankle,armCloth,foreCloth,upperPant,lowerPant});
  }
  if(animal==='fox'||animal==='cat'){const tail=ball(pelvis,face.material,0,7,-16,7,15,8);tail.rotation.x=-.6}
  const equipped={coat:null,hat:null};
@@ -74,14 +74,53 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
     const hem=new T.Mesh(new T.TorusGeometry(22.1,.95,7,40),cloth.light);hem.rotation.x=Math.PI/2;hem.position.y=-18;garment.add(hem);
    }else {disc(garment,cloth.dark,0,-5.5,0,12.8,1.5);for(const x of [-8,8]){const pocket=ball(garment,cloth.light,x,5,13.1,3.4,3.7,.9);pocket.name='pocket'}}
    for(const side of [-1,1]){const collar=tube(garment,white,2.5,12,side*4.7,25,10);collar.rotation.z=side*.44}
-   for(const y of [18,11,4])ball(garment,gold,0,y,12.2,1.4,1.4,.8);
-   for(const limb of limbs){clear(limb.armCloth);clear(limb.foreCloth);
+   for(const y of [18,11,4])ball(garment,gold,0,y,15.5,1.35,1.35,.9);
+   // Garment details are rig-local: no separate paper-doll planes or misaligned image cutouts.
+   const details=group(garment);details.name='outfit-details';
+   const belt=(color,r=15.4,y=2)=>{const ring=new T.Mesh(new T.TorusGeometry(r,.95,6,36),color);ring.rotation.x=Math.PI/2;ring.position.y=y;details.add(ring);return ring};
+   if(nextCoat==='navy'){
+    belt(gold,15.2,1);
+    for(const side of [-1,1]){const lapel=ball(details,white,side*8,22,11.7,5,9,2.7);lapel.rotation.z=side*.35}
+    ball(details,gold,0,7,16,2.4,2.4,1.6);
+   }else if(nextCoat==='blue'){
+    for(const side of [-1,1]){const flap=ball(details,white,side*7.7,27,10,6.4,4.4,2);flap.rotation.z=side*.28}
+    const bow=ball(details,ribbonMat,0,21,16.8,5,3.6,2);bow.name='marine-bow';
+    for(const side of [-1,1]){const stripe=ball(details,white,side*6,4,15.4,2.2,7,.9);stripe.rotation.z=side*.18}
+   }else if(nextCoat==='cream'||nextCoat==='linen'){
+    const accent=nextCoat==='linen'?outfits.linen.dark:outfits.cream.light;
+    for(const xx of [-9,-4,1,6,11]){const knit=ball(details,accent,xx,13,15.7,.55,13,.7);knit.name='woven-seam'}
+    for(const side of [-1,1])ball(details,white,side*7,27,11,4.5,5,1.4);
+   }else if(nextCoat==='forest'){
+    belt(cloth.dark);
+    const bag=ball(details,cloth.light,17,2,8,8,10,4);bag.name='forest-satchel';
+    const strap=tube(details,cloth.dark,1.9,41,6.4,16,12);strap.rotation.z=-.58;
+   }else if(nextCoat==='lavender'||nextCoat==='pink'){
+    belt(cloth.light,15,1);
+    ball(details,white,0,21,16,4.5,4,2);
+    for(const side of [-1,1]){const ribbon=ball(details,cloth.light,side*6,3,16,7,4.3,2);ribbon.rotation.z=side*.55}
+   }else if(nextCoat==='coral'){
+    belt(white,15.2,1);
+    for(const side of [-1,1])ball(details,cloth.light,side*8,21,14.1,3.4,5,1.7);
+   }else if(nextCoat==='amber'){
+    belt(cloth.dark,15.4,-1);
+    for(const side of [-1,1])ball(details,cloth.light,side*8,15,14.5,4,3.2,1.4);
+   }else if(nextCoat==='rose'){
+    for(const side of [-1,1]){const cuff=ball(details,white,side*8,29,7.2,6.4,2.5,2);cuff.rotation.z=side*.2}
+    ball(details,ribbonMat,0,10,16,4.4,5,1.4);
+   }else if(nextCoat==='mint'){
+    for(const side of [-1,1])ball(details,cloth.light,side*7,24,14.2,4.5,5,2);
+   }
+   const legMaterial=dress?outfits.cream.light:nextCoat==='navy'?outfits.navy.dark:nextCoat==='blue'?outfits.blue.dark:nextCoat==='forest'?outfits.forest.dark:pants;
+   for(const limb of limbs){limb.upperPant.material=legMaterial;limb.lowerPant.material=legMaterial;clear(limb.armCloth);clear(limb.foreCloth);
     ball(limb.armCloth,cloth.main,0,-2.5,0,7.2,7.2,7.2); // joined shoulder cap
     tube(limb.armCloth,cloth.main,5.9,19,0,-7.5,0);
     ball(limb.armCloth,cloth.main,0,-14,0,5.6,5.6,5.6);
     tube(limb.foreCloth,cloth.main,5,14,0,-5,0);
     ball(limb.foreCloth,cloth.main,0,-1,0,5.2,5,5.2);
     disc(limb.foreCloth,cloth.light,0,-10,0,5,2.2);
+    if(nextCoat==='linen'){const rolled=disc(limb.foreCloth,white,0,-8,0,5.1,2.5);rolled.name='linen-rolled-sleeve'}
+    if(nextCoat==='navy'){ball(limb.armCloth,gold,0,-3,5.5,2,1,.7)}
+    if(dress){const cuff=disc(limb.foreCloth,cloth.light,0,-9,0,5.7,2);cuff.name='dress-cuff'}
    }
   }
   if(equipped.hat!==nextHat){
