@@ -25,8 +25,40 @@ function save(){
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const materialCache=new Map(),mat=c=>{const k=String(c);if(!materialCache.has(k))materialCache.set(k,new T.MeshStandardMaterial({color:c,roughness:.82,metalness:.03,flatShading:false}));return materialCache.get(k)};
-const globe=new T.SphereGeometry(1,16,11),roundBox=new T.BoxGeometry(1,1,1),pillar=new T.CylinderGeometry(1,1,1,9),cone=new T.ConeGeometry(1,1,10),groundGeo=new T.PlaneGeometry(1280,900),shadowGeo=new T.CircleGeometry(1,22);
+const globe=new T.SphereGeometry(1,20,16),roundBox=new T.BoxGeometry(1,1,1),pillar=new T.CylinderGeometry(1,1,1,9),cone=new T.ConeGeometry(1,1,10),groundGeo=new T.PlaneGeometry(1280,900),shadowGeo=new T.CircleGeometry(1,22);
 let renderer,scene,camera,playerMesh,currentZone=null,areaIndex=0,worldDecor=null,monsters=[],fx=[],active=false;
+const VIEW_HEIGHT=650;
+let resetViewCount=0,lastTouchEnd=0,visualHitCount=0,lastImpact=0,screenShake=0,impactTimer=null;
+function fitGameView(){
+ if(!camera||!renderer)return;
+ const width=Math.max(320,Math.round(document.documentElement.clientWidth||innerWidth));
+ const height=Math.max(400,Math.round(document.documentElement.clientHeight||innerHeight));
+ camera.zoom=1;
+ camera.left=-(VIEW_HEIGHT*width/height)/2;camera.right=-camera.left;
+ camera.top=VIEW_HEIGHT/2;camera.bottom=-VIEW_HEIGHT/2;
+ camera.updateProjectionMatrix();renderer.setSize(width,height,false);
+ canvas.style.width='100%';canvas.style.height='100%';
+}
+function resetView(){
+ resetViewCount++;const vp=document.querySelector('meta[name="viewport"]');
+ if(vp)vp.setAttribute('content','width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
+ fitGameView();
+ window.scrollTo(0,0);
+ // The browser alone controls iOS visual-viewport pinch scale; reloading resets it safely.
+ if(window.visualViewport?.scale>1.05){save();location.reload();return}
+ toast('⤢ 화면 크기를 정상으로 맞췄어요');
+}
+function antiZoomTouch(){
+ for(const name of ['gesturestart','gesturechange','gestureend'])
+  document.addEventListener(name,e=>e.preventDefault(),{passive:false});
+ document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
+ canvas.addEventListener('touchend',e=>{
+  if(e.changedTouches.length!==1)return;
+  const now=Date.now();
+  if(now-lastTouchEnd<320)e.preventDefault();
+  lastTouchEnd=now;
+ },{passive:false});
+}
 let target=null,hero={x:0,z:145,hp:stats().maxHp,mp:stats().maxMp,dir:0,attackAt:0,hurtAt:0,moveX:0,moveZ:145,stride:0};
 hero.hp=clamp(Number(state.hunt.hp)||stats().maxHp,1,stats().maxHp);
 hero.mp=clamp(Number(state.hunt.mp)||stats().maxMp,0,stats().maxMp);
@@ -194,6 +226,8 @@ function skillUse(id){
  updateHud();
 }
 function pointer(e){
+ if(e.isPrimary===false||e.pointerType==='touch'&&e.width>95)return;
+ e.preventDefault();
  if(!active||!currentZone||$('modal').classList.contains('open'))return;
  const rect=canvas.getBoundingClientRect();
  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
@@ -253,6 +287,7 @@ function update(time,dt){
   f.mesh.material.opacity=Math.max(0,f.ttl/.42);if(f.ttl<=0){scene.remove(f.mesh);f.mesh.geometry.dispose();f.mesh.material.dispose();fx.splice(i,1)}}
  camera.position.lerp(new T.Vector3(hero.x,285,hero.z+450),Math.min(1,dt*9));
  camera.lookAt(hero.x,40,hero.z);
+ if(screenShake>.08){const j=screenShake*.6;camera.position.x+=Math.sin(now*.11)*j;camera.position.y+=Math.cos(now*.17)*j*.45;camera.lookAt(hero.x,40,hero.z);screenShake=Math.max(0,screenShake-dt*26)}
  if(Math.floor(now/180)!==Math.floor((now-dt*1000)/180))updateHud();
 }
 function init(){
@@ -263,13 +298,15 @@ function init(){
  scene=new T.Scene();scene.background=new T.Color(0xcbe8c9);
  scene.add(new T.HemisphereLight(0xffffff,0x899c8d,2.6));
  const sun=new T.DirectionalLight(0xfff4d8,2.4);sun.position.set(-180,350,210);scene.add(sun);
- camera=new T.OrthographicCamera(-250,250,545/2,-545/2,.1,2000);
- function resize(){const h=545,w=h*innerWidth/innerHeight;camera.left=-w/2;camera.right=w/2;camera.top=h/2;camera.bottom=-h/2;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
- addEventListener('resize',resize);resize();
+ camera=new T.OrthographicCamera(-250,250,VIEW_HEIGHT/2,-VIEW_HEIGHT/2,.1,2000);
+ addEventListener('resize',fitGameView);window.visualViewport?.addEventListener('resize',fitGameView);
+ fitGameView();
  playerMesh=createAvatar({coat:state.fashion?.equipped?.outfit||state.coat||'mint',hat:state.hat||'none'});
  playerMesh.setFashion(state.fashion.equipped);scene.add(playerMesh.root);
  camera.position.set(0,285,600);camera.lookAt(0,40,145);
- canvas.addEventListener('pointerdown',pointer,{passive:true});
+ antiZoomTouch();
+ canvas.addEventListener('pointerdown',pointer,{passive:false});
+ $('resetView').onclick=resetView;
  $('map').onclick=zoneMenu;$('craft').onclick=craftMenu;$('home').onclick=goHome;
  $('close').onclick=()=>{if(currentZone){$('modal').classList.remove('open');active=true}else zoneMenu()};
  document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>skillUse(b.dataset.skill));
