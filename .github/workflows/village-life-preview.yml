@@ -1,7 +1,7 @@
 name: Junja Village Life Preview QA
 on:
   push:
-    branches: [junja-village-life-v17, junja-village-life-v18, junja-village-life-v19, junja-village-life-v20, junja-village-atelier-v21, junja-village-online-v1, junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25, village-hunt-polish-v26]
+    branches: [junja-village-life-v17, junja-village-life-v18, junja-village-life-v19, junja-village-life-v20, junja-village-atelier-v21, junja-village-online-v1, junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25, village-hunt-polish-v26, village-living-world-v27]
   workflow_dispatch:
 
 jobs:
@@ -24,6 +24,7 @@ jobs:
       - name: Verify actual mobile 3D render, navigation and wardrobe
         working-directory: life
         run: |
+          node test_living_browser_v27.mjs
           node test_hunt_browser_v25.mjs
           node test_nickname_browser_v22.mjs
           node test_atelier_browser_v21.mjs
