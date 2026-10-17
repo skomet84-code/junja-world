@@ -59,7 +59,7 @@ function makeMonster(model){
  return {root,body};
 }
 function makeTree(parent,x,z,seed,zone){const height=50+seed%33;const c=zone.tree;
- const trunk=makeMesh(parent,pillar,0x947b5c,x,height*.49,z,6,height,6);trunk.scale.y=height;
+ makeMesh(parent,pillar,0x947b5c,x,height*.49,z,6,height,6);
  sphere(parent,c,x,height+26,z,26,30,26);sphere(parent,new T.Color(c).lerp(new T.Color(0xc2ebba),.3),x+18,height+20,z+5,17,19,16)}
 function decorate(zone){
  if(worldDecor)scene.remove(worldDecor);
