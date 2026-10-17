@@ -1,7 +1,7 @@
 name: Junja Village Life Preview QA
 on:
   push:
-    branches: [junja-village-life-v17, junja-village-life-v18]
+    branches: [junja-village-life-v17, junja-village-life-v18, junja-village-life-v19]
   workflow_dispatch:
 
 jobs:
@@ -26,6 +26,7 @@ jobs:
         run: |
           node test_browser.mjs
           node test_real_tap_v18.mjs
+          node test_fashion_browser_v19.mjs
       - name: Keep mobile screenshots for visual review
         if: always()
         uses: actions/upload-artifact@v4
