@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"/><meta name="theme-color" content="#c4eac6"/><title>준자마을 LIFE v1.3 · 캐릭터와 주민 원화</title><style>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"/><meta name="theme-color" content="#c4eac6"/><title>준자마을 LIFE v1.4 · 모바일 터치 이동 개선</title><style>
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;overflow:hidden;background:#8acb92;font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#fff;touch-action:none;user-select:none}button{font:inherit;cursor:pointer;border:0}#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}#shade{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 54%,rgba(9,44,35,.17) 100%);z-index:1}
 .hud{position:fixed;z-index:5;pointer-events:none}.hud>*{pointer-events:auto}.top{top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;gap:6px;align-items:flex-start}.profile{background:rgba(26,58,51,.79);border:1px solid rgba(255,255,255,.35);border-radius:18px;padding:8px 11px;display:flex;align-items:center;gap:8px;box-shadow:0 7px 20px #153c3b3a;backdrop-filter:blur(12px);min-width:160px}.portrait{width:44px;height:44px;border-radius:50%;background:linear-gradient(150deg,#e8d7a0,#8ccd91);border:2px solid #fce9ab;display:grid;place-items:center;font-size:28px}.name{font-size:13px;font-weight:900;letter-spacing:.2px}.rank{font-size:10px;color:#ffe19e;font-weight:800}.xp{margin-top:3px;width:99px;background:#2c5857;height:6px;border-radius:10px;overflow:hidden}.xp i{display:block;background:linear-gradient(90deg,#88e8bd,#f6de87);height:100%;width:36%;border-radius:10px}.wallet{background:rgba(26,58,51,.78);border:1px solid rgba(255,255,255,.35);border-radius:15px;padding:9px 11px;box-shadow:0 7px 20px #153c3b3a;backdrop-filter:blur(12px);display:flex;align-items:center;gap:6px;font-size:15px;font-weight:900;white-space:nowrap}.gold{display:inline-grid;place-items:center;background:linear-gradient(145deg,#fff1a0,#ffc548 65%,#c98419);border:2px solid #fdf1b5;width:23px;height:23px;border-radius:50%;color:#a26119;font-size:12px;box-shadow:0 2px 2px #0003}
@@ -322,7 +322,22 @@ function pathfind(from,to){const [sx,sy]=toCell(from.x,from.y);let [tx,ty]=toCel
  }
  if(!final)return [];let cells=[],current=key(tx,ty);while(current!==key(sx,sy)&&cells.length<200){let x=current%COLS,y=Math.floor(current/COLS);cells.unshift({x:(x+.5)*step,y:(y+.5)*step});current=parent.get(current);if(current===undefined)return []}return cells;
 }
-function moveTo(x,y,arrival){const way=pathfind(player,{x,y});if(!way.length){toast('이쪽으로는 걸어갈 수 없어요');return}path=way;goal={...way[way.length-1]};popup=arrival||null;els.hint.classList.add('hidden');}
+function finishArrival(arrival){
+ if(!arrival)return;
+ if(arrival.type==='action')interaction(arrival.kind);
+ if(arrival.type==='npc')openNpc(arrival.npc);
+ if(arrival.type==='animal'){const a=animalFriends.find(v=>v.id===arrival.animalId);if(a)openAnimal(a)}
+}
+function moveTo(x,y,arrival){
+ const way=pathfind(player,{x,y});
+ if(!way.length){
+  // A* has no steps when the target is in the player's current grid cell.
+  // This is an arrival, not a blocked route.
+  if(Math.hypot(player.x-x,player.y-y)<60){path=[];goal=null;popup=null;finishArrival(arrival);return}
+  toast('이쪽으로는 걸어갈 수 없어요');return
+ }
+ path=way;goal={...way[way.length-1]};popup=arrival||null;els.hint.classList.add('hidden');
+}
 // Optional LAN / server-hosted friends. The static downloadable preview remains a real offline game.
 const peers={},chatHistory=[];
 let socialSocket=null,socialRoom='SPRING',socialId=null,lastPositionSent=0,retryCount=0;
@@ -366,21 +381,46 @@ function handleTap(sx,sy){const x=(sx-CW/2)/scale+camera.x,y=(sy-CH/2)/scale+cam
  const hit=clickable.find(o=>distance(o,{x,y})<o.r);if(hit){if(distance(player,hit)<170){interaction(hit.kind)}else{let tx=hit.x,ty=hit.y+hit.r*.65;if(hit.kind==='fish'){tx=1457;ty=1164}if(hit.kind==='shop'){tx=610;ty=608}if(hit.kind==='home'){tx=1390;ty=645}if(hit.kind==='fountain'){tx=1100;ty=815}if(hit.kind==='market'){tx=1490;ty=1020}moveTo(tx,ty,{type:'action',kind:hit.kind})}return}
  if(x>785&&x<1370&&y>1130&&y<1385){farmAll();return}
  moveTo(x,y,null)}
-cv.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;e.preventDefault();handleTap(e.clientX,e.clientY)},{passive:false});
+cv.addEventListener('pointerdown',e=>{
+ if(e.button!==0&&e.pointerType==='mouse')return;
+ if(!e.isPrimary)return;
+ e.preventDefault();
+ const bounds=cv.getBoundingClientRect();
+ handleTap(e.clientX-bounds.left,e.clientY-bounds.top);
+},{passive:false});
+// Older touch-only WebViews don't always emit PointerEvents.
+if(!('PointerEvent' in window))cv.addEventListener('touchstart',e=>{
+ const touch=e.changedTouches[0];if(!touch)return;
+ e.preventDefault();
+ const bounds=cv.getBoundingClientRect();
+ handleTap(touch.clientX-bounds.left,touch.clientY-bounds.top);
+},{passive:false});
 let keys={};window.addEventListener('keydown',e=>{if('wasdWASDArrowUpArrowDownArrowLeftArrowRight'.includes(e.key))keys[e.key]=true;if(e.key==='Escape')closeModal()});window.addEventListener('keyup',e=>{delete keys[e.key]});
-function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers)){let k=1-Math.exp(-dt*9);o.x+=(o.targetX-o.x)*k;o.y+=(o.targetY-o.y)*k}if(socialId&&t-lastPositionSent>.13){lastPositionSent=t;socialSend({type:'pos',x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat})}if(Math.floor(t)%4===0&&Math.floor(t)!==lastClock){lastClock=Math.floor(t);const clock=document.getElementById('worldClock');const hour=new Date().getHours();clock.textContent=seasonLabels[state.season]+' · '+(hour<11?'산뜻한 아침':hour<17?'따스한 낮':'노을빛 저녁')+' · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});} if(fishPhase==='wait'&&performance.now()>castUntil){fishPhase='bite';castUntil=performance.now()+2200;els.fishTitle.textContent='❗ 입질이 왔어요!';els.fishDesc.textContent='시간 안에 챔질하기를 눌러주세요';els.fishAction.textContent='🐟 지금 챔질하기!';els.gauge.style.display='none';party(1558,1353,10)}
+let lastBlockedRetry=-10;function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers)){let k=1-Math.exp(-dt*9);o.x+=(o.targetX-o.x)*k;o.y+=(o.targetY-o.y)*k}if(socialId&&t-lastPositionSent>.13){lastPositionSent=t;socialSend({type:'pos',x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat})}if(Math.floor(t)%4===0&&Math.floor(t)!==lastClock){lastClock=Math.floor(t);const clock=document.getElementById('worldClock');const hour=new Date().getHours();clock.textContent=seasonLabels[state.season]+' · '+(hour<11?'산뜻한 아침':hour<17?'따스한 낮':'노을빛 저녁')+' · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});} if(fishPhase==='wait'&&performance.now()>castUntil){fishPhase='bite';castUntil=performance.now()+2200;els.fishTitle.textContent='❗ 입질이 왔어요!';els.fishDesc.textContent='시간 안에 챔질하기를 눌러주세요';els.fishAction.textContent='🐟 지금 챔질하기!';els.gauge.style.display='none';party(1558,1353,10)}
  if(fishPhase==='bite'&&performance.now()>castUntil){fishFailure('물고기가 도망갔어요!');}
  if(fishPhase==='reel'){gaugePos+=dt*gaugeDir*1.36;if(gaugePos>1){gaugePos=1;gaugeDir=-1}if(gaugePos<0){gaugePos=0;gaugeDir=1}els.needle.style.left=`calc(${gaugePos*100}% - 2px)`}
  let kvx=Number(keys.ArrowRight||keys.d||keys.D)-Number(keys.ArrowLeft||keys.a||keys.A),kvy=Number(keys.ArrowDown||keys.s||keys.S)-Number(keys.ArrowUp||keys.w||keys.W);let dest=null;
  if(kvx||kvy){path=[];goal=null;popup=null;dest={x:player.x+kvx*80,y:player.y+kvy*80}}
- else if(path.length){dest=path[0];if(distance(player,dest)<14){path.shift();dest=path[0]||null;if(!dest){goal=null;if(popup){let p=popup;popup=null;if(p.type==='action')interaction(p.kind);if(p.type==='npc')openNpc(p.npc);if(p.type==='animal'){const a=animalFriends.find(v=>v.id===p.animalId);if(a)openAnimal(a)}}}}}
- let vx=0,vy=0;if(dest){const d=distance(player,dest)||1;vx=(dest.x-player.x)/d*210;vy=(dest.y-player.y)/d*210;player.dir=Math.abs(vx)>Math.abs(vy)?(vx>0?1:3):(vy>0?0:2)}
- let friction=1-Math.exp(-dt*12);player.vx+=(vx-player.vx)*friction;player.vy+=(vy-player.vy)*friction;
- let nx=player.x+player.vx*dt,ny=player.y+player.vy*dt;if(walkable(nx,ny)){player.x=nx;player.y=ny}else{player.vx=0;player.vy=0;if(path.length){path.shift();if(!path.length)goal=null}}
- const f=1-Math.exp(-dt*3.3);camera.x+=(player.x-camera.x)*f;camera.y+=(player.y-camera.y)*f;
+ else if(path.length){dest=path[0];if(distance(player,dest)<14){path.shift();dest=path[0]||null;if(!dest){goal=null;const arriving=popup;popup=null;finishArrival(arriving)}}}
+ let vx=0,vy=0;if(dest){const d=distance(player,dest)||1;const moveSpeed=Math.min(235,Math.max(65,d*11));vx=(dest.x-player.x)/d*moveSpeed;vy=(dest.y-player.y)/d*moveSpeed;player.dir=Math.abs(vx)>Math.abs(vy)?(vx>0?1:3):(vy>0?0:2)}
+ let friction=1-Math.exp(-dt*18);player.vx+=(vx-player.vx)*friction;player.vy+=(vy-player.vy)*friction;
+ let nx=player.x+player.vx*dt,ny=player.y+player.vy*dt;
+ if(walkable(nx,ny)){player.x=nx;player.y=ny}
+ else if(walkable(nx,player.y)){player.x=nx;player.vy=0}
+ else if(walkable(player.x,ny)){player.y=ny;player.vx=0}
+ else{
+  player.vx=0;player.vy=0;
+  if(path.length&&t-lastBlockedRetry>.5){
+   lastBlockedRetry=t;
+   const retry=pathfind(player,goal||path[path.length-1]);
+   if(retry.length)path=retry;
+   else{path=[];goal=null;popup=null;toast('길을 다시 찾아주세요')}
+  }
+ }
+ const f=1-Math.exp(-dt*5.6);camera.x+=(player.x-camera.x)*f;camera.y+=(player.y-camera.y)*f;
  camera.x=Math.min(W-CW/(scale*2),Math.max(CW/(scale*2),camera.x));camera.y=Math.min(H-CH/(scale*2),Math.max(CH/(scale*2),camera.y));
 }
-function frame(now){const dt=Math.min(.038,(now-last)/1000);last=now;update(dt);drawWorld(dt);drawMini();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+let lastMinimapDraw=0;function frame(now){const dt=Math.min(.038,(now-last)/1000);last=now;update(dt);drawWorld(dt);if(now-lastMinimapDraw>110){drawMini();lastMinimapDraw=now}requestAnimationFrame(frame)}requestAnimationFrame(frame);
 function drawMini(){const w=mini.width,h=mini.height;mctx.clearRect(0,0,w,h);mctx.fillStyle='#9dd590';mctx.fillRect(0,0,w,h);mctx.fillStyle='#5daeba';mctx.beginPath();mctx.ellipse(12,130,48,34,0,0,7);mctx.ellipse(164,119,40,39,0,0,7);mctx.fill();for(const o of props){mctx.fillStyle=o.type==='fountain'?'#87ceea':'#ab7b57';mctx.fillRect(o.x/W*w-8,o.y/H*h-6,16,12)}mctx.fillStyle='#ffe48f';mctx.strokeStyle='#263e3a';mctx.lineWidth=2;mctx.beginPath();mctx.arc(player.x/W*w,player.y/H*h,5,0,7);mctx.fill();mctx.stroke()}
 function closeModal(){els.modal.classList.remove('open');}
 function openModal(html){els.panelBody.innerHTML=html;els.modal.classList.add('open')}
@@ -393,7 +433,7 @@ function beginFishing(){closeModal();if(distance(player,{x:1465,y:1177})>190){mo
 function fishFailure(s){els.fishing.classList.remove('open');fishPhase='idle';castMode=false;toast('💨 '+s)}
 function fishingAction(){if(fishPhase==='bite'){fishPhase='reel';fishAttempts=0;gaugePos=0;gaugeDir=1;els.fishTitle.textContent='🐟 릴을 감아 올려요!';els.fishDesc.textContent='초록 영역에서 두 번 터치해서 성공하세요';els.fishAction.textContent='✨ 지금 릴 감기';els.gauge.style.display='block';return}if(fishPhase==='reel'){if(gaugePos>.30&&gaugePos<.70){fishAttempts++;party(player.x,player.y-30,9);if(fishAttempts>=2){const names=['송사리','붕어','금붕어','비단 송어','은빛 농어','황금 잉어'];let roll=Math.random();let idx=roll>.982?5:roll>.84?4:roll>.66?3:Math.floor(roll*3);let fish=names[idx],money=[36,55,88,120,185,600][idx];state.fish++;state.dailyFish++;state.collection.push(fish);state.xp+=36;state.coins+=money;hud();save();completeDaily();checkAchievements();fishPhase='idle';castMode=false;els.fishing.classList.remove('open');toast(`🐟 ${fish} 획득! +${money}G`);party(player.x,player.y-75,26);return}els.fishDesc.textContent='좋아요! 한 번 더 맞춰보세요 ('+fishAttempts+'/2)'}else{fishAttempts=Math.max(0,fishAttempts-1);els.fishDesc.textContent='앗! 초록 영역에서 눌러주세요'}}}
 els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=openShop;document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing;document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 준자마을 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
-connectSocial();setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getState:()=>({player:{...player},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
+connectSocial();setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),tap:handleTap,getState:()=>({player:{...player},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
 })();
 
 </script></body></html>

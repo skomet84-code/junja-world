@@ -1,8 +1,11 @@
 {
-  "name":"junja-village-life",
-  "version":"1.0.0",
-  "private":true,
-  "type":"module",
-  "engines":{"node":">=22"},
-  "scripts":{"start":"node server.mjs", "test":"node --check server.mjs && node --check index.html.js"}
+  "name": "junja-village-life",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --check server.mjs && node tests/mobile-touch.test.mjs"
+  }
 }
