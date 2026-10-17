@@ -1,5 +1,7 @@
 import * as T from './vendor/three.module.js';
 import {createAvatar,ball,tube} from './avatar3d.js';
+import {createPet} from './fashion-3d.js';
+import {CATALOG_BY_ID} from './fashion-catalog.js';
 
 const materials=new Map();
 function material(color){if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:.95}));return materials.get(color)}
@@ -72,7 +74,10 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  // Raycast only intentionally interactive objects, not the full island/grass meshes.
  const pickRoots=[];
  const camera=new T.OrthographicCamera(-400,400,400,-400,1,5000),raycaster=new T.Raycaster(),groundPlane=new T.Plane(new T.Vector3(0,1,0),0),v=new T.Vector3();
- scene.add(new T.HemisphereLight(0xfff6de,0x94b294,2.5));const sun=new T.DirectionalLight(0xffedca,3.1);sun.position.set(-400,900,400);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-680;sun.shadow.camera.right=680;sun.shadow.camera.top=680;sun.shadow.camera.bottom=-680;sun.shadow.camera.near=10;sun.shadow.camera.far=2200;sun.shadow.bias=-.0004;sun.shadow.normalBias=1.7;scene.add(sun);scene.add(sun.target);
+ scene.add(new T.HemisphereLight(0xfff6de,0x94b294,2.65));
+  // A soft frontal fill brings out the face, eyes and sleeve trim without changing scale.
+  const faceFill=new T.DirectionalLight(0xfff3de,1.0);
+  faceFill.position.set(0,420,620);scene.add(faceFill);const sun=new T.DirectionalLight(0xffedca,3.1);sun.position.set(-400,900,400);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-680;sun.shadow.camera.right=680;sun.shadow.camera.top=680;sun.shadow.camera.bottom=-680;sun.shadow.camera.near=10;sun.shadow.camera.far=2200;sun.shadow.bias=-.0004;sun.shadow.normalBias=1.7;scene.add(sun);scene.add(sun.target);
  const water=box(scene,0x8bc6c3,width/2,-24,height/2,width+2000,28,height+2000);water.castShadow=false;
  const edge=[[70,110],[1930,110],[1930,710],[2070,710],[2070,110],[3530,110],[3530,2330],[2070,2330],[2070,1070],[1930,1070],[1930,1150],[1585,1150],[1585,1400],[1375,1400],[1375,1580],[570,1580],[570,1470],[445,1470],[445,1230],[70,1230]];
  const shape=new T.Shape();edge.forEach(([x,z],i)=>i?shape.lineTo(x,-z):shape.moveTo(x,-z));shape.closePath();
@@ -134,7 +139,16 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  const decorGroup=group(scene);let decorKey='';
  let cw=0,ch=0,currentPlayer={x:1050,y:955};
  function resize(){const w=innerWidth,h=innerHeight;if(w===cw&&h===ch)return;cw=w;ch=h;renderer.setSize(w,h,false);const viewWidth=Math.max(450,Math.min(1100,w*1.12)),viewHeight=viewWidth*h/w;camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=viewHeight/2;camera.bottom=-viewHeight/2;camera.updateProjectionMatrix()}
- function follow(p){currentPlayer=p;camera.position.set(p.x,720,p.y+780);camera.lookAt(p.x,22,p.y);camera.updateMatrixWorld();sun.position.set(p.x-360,900,p.y+350);sun.target.position.set(p.x,0,p.y);sun.target.updateMatrixWorld()}
+ function follow(p){
+  currentPlayer=p;
+  // Keep the orthographic FOV and player scale identical to v18.
+  // Lower the viewpoint a little so the face and outfit are visible.
+  camera.position.set(p.x,650,p.y+845);
+  camera.lookAt(p.x,46,p.y);
+  camera.updateMatrixWorld();
+  faceFill.position.set(p.x-130,450,p.y+550);
+  sun.position.set(p.x-360,900,p.y+350);sun.target.position.set(p.x,0,p.y);sun.target.updateMatrixWorld();
+ }
  function projectRay(sx,sy){resize();raycaster.setFromCamera(new T.Vector2(sx/cw*2-1,1-sy/ch*2),camera)}
  function screenToWorld(sx,sy){projectRay(sx,sy);const hit=raycaster.ray.intersectPlane(groundPlane,v);return hit?{x:hit.x,y:hit.z}:{x:currentPlayer.x,y:currentPlayer.y}}
  function pick(sx,sy){
@@ -150,22 +164,45 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   return null;
  }
  const previewCanvas=document.createElement('canvas');previewCanvas.id='fitting3D';previewCanvas.setAttribute('aria-label','입체 캐릭터 착용 미리보기');
- let previewRenderer=null,previewScene=null,previewCamera=null,previewAvatar=null,previewAngle=0,previewWalking=false,previewLook={coat:'mint',hat:'none'};
- function fitting(parent,coat,hat){
+ let previewRenderer=null,previewScene=null,previewCamera=null,previewAvatar=null,previewPet=null,previewAngle=0,previewWalking=false,previewLook={coat:'mint',hat:'none',fashion:{}};
+ function fitting(parent,coat,hat,fashion={}){
   if(!previewRenderer){previewRenderer=new T.WebGLRenderer({canvas:previewCanvas,antialias:true,alpha:true});previewRenderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));previewRenderer.setSize(300,280,false);previewRenderer.outputColorSpace=T.SRGBColorSpace;previewRenderer.toneMapping=T.ACESFilmicToneMapping;previewRenderer.toneMappingExposure=1.3;previewScene=new T.Scene();previewScene.add(new T.HemisphereLight(0xfff5df,0x8b9c86,3));const l=new T.DirectionalLight(0xffeed6,3);l.position.set(-70,160,100);previewScene.add(l);previewCamera=new T.OrthographicCamera(-70,70,126,-5,.1,1000);previewCamera.position.set(0,86,240);previewCamera.lookAt(0,65,0);previewAvatar=createAvatar();previewScene.add(previewAvatar.root);cylinder(previewScene,0xdce5cc,0,-4,0,40,6)}
-  parent.appendChild(previewCanvas);previewLook={coat,hat};previewAvatar.equip(coat,hat);
+  parent.appendChild(previewCanvas);
+  previewLook={coat,hat,fashion};
+  previewAvatar.equip(fashion.outfit||coat,hat);
+  previewAvatar.setFashion(fashion);
+  if(previewPet){previewScene.remove(previewPet.root);previewPet.dispose();previewPet=null}
+  if(CATALOG_BY_ID[fashion.pet]?.type==='pet'){
+    previewPet=createPet(CATALOG_BY_ID[fashion.pet]);previewScene.add(previewPet.root);
+    previewPet.root.position.set(49,0,26);previewPet.root.scale.setScalar(.77);
+  }
  }
  function updateCrops(state){const key=state.beds.map(b=>b.crop+':'+Math.min(3,Math.floor((Date.now()-b.at)/1000/({carrot:65,strawberry:120,pumpkin:220,lily:300}[b.crop]||1)*3))).join('|');if(key===cropKey)return;cropKey=key;
   state.beds.forEach((b,i)=>{const g=cropGroups[i];g.clear();if(!b.crop)return;const age=Math.min(1,(Date.now()-b.at)/1000/({carrot:65,strawberry:120,pumpkin:220,lily:300}[b.crop]||65));for(let j=0;j<6;j++){const x=(j%3-1)*18,z=(Math.floor(j/3)-.5)*22;const stem=cylinder(g,0x729252,x,4+age*5,z,1.8,8+age*10);for(const k of [-1,1]){const leaf=sphere(g,0x88a964,x+k*4,8+age*8,z,5+age*2,2.2,3);leaf.rotation.z=k*.4}if(age>=.66)sphere(g,b.crop==='carrot'?0xe2a465:b.crop==='strawberry'?0xd68b83:b.crop==='pumpkin'?0xe3bc6d:0xf1dab1,x,7,z,4+age*3,5+age*2,4+age*3)}})
  }
  function updateDecor(state){const key=JSON.stringify(state.decorations);if(key===decorKey)return;decorKey=key;decorGroup.clear();for(const d of state.decorations){if(d.id==='bench')bench(decorGroup,d.x,d.y);else if(d.id==='lantern')lamp(decorGroup,d.x,d.y);else if(d.id==='topiary')tree(decorGroup,d.x,d.y,{size:.4});else if(d.id==='birdbath'){const g=group(decorGroup,d.x,0,d.y);cylinder(g,0xd8d0b9,0,20,0,5,40);cylinder(g,0xd8d0b9,0,40,0,22,6);cylinder(g,0x94c7c0,0,44,0,18,1)}else if(d.id==='picnic'){box(decorGroup,0xe5bdb0,d.x,2,d.y,65,2,55)}else{const g=group(decorGroup,d.x,0,d.y);cylinder(g,0xc49d80,0,9,0,12,18);for(const [x,z] of [[0,0],[-6,5],[5,-5]]){const f=flower(g,x,z);f.position.y=16}}}}
  let lastFrameMs=0,frameCount=0,avgMs=0;
+ let petActor=null,petId=null;
+ function updateCompanion(pet,x,y,dt,time){
+  const valid=CATALOG_BY_ID[pet]?.type==='pet'?pet:null;
+  if(valid!==petId){
+   if(petActor){scene.remove(petActor.root);petActor.dispose();petActor=null}
+   petId=valid;
+   if(valid){petActor=createPet(CATALOG_BY_ID[valid]);scene.add(petActor.root)}
+  }
+  if(petActor)petActor.update(x,y,dt,time);
+ }
  function render({state,actor,npcs:ns,animals:as,peers={},time,dt,goal,path}){
   resize();follow(actor);
   if(time-lastShadowTime>.28||Math.hypot(actor.x-lastShadowPos.x,actor.y-lastShadowPos.y)>75){
    renderer.shadowMap.needsUpdate=true;lastShadowPos={x:actor.x,y:actor.y};lastShadowTime=time;
   }
-  player.equip(state.coat,state.hat);player.animate(actor,dt,time);playerLabel.position.set(actor.x,135,actor.y);
+  const fashion=state.fashion?.equipped||{};
+  player.equip(fashion.outfit||state.coat,state.hat);
+  player.setFashion(fashion);
+  player.animate(actor,dt,time);
+  updateCompanion(fashion.pet,actor.x,actor.y,dt,time);
+  playerLabel.position.set(actor.x,135,actor.y);
   ns.forEach((n,i)=>{villagers[i].animate({x:n.x,y:n.y,dir:0},dt,time+i)});
   as.forEach((n,i)=>{residents[i].animate({x:n.x,y:n.y,vx:n.moving?n.dx-n.x:0,vy:n.moving?n.dy-n.y:0,stride:(n.travel||0)/70*Math.PI*2,dir:0},dt,time+i)});
   updateGuests(peers,dt,time);
@@ -176,9 +213,16 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   // Hide fully off-screen small objects before traversing their meshes.
   for(const g of [...treeGroups,...resGroups.values()])g.visible=Math.abs(g.position.x-actor.x)<950&&Math.abs(g.position.z-actor.y)<1400;
   renderer.render(scene,camera);
-  if(previewRenderer&&previewCanvas.isConnected){previewAvatar.equip(previewLook.coat,previewLook.hat);previewAvatar.animate({x:0,y:0,vx:previewWalking?1.1:0,vy:previewWalking?1.1:0,stride:time*8},dt,time);previewAvatar.root.rotation.y=previewAngle;previewRenderer.render(previewScene,previewCamera)}
+  if(previewRenderer&&previewCanvas.isConnected){
+   previewAvatar.equip(previewLook.fashion?.outfit||previewLook.coat,previewLook.hat);
+   previewAvatar.setFashion(previewLook.fashion);
+   previewAvatar.animate({x:0,y:0,vx:previewWalking?1.1:0,vy:previewWalking?1.1:0,stride:time*8},dt,time);
+   previewAvatar.root.rotation.y=previewAngle;
+   if(previewPet){previewPet.root.rotation.y=previewAngle;previewPet.root.children[0].position.y=Math.sin(time*4)*1.5}
+   previewRenderer.render(previewScene,previewCamera);
+  }
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();renderer.dispose();previewRenderer?.dispose()}};
+ return {render,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,pet:petId,faceCameraElevation:Math.round(Math.atan2(650-46,845)*180/Math.PI),coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();renderer.dispose();previewRenderer?.dispose()}};
 }
