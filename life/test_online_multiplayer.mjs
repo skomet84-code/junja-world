@@ -26,7 +26,7 @@ async function connect(nick,room='SPRING',fashion={},clientId=null){
  sockets.push(ws);
  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',()=>reject(Error('WebSocket connect failed')),{once:true})});
  ws.send(JSON.stringify({type:'join',room,nick,x:1050,y:955,coat:'mint',hat:'none',dir:0,fashion,clientId}));
- return {ws,next};
+ return {ws,next,peek:()=>messages.slice()};
 }
 try{
  await awaitReady();
@@ -53,6 +53,7 @@ try{
  assert.equal(welcomeC.players.length,0,'different rooms must be isolated');
  for(let i=0;i<6;i++){const guest=await connect('guest'+i);const w=await guest.next('welcome');console.log('capacity QA',i+1,w.players.length);assert.equal(w.players.length,i+2,'room population before guest '+i)}
  const full=await connect('ninth');
+ await new Promise(resolve=>setTimeout(resolve,150));console.log('ninth messages',JSON.stringify(full.peek()));
  assert.match((await full.next('error')).message,/8명/,'ninth player should get capacity error');
  const status=await fetch(url+'/health').then(r=>r.json());
  assert.equal(status.rooms,2);
