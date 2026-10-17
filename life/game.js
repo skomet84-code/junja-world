@@ -192,7 +192,7 @@ for(const coat of Object.keys(AVATAR_SPRITES)) AVATAR_IMAGES[coat]=AVATAR_SPRITE
 const AVATAR_PREVIEWS={};
 for(const [coat,urls] of Object.entries(AVATAR_SPRITES)) AVATAR_PREVIEWS[coat]='data:image/webp;base64,'+urls[0];
 
-function drawWorld(dt){if(world3D)world3D.render({state,actor:player,npcs,animals:animalFriends,time:t,dt,goal,path});}
+function drawWorld(dt){if(world3D)world3D.render({state,actor:player,npcs,animals:animalFriends,peers,time:t,dt,goal,path});}
 function party(x,y,n=12){for(let i=0;i<n;i++){fx.push({x,y,v:rand(22,64),vx:rand(-56,56),life:rand(.7,1.3),total:1.3,r:rand(2,5),col:['#fff7b5','#ffe1f1','#f3f7fb','#8de3dc'][Math.floor(rand(0,4))]})}}
 function walkable(x,y){
  if(world3D?.blocked(x,y))return false;
