@@ -17,7 +17,11 @@ try{
  browser=await chromium.launch({headless:true,args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader']});
  const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
  page.on('pageerror',e=>errors.push(e.message));
- await page.addInitScript(()=>localStorage.setItem('junja-harbor-v1',JSON.stringify({coins:15000})));
+ await page.addInitScript(()=>{
+  if(sessionStorage.getItem('qa-first-funds')==='yes')return;
+  localStorage.setItem('junja-harbor-v1',JSON.stringify({coins:15000}));
+  sessionStorage.setItem('qa-first-funds','yes');
+ });
  await page.goto(url,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__JUNJA_TEST__?.getRenderer()?.frames>5,null,{timeout:60000});
  const before=await page.evaluate(()=>window.__JUNJA_TEST__.getState());
@@ -55,6 +59,12 @@ try{
  await page.locator('[data-outfit="'+expensive+'"]').click();
  assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getState())).coins,state.coins);
  assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getState())).fashion.equipped.outfit,first);
+ // Verify five premium coordinated sets, and a full-body preview does not duplicate avatars.
+ await page.locator('#tab-sets').click();
+ assert.equal(await page.locator('.premium-set').count(),5);
+ await page.locator('[data-preview-set="spring"]').click();
+ assert.equal(await page.locator('.premium-set').count(),5);
+ assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getRenderer())).onlineGuests,0,'preview must not spawn a peer');
  await page.locator('#close').click();
  // QA-only funds are injected *at next document startup*, after the previous
  // document's beforeunload auto-save. This cannot affect normal game code.
@@ -79,6 +89,13 @@ try{
   assert.equal(s.fashion.equipped[category],id);
   assert(s.fashion.owned.includes(id));
  }
+ await page.locator('#close').click();
+ await page.locator('#festivalBtn').click();
+ assert.equal(await page.locator('[data-festival]').count(),5,'five weekly festival jobs');
+ const weeklyBefore=await page.evaluate(()=>window.__JUNJA_TEST__.getState().coins);
+ await page.locator('#festivalAttendance').click();
+ assert((await page.evaluate(()=>window.__JUNJA_TEST__.getState().coins))>weeklyBefore,'first daily attendance pays once');
+ assert(await page.locator('#festivalAttendance').isDisabled(),'cannot double redeem attendance');
  await page.locator('#close').click();
  await page.waitForFunction(()=>window.__JUNJA_TEST__.getRenderer().pet==='fashion_pet_01',null,{timeout:5000});
  await page.screenshot({path:'artifacts/v19-pet-following.png'});
