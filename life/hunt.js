@@ -318,10 +318,20 @@ function pointer(e){
  const rect=canvas.getBoundingClientRect();
  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
  raycaster.setFromCamera(mouse,camera);
+ // Touch the actual 3D monster silhouette, not just its ground footprint.
+ // This makes large bosses and aerial monsters tappable over their entire body.
+ let closest=null,closestHit=Infinity;
+ for(const m of monsters){
+  if(m.hp<=0||!m.root.visible)continue;
+  const hits=raycaster.intersectObjects(m.body.children,true);
+  if(hits.length&&hits[0].distance<closestHit){closest=m;closestHit=hits[0].distance}
+ }
  if(!raycaster.ray.intersectPlane(floor,point))return;
  const x=clamp(point.x,-545,545),z=clamp(point.z,-370,370);
- let closest=null,distance=68;
- for(const m of monsters)if(m.hp>0&&m.root.visible){const d=Math.hypot(x-m.x,z-m.z);if(d<distance){distance=d;closest=m}}
+ // A generous landing zone keeps small monsters easy to select with fingers.
+ if(!closest){let distance=86;for(const m of monsters)if(m.hp>0&&m.root.visible){
+  const d=Math.hypot(x-m.x,z-m.z);if(d<distance){distance=d;closest=m}
+ }}
  if(closest){target=closest;hero.moveX=closest.x;hero.moveZ=closest.z;toast((closest.model.boss?'👑 보스 · ':'🐾 ')+closest.model.name+' 자동 공격')}
  else{target=null;hero.moveX=x;hero.moveZ=z}
  updateHud();
