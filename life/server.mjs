@@ -48,8 +48,15 @@ function onMessage(p,msg){
   if(p.room)return;
   const roomCode=safeRoom(msg.room);const room=rooms.get(roomCode)||new Map();
   if(room.size>=8){send(p,{type:'error',message:'방이 가득 찼어요 (최대 8명)'});return}
-  p.room=roomCode;p.nick=clean(msg.nick,12)||'새싹 친구';p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.coat=allowedCoats.has(msg.coat)?msg.coat:'mint';p.hat=allowedHats.has(msg.hat)?msg.hat:'none';p.dir=clamp(msg.dir,0,3);p.fashion=cleanFashion(msg.fashion);
-  send(p,{type:'welcome',id:p.id,room:roomCode,players:[...room.values()].map(q=>({id:q.id,nick:q.nick,x:q.x,y:q.y,coat:q.coat,hat:q.hat,dir:q.dir,fashion:q.fashion}))});
+  // One active avatar per browser installation. This is session de-duplication, not account authentication.
+  const clientId=typeof msg.clientId==='string'&&/^[a-zA-Z0-9-]{18,64}$/.test(msg.clientId)?msg.clientId:null;
+  if(clientId)for(const other of [...room.values()])if(other.clientId===clientId){send(other,{type:'replaced',message:'다른 탭에서 마을에 접속해 기존 연결을 종료했어요'});removePeer(other)}
+  const originalNick=clean(msg.nick,12)||'새싹 친구';
+  const used=new Set([...room.values()].map(x=>x.nick));
+  let chosenNick=originalNick;
+  if(used.has(chosenNick))for(let n=2;n<100;n++){const candidate=originalNick.slice(0,10)+'·'+n;if(!used.has(candidate)){chosenNick=candidate;break}}
+  p.clientId=clientId;p.room=roomCode;p.nick=chosenNick;p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.coat=allowedCoats.has(msg.coat)?msg.coat:'mint';p.hat=allowedHats.has(msg.hat)?msg.hat:'none';p.dir=clamp(msg.dir,0,3);p.fashion=cleanFashion(msg.fashion);
+  send(p,{type:'welcome',id:p.id,nick:p.nick,room:roomCode,players:[...room.values()].map(q=>({id:q.id,nick:q.nick,x:q.x,y:q.y,coat:q.coat,hat:q.hat,dir:q.dir,fashion:q.fashion}))});
   rooms.set(roomCode,room);room.set(p.id,p);
   broadcast(room,{type:'join',player:{id:p.id,nick:p.nick,x:p.x,y:p.y,coat:p.coat,hat:p.hat,dir:p.dir,fashion:p.fashion}},p);
  }else if(msg.type==='pos'&&p.room){
