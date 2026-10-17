@@ -1,7 +1,7 @@
 name: Junja Village Life Preview QA
 on:
   push:
-    branches: [junja-village-life-v17, junja-village-life-v18, junja-village-life-v19]
+    branches: [junja-village-life-v17, junja-village-life-v18, junja-village-life-v19, junja-village-life-v20]
   workflow_dispatch:
 
 jobs:
@@ -25,6 +25,7 @@ jobs:
         working-directory: life
         run: |
           node test_fashion_browser_v19.mjs
+          node test_life_browser_v20.mjs
           node test_browser.mjs
           node test_real_tap_v18.mjs
       - name: Keep mobile screenshots for visual review
