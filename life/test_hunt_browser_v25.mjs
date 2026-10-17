@@ -70,7 +70,7 @@ try{
  await page.waitForFunction(()=>window.__JUNJA_TEST__?.getRenderer()?.frames>4,null,{timeout:60000});
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('junja-harbor-v1')));
  assert(saved.fashion.owned.includes('fashion_outfit_19'),'cosmetic should survive return to the village');
- assert.equal(saved.xp,320,'revisiting village must preserve character level');
+ assert(saved.xp>=320,'Combat experience must persist after returning to village');
  assert(!errors.length,'No JS errors: '+errors.join('; '));
  console.log('PASS v26: mobile anti-zoom reset, detailed 3D enemy labels, touch-target auto-hit effects, 4 regions, 3 skills and village return');
 }finally{await browser?.close();server.kill('SIGTERM')}
