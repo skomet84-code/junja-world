@@ -1,7 +1,7 @@
 name: Junja Village Public URL Smoke
 on:
   push:
-    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25, village-hunt-polish-v26]
+    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25, village-hunt-polish-v26, village-living-world-v27]
   workflow_dispatch:
 
 jobs:
@@ -33,6 +33,10 @@ jobs:
             if(path==='/game.js'){
               assert(body.includes("isLegacyPlaceholder"),'nickname migration code not in production');
               assert(body.includes("STYLE_SETS"),'five complete premium cosmetic sets missing');
+              assert(body.includes("CHAPTER_COUNT"),'50-chapter UI not deployed');
+              assert(body.includes("openSaveVault"),'local backup/export not available');
+              assert(body.includes("openLivingCalendar"),'monthly calendar not deployed');
+              assert(body.includes("openFishProfile"),'fish specimen details missing');
               assert(body.includes("goToHunting"),'hunting entry button not deployed');
               assert(body.includes("reelChallenge("),'fish rarity difficulty not in production');
               assert(body.includes("STARTER_FISH_NAMES"),'collection compatibility not deployed');
@@ -69,6 +73,14 @@ jobs:
           assert.equal(huntData.status,200,'hunt level and monster data unavailable');
           assert((await huntData.text()).includes('태고의 수호룡 아스트라'),'4th region boss unavailable');
           console.log('PASS live hunt 3D static assets, mobs and skill source');
+          for(const [asset,keyword] of [
+            ['/living-world.js','LONG_CHAPTER_BLUEPRINTS'],
+            ['/fish-portraits.js','drawFishPortrait']
+          ]){
+            const r=await fetch(base+asset,{signal:abort()});
+            assert.equal(r.status,200,'Missing living world bundle '+asset);
+            assert((await r.text()).includes(keyword),'Wrong version deployed: '+asset);
+          }
           function makeConnection(name){
             const ws=new WebSocket(base.replace(/^http/,'ws')+'/api/ws');
             const inbox=[],waiting=[];
