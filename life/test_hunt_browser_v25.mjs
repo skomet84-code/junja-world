@@ -16,7 +16,7 @@ try{
    sessionStorage.setItem('hunt-qa-seeded','yes');
    const data={coins:5000,xp:320,coat:'mint',hat:'none',x:1050,y:955,
     fashion:{owned:[],equipped:{}},
-    hunt:{kills:0,materials:{'젤리 조각':12,'숲의 조각':9,'왕의 도토리':1},bossDates:{}}};
+    hunt:{skills:['strike'],kills:0,materials:{'젤리 조각':12,'숲의 조각':9,'왕의 도토리':1},bossDates:{}}};
    localStorage.setItem('junja-harbor-v1',JSON.stringify(data));
    localStorage.setItem('junja-village-nickname','테스트모험가');
  });

@@ -87,7 +87,8 @@ export function addFishStock(s,fishName,count=1){
  const n=zero(count);stock[fishName]=Math.min(100000,zero(stock[fishName])+n);return true;
 }
 export function sellFish(s,fish,date=new Date(),level=1){
- const stock=initializeFishStock(s);if(!fish||zero(stock[fish.name])<1)return {ok:false,error:'판매할 물고기가 없어요'};
+ const stock=initializeFishStock(s);if(s.bag?.protectedFish?.includes(fish?.name))return {ok:false,error:'판매 잠금 물고기예요. 가방에서 잠금을 해제해 주세요'};
+ if(!fish||zero(stock[fish.name])<1)return {ok:false,error:'판매할 물고기가 없어요'};
  const quoted=quoteFish(fish,date,s.fishRecords?.[fish.name]);
  // Inventory selling consumes one actual fish. Historical collection and museum remain.
  const r=credit(s,quoted,'fish','수산시장 판매 · '+fish.name,level,date);

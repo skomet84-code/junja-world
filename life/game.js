@@ -3,7 +3,7 @@ import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './f
 import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
 import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js';
-import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket} from './inventory-v29.js';
+import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket,AUTO_SELL_PRICE,purchaseAutoSellTicket,toggleFishProtection} from './inventory-v29.js';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -1084,27 +1084,29 @@ function openAquarium(){
 function openBag(){
  const bag=initBag(state),used=bagUsed(state),capacity=bagCapacity(state),next=BAG_TIERS[bag.level];
  const stocks=Object.entries(state.fishStock||{}).filter(([name,n])=>n>0&&FISH_BY_NAME[name]).sort((a,b)=>b[1]-a[1]);
- const fishTotal=stocks.reduce((sum,[,n])=>sum+n,0);
+ const fishTotal=stocks.filter(([name])=>!bag.protectedFish.includes(name)).reduce((sum,[,n])=>sum+n,0);
  const storageBar=Math.min(100,Math.round(used/capacity*100));
- const inventory=stocks.slice(0,12).map(([name,n])=>'<div class="slot"><b>🐟</b>'+name+' × '+n+'</div>').join('');
+ const inventory=stocks.map(([name,n])=>'<div class="slot"><b>🐟</b>'+name+' × '+n+'<button data-fish-lock="'+name+'">'+(bag.protectedFish.includes(name)?'🔒 판매 잠금':'🔓 판매 가능')+'</button></div>').join('');
  const resources=Object.entries(state.materials||{}).filter(([,n])=>n>0).map(([id,n])=>(materialNames[id]||id)+' × '+n).join(' · ')||'보유 없음';
  const huntLoot=Object.entries(state.hunt?.materials||{}).filter(([,n])=>n>0).map(([id,n])=>id+' × '+n).join(' · ')||'보유 없음';
  const crafted=Object.entries(state.crafted||{}).filter(([,n])=>n>0).map(([id,n])=>id+' × '+n).join(' · ')||'보유 없음';
  openModal('<span class="titlebadge">STORAGE · LV.'+bag.level+'</span><h2>🎒 나의 가방</h2>'+
  '<div class="mini-card"><strong>'+BAG_TIERS[bag.level-1].name+' · '+used+'/'+capacity+'칸</strong>'+
  '<div class="mini-progress"><i style="width:'+storageBar+'%"></i></div>'+
- '<p>물고기·채집 재료·사냥 전리품·제작품을 합산해요. 기존 소지품은 절대 삭제되지 않아요.</p>'+
- (next?'<button id="upgradeBag">🧰 '+next.name+' · '+next.slots+'칸 · '+next.price.toLocaleString('ko-KR')+'G</button>':'<p>👑 최고 단계 가방!</p>')+'</div>'+
+ '<p>물고기·채집 재료·사냥 전리품·제작품·물약을 합산해요. 기존 소지품은 절대 삭제되지 않아요.</p>'+
+ (next?'<button id="upgradeBag">🧰 '+next.name+' · '+Math.max(next.slots,capacity+next.slots-BAG_TIERS[bag.level-1].slots)+'칸 · '+next.price.toLocaleString('ko-KR')+'G</button>':'<p>👑 최고 단계 가방!</p>')+'</div>'+
  '<div class="mini-card"><strong>🎟️ 물고기 자동 판매권 '+bag.autoSellTickets+'장</strong>'+
  '<p>보유한 판매용 물고기만 오늘 시세로 한 번에 판매합니다. 도감·사냥 재료·의상은 그대로 유지돼요.</p>'+
  '<button id="autoSellBag" '+(bag.autoSellTickets&&fishTotal?'':'disabled')+'>🎟️ 자동 비우기권 사용</button>'+
- '<p>매달 모든 월간 목표를 완수하면 한 장씩 받을 수 있어요.</p></div>'+
+ '<button id="buyAutoSellTicket">판매권 1장 구매 · '+AUTO_SELL_PRICE+'G</button><p>잠금한 물고기는 제외해요. 판매권은 1회 일괄 판매용이며 판매 수입 감소 규칙도 적용됩니다. 월간 목표 완수 시 1장 무료!</p></div>'+
  '<div class="pill-row"><button class="pill-btn" id="bagGoMarket">⚓ 판매하러 가기</button>'+
  '<button class="pill-btn ghost" id="bagGoAquarium">🐠 물고기 도감</button>'+
  '<button class="pill-btn ghost" id="bagGoRods">🎣 낚싯대 성장</button></div>'+
- '<h3>🐟 판매용 물고기 · '+fishTotal+'마리</h3><div class="inventory">'+(inventory||'<div class="slot">아직 판매할 물고기가 없어요</div>')+'</div>'+
+ '<h3>🐟 물고기 · 판매 가능 '+fishTotal+'마리</h3><div class="inventory">'+(inventory||'<div class="slot">아직 판매할 물고기가 없어요</div>')+'</div>'+
  '<h3>🌲 채집 재료</h3><p>'+resources+'</p><h3>⚔️ 사냥 전리품</h3><p>'+huntLoot+'</p>'+
  '<h3>🪵 제작품</h3><p>'+crafted+'</p>');
+ document.getElementById('buyAutoSellTicket').onclick=()=>{const r=purchaseAutoSellTicket(state);if(!r.ok){toast(r.error);return}save();hud();openBag();toast('🎟️ 자동 판매권 1장 구매');};
+ els.panelBody.querySelectorAll('[data-fish-lock]').forEach(b=>b.onclick=()=>{toggleFishProtection(state,b.dataset.fishLock);save();openBag();});
  document.getElementById('bagGoMarket').onclick=openMarket;
  document.getElementById('bagGoAquarium').onclick=openAquarium;
  document.getElementById('bagGoRods').onclick=openFishingGear;

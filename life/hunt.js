@@ -1,9 +1,10 @@
 import * as T from './vendor/three.module.js';
 import {createAvatar} from './avatar3d.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
-import {HUNT_ZONES,HUNT_BOSSES,HUNT_SKILLS,HUNT_CRAFTS,MAX_ACTIVE_ENEMIES,huntLevel,combatStats,enemyDamage,canCraft,dailyBossKey,zoneUnlocked} from './hunt-data.js';
+import {HUNT_ZONES,HUNT_BOSSES,HUNT_SKILLS,HUNT_CRAFTS,MAX_ACTIVE_ENEMIES,huntLevel,canCraft,dailyBossKey,zoneUnlocked} from './hunt-data.js';
 import {initEconomy,credit,debit} from './economy-v28.js';
 import {initBag,bagCapacity,bagUsed,canStore,addBagItems} from './inventory-v29.js';
+import {EQUIPMENT,SKILL_PRICES,initCombat,purchaseSkill,purchaseEquipment,equipItem,equippedStats,skillStatus,spendSkill,incomingDamage} from './combat-progression-v30.js';
 import {POTIONS,ensurePotions,purchasePotion,consumePotion} from './combat-potions-v29.js';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
@@ -20,9 +21,9 @@ state.hunt=state.hunt&&typeof state.hunt==='object'?state.hunt:{};
 state.hunt.materials=state.hunt.materials||{};
 state.hunt.bossDates=state.hunt.bossDates||{};
 state.hunt.kills=Math.max(0,state.hunt.kills||0);
-ensurePotions(state);initBag(state);
+ensurePotions(state);initBag(state);initCombat(state);
 state.hunt.potionCooldowns=state.hunt.potionCooldowns||{};
-const level=()=>huntLevel(state.xp),stats=()=>combatStats(level()),today=()=>new Date().toLocaleDateString('en-CA');
+const level=()=>huntLevel(state.xp),stats=()=>equippedStats(state),today=()=>new Date().toLocaleDateString('en-CA');
 function save(){
  state.hunt.hp=Math.max(1,Math.ceil(hero.hp));state.hunt.mp=Math.max(0,Math.ceil(hero.mp));
  state.hunt.lastZone=currentZone?.id||state.hunt.lastZone||null;
@@ -90,8 +91,8 @@ function antiZoomTouch(){
 }
 let target=null,hero={x:0,z:145,hp:stats().maxHp,mp:stats().maxMp,dir:0,attackAt:0,hurtAt:0,moveX:0,moveZ:145,stride:0};
 hero.hp=clamp(Number(state.hunt.hp)||stats().maxHp,1,stats().maxHp);
-hero.mp=clamp(Number(state.hunt.mp)||stats().maxMp,0,stats().maxMp);
-const cooldowns=Object.fromEntries(HUNT_SKILLS.map(s=>[s.id,0]));
+hero.mp=clamp(Number.isFinite(state.hunt.mp)?state.hunt.mp:stats().maxMp,0,stats().maxMp);
+state.hunt.quickPotions=state.hunt.quickPotions||{hp:'hp',mp:'mp'};
 const raycaster=new T.Raycaster(),mouse=new T.Vector2(),floor=new T.Plane(new T.Vector3(0,1,0),0),point=new T.Vector3();
 const textEl=$('toast');let toastTimer=0;
 function toast(s){textEl.textContent=s;textEl.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>textEl.classList.remove('on'),2400)}
@@ -196,7 +197,7 @@ function startZone(index){
  const boss=HUNT_BOSSES[index],defeated=!!state.hunt.bossDates[dailyBossKey(zone.id,today())];
  if(!defeated)monsters.push(spawnMonster(boss,0,-342,6));
  active=true;$('region').textContent=zone.icon+' '+zone.name+' · Lv.'+zone.level+'+';
- $('hint').textContent='터치 이동 · 몬스터 터치 후 자동 공격 · 스킬 3개';
+ $('hint').textContent='몬스터 터치로 공격 · 교본 구매 후 스킬 사용';
  $('modal').classList.remove('open');save();updateHud();
  toast('🌸 '+zone.name+' 입장! '+(defeated?'오늘 보스는 이미 처치했어요':'보스 1일 1회 도전'));
 }
@@ -208,14 +209,19 @@ function updateHud(){
  $('heroName').textContent='⚔️ '+(localStorage.getItem('junja-village-nickname')||'마을 모험가');
  const current=target&&target.hp>0?target:null;$('target').classList.toggle('visible',!!current);
  if(current){$('targetName').textContent=(current.model.boss?'👑 ':'')+current.model.name;$('targetHp').style.width=healthRatio(current)*100+'%'}
- const t=performance.now();
+ $('vitals').textContent='HP '+Math.ceil(hero.hp)+'/'+s.maxHp+' · MP '+Math.floor(hero.mp)+'/'+s.maxMp;
  for(const item of ['hp','mp']){
-  const el=$(item+'Potion'),rest=Math.max(0,Math.ceil(((state.hunt.potionCooldowns[item]||0)-Date.now())/1000)),qty=state.hunt.potions?.[item]||0;
+  const el=$(item+'Potion'),rest=Math.max(0,Math.ceil(((state.hunt.potionCooldowns[item]||0)-Date.now())/1000)),id=state.hunt.quickPotions[item]||item,qty=state.hunt.potions?.[id]||0;
   el.disabled=rest>0||qty<1||(item==='hp'?hero.hp>=s.maxHp:hero.mp>=s.maxMp);
-  el.querySelector('small').textContent=rest?rest+'초':qty+'개';
+  el.querySelector('small').textContent=rest?rest+'초':(id.endsWith('Plus')?'고급 ':'')+qty+'개';
  }
- for(const skill of HUNT_SKILLS){const node=$(skill.id),sec=Math.ceil(Math.max(0,cooldowns[skill.id]-t)/1000),locked=level()<skill.level||hero.mp<skill.mp;node.classList.toggle('cooling',sec>0||locked);
-  node.disabled=sec>0||locked;node.querySelector('em').textContent=level()<skill.level?'Lv.'+skill.level:sec>0?sec+'초':skill.mp+'MP'}
+ for(const skill of HUNT_SKILLS){
+  const node=$(skill.id),status=skillStatus(state,skill.id,hero.mp);
+  node.classList.toggle('cooling',!status.ok);
+  node.disabled=!status.ok;
+  node.querySelector('em').textContent=status.ok?skill.mp+'MP':status.error;
+ }
+
 }
 function openModal(content){$('panelBody').innerHTML=content;$('modal').classList.add('open');active=false}
 function zoneMenu(){
@@ -225,31 +231,74 @@ function zoneMenu(){
  }).join('');
  openModal('<div class="hero">🌸 생활과 전투를 연결하는 준자마을 액션 모험! 사냥 재료로 의상을 만들고 친구들에게 자랑해요.</div><h2>⚔️ 마을 밖 모험 지도</h2><p>바닥을 터치하면 정확히 이동하고 몬스터를 터치하면 자동으로 다가가 공격해요. 구역별 보스는 하루 한 번 보상을 받을 수 있어요.</p><div class="grid">'+rows+'</div><button id="viewHuntLoot" class="wide">🎁 전리품 공방 열기</button><button id="returnVillage" class="wide">🏡 준자마을로 돌아가기</button>');
  document.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>startZone(+b.dataset.zone));
- $('viewHuntLoot').onclick=craftMenu;$('returnVillage').onclick=goHome;
+ addShopLinks();$('viewHuntLoot').onclick=craftMenu;$('returnVillage').onclick=goHome;
+}
+function addShopLinks(){
+ const links=document.createElement('div');
+ links.innerHTML='<button class="wide" id="combatSkillShop">📖 스킬 교본 상점</button><button class="wide" id="combatGearShop">⚔️ 무기 · 보호구 상점</button>';
+ $('panelBody').appendChild(links);
+ $('combatSkillShop').onclick=skillShop;$('combatGearShop').onclick=gearShop;
+}
+function skillShop(){
+ openModal('<h2>📖 스킬 교본 상점</h2><p>기본 공격은 무료예요. 스킬은 요구 레벨을 달성한 뒤 교본을 한 번 구매해 배워요. 재접속해도 재사용 대기가 유지됩니다.</p><div class="grid">'+HUNT_SKILLS.map(k=>{
+  const owned=state.hunt.skills.includes(k.id),cost=SKILL_PRICES[k.id];
+  return '<article class="craft-card"><strong>'+k.icon+' '+k.name+'</strong><p>Lv.'+k.level+' · '+cost.toLocaleString()+'G</p><p>공격력 ×'+k.multiplier+' · '+k.mp+'MP<br>재사용 '+k.cooldown+'초</p><button data-learn="'+k.id+'" '+(owned||level()<k.level||state.coins<cost?'disabled':'')+'>'+(owned?'✓ 습득 완료':'교본 구매')+'</button></article>';
+ }).join('')+'</div><button class="wide" id="skillBack">🗺️ 모험 지도</button>');
+ document.querySelectorAll('[data-learn]').forEach(b=>b.onclick=()=>{
+  const r=purchaseSkill(state,b.dataset.learn);if(!r.ok){toast(r.error);return}save();updateHud();skillShop();toast('📖 스킬을 배웠어요!');
+ });$('skillBack').onclick=zoneMenu;
+}
+function gearShop(){
+ const st=stats();
+ openModal('<h2>⚔️ 모험 장비 상점</h2><div class="hero">공격 '+st.attack+' · 방어 '+st.defense+' · 최대 HP '+st.maxHp+'</div><p>무기와 보호구를 각각 하나씩 착용해요. 구입한 장비는 영구 소장하며 가방 공간을 사용하지 않아요. 착용 시 손에 든 검과 방패도 바뀝니다.</p>'+['weapon','armor'].map(slot=>'<h3>'+(slot==='weapon'?'🗡️ 무기':'🛡️ 보호구')+'</h3><div class="grid">'+EQUIPMENT.filter(g=>g.slot===slot).map(g=>{
+  const owned=state.hunt.gearOwned.includes(g.id),worn=state.hunt.gear[slot]===g.id;
+  return '<article class="craft-card"><strong>'+g.name+'</strong><p>Lv.'+g.level+' · '+g.price.toLocaleString()+'G</p><p>'+(slot==='weapon'?'공격 +'+g.attack:'방어 +'+g.defense+' · HP +'+g.hp)+'</p><button data-gear="'+g.id+'" '+(worn||level()<g.level||!owned&&state.coins<g.price?'disabled':'')+'>'+(worn?'✓ 착용 중':owned?'착용하기':'구매 후 착용')+'</button></article>';
+ }).join('')+'</div>').join('')+'<button class="wide" id="gearBack">🗺️ 모험 지도</button>');
+ document.querySelectorAll('[data-gear]').forEach(b=>b.onclick=()=>{
+  const id=b.dataset.gear;
+  if(!state.hunt.gearOwned.includes(id)){const r=purchaseEquipment(state,id);if(!r.ok){toast(r.error);return}}
+  if(!equipItem(state,id))return;
+  hero.hp=Math.min(hero.hp,stats().maxHp);refreshGearVisual();save();updateHud();gearShop();toast('⚔️ 장비를 착용했어요');
+ });$('gearBack').onclick=zoneMenu;
+}
+let gearVisuals=[];
+function refreshGearVisual(){
+ if(!playerMesh)return;
+ for(const node of gearVisuals)node.removeFromParent();gearVisuals=[];
+ const weapon=EQUIPMENT.find(x=>x.id===state.hunt.gear.weapon),armor=EQUIPMENT.find(x=>x.id===state.hunt.gear.armor);
+ const sword=new T.Group();sword.name='equipped-'+weapon.id;
+ box(sword,0x775843,0,-2,0,3,11,3);box(sword,0xd3b96b,0,4,0,13,3,4);
+ box(sword,weapon.color,0,21,0,4,31,2.5);sword.position.set(0,-15,4);sword.rotation.x=-.65;
+ playerMesh.rig.limbs[1].elbow.add(sword);gearVisuals.push(sword);
+ const shield=new T.Group();shield.name='equipped-'+armor.id;
+ sphere(shield,armor.color,0,0,0,12,15,3);box(shield,0xf6e2af,0,0,3,2,22,1);box(shield,0xf6e2af,0,0,3,16,2,1);
+ shield.position.set(0,-9,7);playerMesh.rig.limbs[0].elbow.add(shield);gearVisuals.push(shield);
 }
 function potionShop(){
  const bag=state.hunt.potions||{},capacity=bagCapacity(state),used=bagUsed(state);
  openModal('<h2>🧪 모험가 물약 상점</h2><p>HP·MP 회복 물약은 소비 아이템이며, 7~9초 재사용 대기가 있어요.</p>'+
  '<div class="hero"><strong>🎒 가방 '+used+'/'+capacity+'칸</strong><p>마을 가방에서 용량을 확장할 수 있어요.</p></div>'+
  '<div class="grid">'+POTIONS.map(p=>'<article class="craft-card"><strong>'+p.icon+' '+p.name+'</strong><p>회복 '+p.heal+' · 3개 '+p.price+'G</p>'+
- '<p>보유 '+(bag[p.id]||0)+'개</p><button data-potion-buy="'+p.id+'" '+(state.coins<p.price||!canStore(state,3)?'disabled':'')+'>3개 구매</button></article>').join('')+'</div>'+
+ '<p>보유 '+(bag[p.id]||0)+'개</p><button data-potion-equip="'+p.id+'">'+(state.hunt.quickPotions[p.id.startsWith('hp')?'hp':'mp']===p.id?'✓ 빠른 사용 중':'빠른 사용에 등록')+'</button><button data-potion-buy="'+p.id+'" '+(state.coins<p.price||!canStore(state,3)?'disabled':'')+'>3개 구매</button></article>').join('')+'</div>'+
  '<button class="wide" id="potionsBack">🎁 전리품 공방</button><button class="wide" id="potionsMap">🗺️ 사냥터 지도</button>');
  document.querySelectorAll('[data-potion-buy]').forEach(b=>b.onclick=()=>{
   const p=POTIONS.find(p=>p.id===b.dataset.potionBuy),res=purchasePotion(state,b.dataset.potionBuy);
   if(!res.ok){toast(res.error);return}
   save();updateHud();toast('🧪 '+p.name+' 3개 구입');potionShop();
  });
+ document.querySelectorAll('[data-potion-equip]').forEach(b=>b.onclick=()=>{const id=b.dataset.potionEquip;state.hunt.quickPotions[id.startsWith('hp')?'hp':'mp']=id;save();updateHud();potionShop();});
  $('potionsBack').onclick=craftMenu;$('potionsMap').onclick=zoneMenu;
 }
-function useQuickPotion(id){
+function useQuickPotion(kind){
+ const id=state.hunt.quickPotions[kind]||kind;
  if(!active)return;
- const now=Date.now(),s=stats(),current=id==='hp'?hero.hp:hero.mp,max=id==='hp'?s.maxHp:s.maxMp;
- const res=consumePotion(state,id,current,max,now,state.hunt.potionCooldowns[id]||0);
+ const now=Date.now(),s=stats(),current=kind==='hp'?hero.hp:hero.mp,max=kind==='hp'?s.maxHp:s.maxMp;
+ const res=consumePotion(state,id,current,max,now,state.hunt.potionCooldowns[kind]||0);
  if(!res.ok){toast('🧪 '+res.error);return}
- if(id==='hp')hero.hp=res.value;else hero.mp=res.value;
- state.hunt.potionCooldowns[id]=res.nextAt;save();updateHud();
- floatNumber(hero.x,hero.z,(id==='hp'?'❤️ +':'💧 +')+res.amount,id==='hp'?'#c2f9c9':'#b7dcff');
- toast((id==='hp'?'❤️ HP':'💧 MP')+' '+res.amount+' 회복');
+ if(kind==='hp')hero.hp=res.value;else hero.mp=res.value;
+ state.hunt.potionCooldowns[kind]=res.nextAt;save();updateHud();
+ floatNumber(hero.x,hero.z,(kind==='hp'?'❤️ +':'💧 +')+res.amount,kind==='hp'?'#c2f9c9':'#b7dcff');
+ toast((kind==='hp'?'❤️ HP':'💧 MP')+' '+res.amount+' 회복');
 }
 function claimOverflow(){
  const table=state.hunt.overflow||{},stored=Object.entries(table).filter(([,n])=>n>0);
@@ -280,7 +329,7 @@ function craftMenu(){
   state.fashion.owned.push(r.gives);save();toast('✨ '+r.name+' 제작 완료!');craftMenu();
  });
  $('backHuntMap').onclick=zoneMenu;
- $('potionShopLink').onclick=potionShop;
+ addShopLinks();$('potionShopLink').onclick=potionShop;
  $('collectHuntOverflow').onclick=claimOverflow;
 }
 function goHome(){save();location.assign('/?room='+encodeURIComponent(room))}
@@ -350,13 +399,13 @@ function chooseTarget(){
 }
 function skillUse(id){
  if(!active||!currentZone)return;
- const skill=HUNT_SKILLS.find(s=>s.id===id),now=performance.now();if(!skill||now<cooldowns[id]||level()<skill.level||hero.mp<skill.mp)return;
+ const check=skillStatus(state,id,hero.mp);if(!check.ok){toast(check.error);return}const skill=check.skill;
  let selected=chooseTarget();
  if(!selected){toast('스킬 대상이 될 몬스터가 근처에 없어요');return}
  if(id==='whirl'){selected=chooseTarget()}
  const d=Math.hypot(selected.x-hero.x,selected.z-hero.z);
- if(d>skill.range&&id!=='whirl'){target=selected;hero.moveX=selected.x;hero.moveZ=selected.z;toast('몬스터에게 조금 더 가까이 다가가세요');return}
- hero.mp-=skill.mp;cooldowns[id]=now+skill.cooldown*1000;
+ if(d>skill.range){target=selected;hero.moveX=selected.x;hero.moveZ=selected.z;toast('몬스터에게 조금 더 가까이 다가가세요');return}
+ const spent=spendSkill(state,id,hero.mp);if(!spent.ok)return;hero.mp=spent.mp;save();
  const damage=stats().attack*skill.multiplier;
  const center=id==='whirl'?{x:hero.x,z:hero.z}:selected;
  const affected=id==='strike'?[selected]:monsters.filter(m=>m.hp>0&&m.root.visible&&Math.hypot(m.x-center.x,m.z-center.z)<=(skill.aoe||160));
@@ -394,8 +443,8 @@ function pointer(e){
 function update(time,dt){
  if(!active||!currentZone)return;
  const s=stats(),now=performance.now();
- hero.hp=clamp(hero.hp+(now-hero.hurtAt>2400?2.5:0)*dt,0,s.maxHp);
- hero.mp=clamp(hero.mp+(1.9+Math.min(1,level()*.035))*dt,0,s.maxMp);
+ hero.hp=clamp(hero.hp+(now-hero.hurtAt>6000?2.5:0)*dt,0,s.maxHp);
+ hero.mp=clamp(hero.mp+(.65+Math.min(.35,level()*.012))*dt,0,s.maxMp);
  if(target?.hp>0){const d=Math.hypot(target.x-hero.x,target.z-hero.z);
   if(d>85){hero.moveX=target.x;hero.moveZ=target.z}
   else{hero.moveX=hero.x;hero.moveZ=hero.z;
@@ -430,7 +479,7 @@ function update(time,dt){
   if(mob.hp>0)mob.hpFill.material.color.setHex(hitRemaining>.05?0xffe7a1:mob.model.boss?0xf6c875:0x93ddb0);
   if(d<70&&now>mob.attackAt&&now>hero.hurtAt+350){
    mob.attackAt=now+(mob.model.boss?2200:2550);hero.hurtAt=now;
-   const amount=Math.max(2,enemyDamage(areaIndex,mob.model.boss,level())-Math.floor(s.defense*.32));
+   const amount=incomingDamage(areaIndex,mob.model.boss,s.defense);
    hero.hp=Math.max(0,hero.hp-amount);floatNumber(hero.x,hero.z,'-'+amount,'#ff9e98');
    effect(hero.x,hero.z,0xf79c8a);
    if(hero.hp<=0){
@@ -464,7 +513,7 @@ function init(){
  addEventListener('resize',fitGameView);window.visualViewport?.addEventListener('resize',fitGameView);
  fitGameView();
  playerMesh=createAvatar({coat:state.fashion?.equipped?.outfit||state.coat||'mint',hat:state.hat||'none'});
- playerMesh.setFashion(state.fashion.equipped);scene.add(playerMesh.root);
+ playerMesh.setFashion(state.fashion.equipped);scene.add(playerMesh.root);refreshGearVisual();
  camera.position.set(0,285,600);camera.lookAt(0,40,145);
  antiZoomTouch();
  canvas.addEventListener('pointerdown',pointer,{passive:false});
@@ -480,4 +529,4 @@ function init(){
  }catch(e){console.error('JUNJA HUNT LOAD',e);$('panelBody').innerHTML='<h2>⚠️ 3D 사냥터 준비 실패</h2><p>브라우저의 3D 그래픽 기능이 필요해요. 최신 Safari나 Chrome에서 다시 시도해 주세요.</p><button class="wide" id="returnVillage">마을로 돌아가기</button>';$('returnVillage').onclick=goHome;$('modal').classList.add('open')}
 }
 init();
-window.__JUNJA_HUNT_QA__={zones:HUNT_ZONES,skills:HUNT_SKILLS,getState:()=>({zone:currentZone?.id,level:level(),coins:state.coins,xp:state.xp,kills:state.hunt.kills,monsterCount:monsters.length,alive:monsters.filter(x=>x.hp>0).length,monsterNames:monsters.filter(x=>x.hp>0).map(m=>m.model.name),hitCount:monsters.reduce((n,m)=>n+m.hitCount,0),visualHitCount,lastImpact,effects:fx.length,enemyLabelCount:monsters.filter(m=>!!m.labelTexture).length,cameraZoom:camera?.zoom||1,viewHeight:VIEW_HEIGHT,resetViewCount,visualScale:window.visualViewport?.scale||1,enemyModelMeshes:monsters.filter(m=>m.hp>0).map(m=>({name:m.model.name,count:(()=>{let n=0;m.body.traverse(o=>{if(o.isMesh)n++});return n})()})),materials:{...state.hunt.materials},hp:hero.hp,mp:hero.mp,active}),getTargets:()=>monsters.filter(m=>m.hp>0&&m.root.visible).map(m=>{const p=new T.Vector3(m.x,0,m.z).project(camera);return {name:m.model.name,boss:m.model.boss,x:(p.x*.5+.5)*canvas.clientWidth,y:(1-p.y)*.5*canvas.clientHeight,health:m.hp,maxHealth:m.maxHp}}),startZone,goHome};
+window.__JUNJA_HUNT_QA__={zones:HUNT_ZONES,skills:HUNT_SKILLS,getState:()=>({zone:currentZone?.id,level:level(),coins:state.coins,xp:state.xp,kills:state.hunt.kills,monsterCount:monsters.length,alive:monsters.filter(x=>x.hp>0).length,monsterNames:monsters.filter(x=>x.hp>0).map(m=>m.model.name),hitCount:monsters.reduce((n,m)=>n+m.hitCount,0),visualHitCount,lastImpact,effects:fx.length,enemyLabelCount:monsters.filter(m=>!!m.labelTexture).length,cameraZoom:camera?.zoom||1,viewHeight:VIEW_HEIGHT,resetViewCount,visualScale:window.visualViewport?.scale||1,enemyModelMeshes:monsters.filter(m=>m.hp>0).map(m=>({name:m.model.name,count:(()=>{let n=0;m.body.traverse(o=>{if(o.isMesh)n++});return n})()})),stats:stats(),gear:{...state.hunt.gear},skills:[...state.hunt.skills],cooldowns:{...state.hunt.skillCooldowns},materials:{...state.hunt.materials},hp:hero.hp,mp:hero.mp,active}),getTargets:()=>monsters.filter(m=>m.hp>0&&m.root.visible).map(m=>{const p=new T.Vector3(m.x,0,m.z).project(camera);return {name:m.model.name,boss:m.model.boss,x:(p.x*.5+.5)*canvas.clientWidth,y:(1-p.y)*.5*canvas.clientHeight,health:m.hp,maxHealth:m.maxHp}}),startZone,goHome};

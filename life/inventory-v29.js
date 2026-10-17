@@ -22,12 +22,14 @@ export function initBag(s){
  // A grandfathered legacy volume protects pre-v29 items without confiscation.
  if(b.legacyAllowance===undefined)b.legacyAllowance=before;
  b.legacyAllowance=Math.max(0,count(b.legacyAllowance));
+ b.legacyExpansion=count(b.legacyExpansion);
  b.autoSellTickets=count(b.autoSellTickets);
+ if(!Array.isArray(b.protectedFish))b.protectedFish=[];
  return b;
 }
 export function bagCapacity(s){
  const b=initBag(s);
- return Math.max(BAG_TIERS[b.level-1].slots,b.legacyAllowance);
+ return Math.max(BAG_TIERS[b.level-1].slots,b.legacyAllowance+(b.legacyExpansion||0));
 }
 export function bagFree(s){return Math.max(0,bagCapacity(s)-bagUsed(s))}
 export function canStore(s,amount=1){return bagFree(s)>=count(amount)}
@@ -41,6 +43,7 @@ export function bagUpgrade(s){
  if(!next)return {ok:false,error:'이미 최고 단계 가방'};
  const purchase=debit(s,next.price,'storage','가방 확장 · '+next.name);
  if(!purchase.ok)return purchase;
+ if(bagCapacity(s)>BAG_TIERS[b.level-1].slots)b.legacyExpansion=(b.legacyExpansion||0)+next.slots-BAG_TIERS[b.level-1].slots;
  b.level=next.level;
  return {ok:true,price:next.price,capacity:bagCapacity(s)};
 }
@@ -55,7 +58,7 @@ export function claimEventAutoSellTicket(s,month){
 export function useAutoSellTicket(s,fishByName,date=new Date(),level=1){
  const b=initBag(s);
  if(!b.autoSellTickets)return {ok:false,error:'자동 판매권이 없어요'};
- const targets=Object.entries(s.fishStock||{}).filter(([name,n])=>count(n)>0&&fishByName[name]);
+ const targets=Object.entries(s.fishStock||{}).filter(([name,n])=>count(n)>0&&fishByName[name]&&!b.protectedFish.includes(name));
  const available=targets.reduce((v,[,n])=>v+count(n),0);
  if(!available)return {ok:false,error:'판매 가능한 물고기가 없어요'};
  // Batch price is exactly the manual quote at this moment, and the daily
@@ -68,4 +71,15 @@ export function useAutoSellTicket(s,fishByName,date=new Date(),level=1){
  }
  if(!sold)return {ok:false,error:'판매 실패'};
  b.autoSellTickets--;return {ok:true,sold,earnings,quoted:targets.reduce((v,[name,n])=>v+quoteFish(fishByName[name],date)*count(n),0)};
+}
+
+export const AUTO_SELL_PRICE=350;
+export function purchaseAutoSellTicket(s){
+ const b=initBag(s),r=debit(s,AUTO_SELL_PRICE,'service','물고기 자동 판매권');
+ if(r.ok)b.autoSellTickets++;return r;
+}
+export function toggleFishProtection(s,name){
+ const b=initBag(s),i=b.protectedFish.indexOf(name);
+ if(i<0)b.protectedFish.push(name);else b.protectedFish.splice(i,1);
+ return i<0;
 }
