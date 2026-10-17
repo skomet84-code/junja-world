@@ -569,7 +569,7 @@ function openMarket(){
  const quotes=species.slice().sort((a,b)=>quoteFish(b)-quoteFish(a)).slice(0,24);
  openModal('<span class="titlebadge">HARBOR EXCHANGE · '+day.day+'</span><h2>⚓ '+day.name+'</h2>'+
  '<p>물고기를 잡으면 바로 돈이 생기지 않고 <b>판매용 가방</b>에 보관돼요. 매일 어종별 매입 시세가 변해서 언제 어떤 물고기를 팔지 선택할 수 있어요.</p>'+
- '<div class="mini-card"><strong>🎒 판매 가능한 물고기 '+stock+'마리</strong><p>누적 포획 '+state.fish+'마리 · 발견 도감 '+new Set(state.collection).size+'/'+FISH.length+'종</p>'+
+ '<div class="mini-card"><strong>🎒 판매 가능한 물고기 '+stock+'마리 · 가방 '+bagUsed(state)+'/'+bagCapacity(state)+'칸</strong><p>누적 포획 '+state.fish+'마리 · 발견 도감 '+new Set(state.collection).size+'/'+FISH.length+'종</p>'+
  '<p>🎣 수산시장 오늘의 특별 시세 · 물고기별로 조금씩 변동 · 마을 돈은 판매할 때 지급</p></div>'+
  '<h3>💰 물고기 개별 판매</h3>'+
  (quotes.length?'<div class="card-grid">'+quotes.map(f=>'<div class="mini-card"><div style="text-align:center">'+fishArt(f.name,125)+'</div>'+
@@ -577,7 +577,7 @@ function openMarket(){
  '<button data-sell-fish="'+f.name+'">1마리 판매</button></div>').join('')+'</div>':
  '<div class="mini-card"><strong>🎣 아직 판매할 물고기가 없어요</strong><p>이번 경제 업데이트 이후 낚은 물고기부터 판매 가방에 쌓여요. 예전에 잡은 물고기는 이미 보상을 받았으므로 중복 지급되지 않아요.</p></div>')+
  '<div class="pill-row"><button class="pill-btn" id="marketEconomy">🏦 경제 수첩</button>'+
- '<button class="pill-btn ghost" id="marketBait">🪱 미끼 상점</button><button class="pill-btn ghost" id="marketBag">🐠 어항 도감</button></div>');
+ '<button class="pill-btn ghost" id="marketBait">🪱 미끼 상점</button><button class="pill-btn ghost" id="marketBag">🐠 어항 도감</button><button class="pill-btn ghost" id="marketStorage">🎒 가방 확장</button></div>');
  els.panelBody.querySelectorAll('[data-sell-fish]').forEach(btn=>btn.onclick=()=>{
   const fish=FISH_BY_NAME[btn.dataset.sellFish];if(!fish)return;
   const result=sellFish(state,fish,new Date(),lifeLevel());
@@ -589,6 +589,7 @@ function openMarket(){
  document.getElementById('marketEconomy').onclick=openEconomyDashboard;
  document.getElementById('marketBait').onclick=openBaitShop;
  document.getElementById('marketBag').onclick=openAquarium;
+ document.getElementById('marketStorage').onclick=openBag;
 }
 function openNpc(npc){
  state.friends[npc.name]=Number(state.friends[npc.name])||0;
