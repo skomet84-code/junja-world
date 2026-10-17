@@ -100,8 +100,8 @@ function openFestival(){
     <p>🎁 ${q.prize.toLocaleString('ko-KR')}G + 50XP</p>
     <button data-festival="${q.id}" ${claimed||done<q.goal?'disabled':''}>${claimed?'✅ 수령 완료':done>=q.goal?'완료 보상 받기':'도전 중'}</button></div>`;
   }).join('')}</div>
-  <div class="mini-card"><strong>🏆 수족관 컬렉터</strong><p>물고기 6종 모두 발견 시 8,000G · 이 브라우저에서 최초 1회</p>
-   <button id="festivalMuseum" ${state.festivalMuseumClaimed||new Set(state.collection).size<6?'disabled':''}>${state.festivalMuseumClaimed?'✅ 보상 받음':'컬렉션 보상 수령'}</button></div>
+  <div class="mini-card"><strong>🏆 수족관 컬렉터</strong><p>초급 어종 6종 발견 시 8,000G · 이 브라우저에서 최초 1회</p>
+   <button id="festivalMuseum" ${state.festivalMuseumClaimed||!STARTER_FISH_NAMES.every(name=>state.collection.includes(name))?'disabled':''}>${state.festivalMuseumClaimed?'✅ 보상 받음':'컬렉션 보상 수령'}</button></div>
   <p style="font-size:12px;color:#627b68">돈을 모으면 프리미엄 아틀리에의 로열 코디 세트를 완성할 수 있어요.</p>`);
  document.getElementById('festivalAttendance').onclick=()=>{claimAttendance();openFestival()};
  els.panelBody.querySelectorAll('[data-rally]').forEach(btn=>btn.onclick=()=>goStation(btn.dataset.rally));
@@ -117,7 +117,7 @@ function openFestival(){
   save();hud();toast('🏆 '+q.name+' 완료! +'+q.prize.toLocaleString('ko-KR')+'G');openFestival();
  });
  document.getElementById('festivalMuseum').onclick=()=>{
-  if(state.festivalMuseumClaimed||new Set(state.collection).size<6)return;
+  if(state.festivalMuseumClaimed||!STARTER_FISH_NAMES.every(name=>state.collection.includes(name)))return;
   state.festivalMuseumClaimed=true;state.coins+=8000;state.xp+=150;save();hud();
   toast('🐠 물고기 도감 완성! +8,000G');openFestival();
  };
@@ -458,7 +458,7 @@ function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],sta
 }
 function farmAll(){let p=bedCenters.findIndex((_,i)=>state.beds[i].crop&&cropStage(state.beds[i])===3);if(p>=0){moveTo(bedCenters[p].x,bedCenters[p].y+56,{type:'farm',idx:p});toast('🌿 수확할 밭으로 이동해요');return}const v=bedCenters.findIndex((_,i)=>!state.beds[i].crop);if(v>=0){moveTo(bedCenters[v].x,bedCenters[v].y+56,{type:'farm',idx:v});toast('🌱 빈 밭으로 이동해요');return}openFarmShop()}
 function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*6).toLocaleString()}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${(o.cost*6).toLocaleString()}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*6;if(state.coins<cost){toast('코인이 부족해요');return}state.coins-=cost;state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
-function openMarket(){const fishCount=state.collection.length,uniq=new Set(state.collection).size;openModal(`<span class="titlebadge">HARBOR EXCHANGE</span><h2>⚓ 준자 교역소</h2><p>축제 시장에서 오늘의 특별 납품을 완료해보세요.</p><div class="mini-card"><strong>🐟 물고기 수집 도감</strong><p>잡은 물고기 총 ${state.fish}마리 · 발견 어종 ${uniq}/6</p><button id="marketBag">수집 가방 열기</button></div><div class="mini-card" style="margin-top:10px"><strong>🎁 오늘의 마을 의뢰</strong>${dailyTask().map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} ${o.done}/${o.target}</p>`).join('')}<p>오늘 선택된 5개를 완료하면 550G + 경험치 150 획득</p></div>`);document.getElementById('marketBag').onclick=openAquarium}
+function openMarket(){const fishCount=state.collection.length,uniq=new Set(state.collection).size;openModal(`<span class="titlebadge">HARBOR EXCHANGE</span><h2>⚓ 준자 교역소</h2><p>축제 시장에서 오늘의 특별 납품을 완료해보세요.</p><div class="mini-card"><strong>🐟 물고기 수집 도감</strong><p>잡은 물고기 총 ${state.fish}마리 · 발견 어종 ${uniq}/${FISH.length}</p><button id="marketBag">수집 가방 열기</button></div><div class="mini-card" style="margin-top:10px"><strong>🎁 오늘의 마을 의뢰</strong>${dailyTask().map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} ${o.done}/${o.target}</p>`).join('')}<p>오늘 선택된 5개를 완료하면 550G + 경험치 150 획득</p></div>`);document.getElementById('marketBag').onclick=openAquarium}
 function openNpc(npc){state.friends[npc.name]=state.friends[npc.name]||0;state.talkDays=state.talkDays||{};state.friendBondDay=state.friendBondDay||{};if(state.talkDays[npc.name]!==nowDay()){state.talkDays[npc.name]=nowDay();state.dailyTalk++;addXp(3)}let heart=state.friends[npc.name];completeDaily();openModal(`<span class="titlebadge">VILLAGER</span><h2>💗 ${npc.name}와 대화하기</h2><p>${npc.text}</p><h3>친밀도 ${'💗'.repeat(Math.min(5,Math.floor(heart/2)+1))}</h3><p>친밀도 ${heart} · 이야기를 나누거나 선물을 줄 수 있어요.</p><div class="pill-row"><button class="pill-btn" id="friendTalk">이야기 나누기</button><button class="pill-btn alt" id="friendGift">🎁 꽃 선물하기 (50G)</button></div>`);document.getElementById('friendTalk').onclick=()=>{if(state.friendBondDay[npc.name]===nowDay()){toast(npc.name+'와 오늘의 대화는 마쳤어요. 내일 또 인사해요!');return}state.friendBondDay[npc.name]=nowDay();const texts=['마을 바람이 정말 상쾌해요!','오늘은 좋은 일이 생길 것 같은데요?','부두 근처에 희귀한 물고기가 있대요.','새로운 옷을 입고 오셨군요!'];state.friends[npc.name]++;toast('💞 '+npc.name+': '+texts[Math.floor(Math.random()*texts.length)]);save();openNpc(npc)};document.getElementById('friendGift').onclick=()=>{if(state.coins<50){toast('코인이 부족해요');return}state.coins-=50;state.friends[npc.name]+=2;hud();party(npc.x,npc.y-80,12);toast('💝 '+npc.name+'가 정말 기뻐해요!');save();openNpc(npc)}}
 function openDecor(){const cards=decorCatalog.map(o=>`<div class="mini-card"><span class="emoji">${o.emoji}</span><strong>${o.label}</strong><p>${state.crafted[o.id]>0?'제작품 '+state.crafted[o.id]+'개 · 무료 배치':'🪙 '+(o.cost*5).toLocaleString()+'G · 구매 배치'}</p><button data-decor="${o.id}">배치하기</button></div>`).join('');openModal(`<span class="titlebadge">GARDEN ATELIER</span><h2>🏡 내 마을 꾸미기</h2><p>장식을 선택하고, 마을의 원하는 빈 바닥을 터치해 배치해요.</p><div class="card-grid">${cards}</div><div class="pill-row"><button class="pill-btn ghost" id="removeDecoration">설치된 장식 회수하기</button><button class="pill-btn ghost" id="openHomeLink">내 집 꾸미기</button></div>`);els.panelBody.querySelectorAll('[data-decor]').forEach(btn=>btn.onclick=()=>{placeDecor=btn.dataset.decor;closeModal();toast('👆 비어 있는 바닥을 터치해 배치해요!');els.hint.textContent='장식 배치 모드 · 바닥 터치 / 취소는 꾸미기 버튼';els.hint.classList.remove('hidden')});document.getElementById('removeDecoration').onclick=()=>{placeDecor='remove';closeModal();toast('원래 설치한 장식을 터치하면 회수해요!')};document.getElementById('openHomeLink').onclick=openHome}
 function placeAt(x,y){if(placeDecor==='remove'){const i=state.decorations.findIndex(o=>Math.hypot(o.x-x,o.y-y)<70);if(i<0){toast('회수할 장식을 터치해주세요');return}let old=state.decorations.splice(i,1)[0],v=decorCatalog.find(a=>a.id===old.id);state.coins+=Math.floor((v?.cost||0)*.4);placeDecor=null;toast('📦 장식 회수 완료 · 일부 코인 환급');hud();save();return}
@@ -715,7 +715,7 @@ function openShop(section=wardrobeTab){
 function openFishingGear(){
  const equipped=rodById(state.fishingGear.equipped);
  openModal(`<span class="titlebadge">FISHING MASTER</span><h2>🎣 낚시 장비 상점</h2>
-  <p>좋은 낚싯대일수록 입질이 빨라지고, 판정 범위가 넓어지며 희귀 물고기를 만날 확률이 올라가요.</p>
+  <p>좋은 낚싯대는 입질을 단축하고 포획 구간을 넓혀줘요. 희귀 Lv.6 · 영웅 Lv.10 · 전설 Lv.16 · 신화 Lv.22부터 도전하며 낚싯대 등급 조건도 있어요.</p>
   <div class="mini-card"><strong>현재 장비 · ${equipped.name}</strong>
   <p>입질 대기 약 ${Math.round((1-equipped.wait)*100)}% 단축 · 성공 구간 ${Math.round(equipped.window*200)}%p 확대</p>
   <p>희귀 확률 상승 · 낚시 보상 +${Math.round(equipped.coins*100)}%</p></div>
@@ -740,6 +740,7 @@ function openFishingGear(){
  });
  document.getElementById('openAquariumFromGear').onclick=openAquarium;
 }
+let aquariumFilter='all',aquariumPage=0;
 function openAquarium(){
  const available=new Set(state.collection.filter(n=>FISH_BY_NAME[n]));
  const cap=aquariumSlots(lifeLevel());
@@ -756,15 +757,24 @@ function openAquarium(){
  </div>`;
  openModal(`<span class="titlebadge">MY AQUARIUM</span><h2>🐠 나만의 어항 컬렉션</h2>
   <p>발견한 물고기를 수족관에 배치해요. 전시해도 보유 기록은 없어지지 않아요.</p>
-  <p><b>발견 어종 ${available.size}/6 · 전시 ${display.length}/${cap}칸</b> · Lv.5/8/12 전시 공간 확장</p>
+  <p><b>발견 어종 ${available.size}/${FISH.length} · 전시 ${display.length}/${cap}칸</b> · Lv.5/8/12 전시 공간 확장</p>
   ${tank}
-  <div class="aquarium-list">${FISH.map(f=>{
+  <div class="pill-row fish-filters">
+  ${[['all','전체'],['owned','발견'],['common','일반'],['fine','고급'],['rare','희귀'],['hero','영웅'],['legend','전설'],['mythic','신화']].map(([id,name])=>`<button type="button" data-fishfilter="${id}" class="pill-btn ${aquariumFilter===id?'':'ghost'}">${name}</button>`).join('')}</div>
+  <p class="item-note">🔒 레벨·낚싯대가 높아질수록 희귀 어종 해금 · 신화 Lv.22 이상 · 대어는 더 어렵게 포획</p>
+  <div class="aquarium-list">${FISH.filter(f=>aquariumFilter==='all'||(aquariumFilter==='owned'?available.has(f.name):f.tier===aquariumFilter)).slice(aquariumPage*12,aquariumPage*12+12).map(f=>{
    const caught=available.has(f.name),placed=display.includes(f.name);
    return `<div class="aquarium-item ${caught?'':'locked'}">${fishArt(f.name,100)}
-    <strong>${caught?f.name:'미발견 물고기'}</strong><small>${f.rarity} · ${state.collection.filter(x=>x===f.name).length}마리 기록</small>
+    <strong>${caught?f.name:'미발견 물고기'}</strong><small>${f.rarity} · Lv.${f.minLevel} 해금 · ${f.size>=1.7?'🐋 대형 · ':''}${state.collection.filter(x=>x===f.name).length}마리 기록</small>
     <button data-fish="${f.name}" ${!caught?'disabled':''}>${placed?'전시 해제':'어항에 전시'}</button></div>`;
   }).join('')}</div>
+  <div class="pill-row"><button id="aquariumPrev" class="pill-btn ghost" ${aquariumPage<=0?'disabled':''}>← 이전</button>
+  <span class="item-note">${aquariumPage+1}/${Math.max(1,Math.ceil(FISH.filter(f=>aquariumFilter==='all'||(aquariumFilter==='owned'?available.has(f.name):f.tier===aquariumFilter)).length/12))} 페이지</span>
+  <button id="aquariumNext" class="pill-btn ghost" ${(aquariumPage+1)*12>=FISH.filter(f=>aquariumFilter==='all'||(aquariumFilter==='owned'?available.has(f.name):f.tier===aquariumFilter)).length?'disabled':''}>다음 →</button></div>
   <button class="pill-btn ghost" id="aquariumRodShop">낚싯대 업그레이드</button>`);
+ els.panelBody.querySelectorAll('[data-fishfilter]').forEach(btn=>btn.onclick=()=>{aquariumFilter=btn.dataset.fishfilter;aquariumPage=0;openAquarium()});
+ document.getElementById('aquariumPrev').onclick=()=>{aquariumPage=Math.max(0,aquariumPage-1);openAquarium()};
+ document.getElementById('aquariumNext').onclick=()=>{aquariumPage++;openAquarium()};
  els.panelBody.querySelectorAll('[data-fish]').forEach(btn=>btn.onclick=()=>{
   const name=btn.dataset.fish;if(!available.has(name))return;
   const index=state.aquarium.display.indexOf(name);
@@ -775,7 +785,7 @@ function openAquarium(){
  });
  document.getElementById('aquariumRodShop').onclick=openFishingGear;
 }
-function openBag(){const fishIcons={'송사리':'🐟','붕어':'🐠','금붕어':'🐡','황금 잉어':'✨','비단 송어':'🐟','은빛 농어':'🐠'};const list=state.collection.slice(-12).reverse();openModal(`<span class="titlebadge">COLLECTION BOOK</span><h2>🎒 나의 수집 가방</h2><h3>채집 재료</h3><p>${Object.entries(state.materials).map(([k,v])=>materialNames[k]+' '+v+'개').join(' · ')}</p><h3>제작품</h3><p>${recipes.map(r=>r.name+' '+(state.crafted[r.id]||0)+'개').join(' · ')}</p><p>낚은 물고기와 꾸미기 아이템을 모아보세요. (${state.collection.length}마리)</p><div class="inventory">${list.map(n=>`<div class="slot"><b>${fishIcons[n]||'🐟'}</b>${n}</div>`).join('')||'<div class="slot"><b>🎣</b>첫 물고기를 낚아보세요</div>'}</div><div class="pill-row"><button class="pill-btn" id="aquariumInBag">🐠 내 어항 컬렉션</button><button class="pill-btn ghost" id="rodInBag">🎣 낚싯대 상점</button></div><p style="margin-top:20px">🌸 옷: ${CATALOG_BY_ID[state.fashion.equipped.outfit]?.name||outfits.find(o=>o.id===state.coat)?.name||'기본 옷'} · 모자: ${outfits.find(o=>o.id===state.hat)?.name||'없음'} · 펫: ${CATALOG_BY_ID[state.fashion.equipped.pet]?.name||'없음'}</p>`);
+function openBag(){const fishIcons={'송사리':'🐟','붕어':'🐠','금붕어':'🐡','황금 잉어':'✨','비단 송어':'🐟','은빛 농어':'🐠'};const list=state.collection.slice(-12).reverse();openModal(`<span class="titlebadge">COLLECTION BOOK</span><h2>🎒 나의 수집 가방</h2><h3>채집 재료</h3><p>${Object.entries(state.materials).map(([k,v])=>materialNames[k]+' '+v+'개').join(' · ')}</p><h3>제작품</h3><p>${recipes.map(r=>r.name+' '+(state.crafted[r.id]||0)+'개').join(' · ')}</p><p>낚은 물고기와 꾸미기 아이템을 모아보세요. (${state.collection.length}마리)</p><div class="inventory">${list.map(n=>`<div class="slot"><b>${fishIcons[n]||({'hero':'💎','legend':'👑','mythic':'🌌'}[FISH_BY_NAME[n]?.tier]||'🐟')}</b>${n}</div>`).join('')||'<div class="slot"><b>🎣</b>첫 물고기를 낚아보세요</div>'}</div><div class="pill-row"><button class="pill-btn" id="aquariumInBag">🐠 내 어항 컬렉션</button><button class="pill-btn ghost" id="rodInBag">🎣 낚싯대 상점</button></div><p style="margin-top:20px">🌸 옷: ${CATALOG_BY_ID[state.fashion.equipped.outfit]?.name||outfits.find(o=>o.id===state.coat)?.name||'기본 옷'} · 모자: ${outfits.find(o=>o.id===state.hat)?.name||'없음'} · 펫: ${CATALOG_BY_ID[state.fashion.equipped.pet]?.name||'없음'}</p>`);
  document.getElementById('aquariumInBag').onclick=openAquarium;
  document.getElementById('rodInBag').onclick=openFishingGear;
 }
@@ -858,6 +868,6 @@ function redeemOperatorPreviewGift(){
  }).catch(()=>{});
 }
 redeemOperatorPreviewGift();
-setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getLifeSystems:()=>({rod:{...state.fishingGear},aquarium:{...state.aquarium},home:{...state.home},fish:FISH.length,missions:dailyTask()}),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({nickname:socialNickname,festival:{week:state.festival?.week,claimed:state.festival?.claimed,attendance:state.attendance},player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
+setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getLifeSystems:()=>({rod:{...state.fishingGear},aquarium:{...state.aquarium},home:{...state.home},fish:FISH.length,eligible:eligibleFish(state.fishingGear.equipped,lifeLevel()).length,missions:dailyTask()}),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({nickname:socialNickname,festival:{week:state.festival?.week,claimed:state.festival?.claimed,attendance:state.attendance},player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,fishing:hookedFish?{name:hookedFish.name,tier:hookedFish.tier,profile:reelProfile,progress:fishAttempts,misses:reelMisses}:null,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
 })();
 
