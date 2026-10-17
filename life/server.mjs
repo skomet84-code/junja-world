@@ -7,6 +7,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
 import crypto from 'node:crypto';
+import {PHRASES} from './life-systems-v20.js';
 import { fileURLToPath } from 'node:url';
 const root=fileURLToPath(new URL('.',import.meta.url));
 const rooms=new Map();
@@ -48,9 +49,12 @@ function onMessage(p,msg){
   p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.dir=clamp(msg.dir,0,3);
   p.coat=allowedCoats.has(msg.coat)?msg.coat:p.coat;p.hat=allowedHats.has(msg.hat)?msg.hat:p.hat;
   broadcast(rooms.get(p.room),{type:'pos',id:p.id,x:p.x,y:p.y,dir:p.dir,coat:p.coat,hat:p.hat},p);
- }else if(msg.type==='chat'&&p.room){
-  const now=Date.now();if(now-p.lastChat<650)return;p.lastChat=now;
-  const message=clean(msg.text,120);if(message)broadcast(rooms.get(p.room),{type:'chat',id:p.id,nick:p.nick,text:message,at:now});
+ }else if(msg.type==='say'&&p.room){
+  // No free-form chat. Only six server-validated prewritten speech balloons.
+  const now=Date.now();if(now-p.lastChat<1000)return;
+  if(typeof msg.phrase!=='string'||!PHRASES.includes(msg.phrase))return;
+  p.lastChat=now;
+  broadcast(rooms.get(p.room),{type:'speech',id:p.id,phrase:msg.phrase,at:now},p);
  }
 }
 function decodeFrames(p,buf){
