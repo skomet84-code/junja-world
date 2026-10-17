@@ -228,7 +228,20 @@ const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashi
 const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
 state.fashion={owned:[...fashionOwned],equipped:validFashion(originalFashion.equipped)};
 for(const type of ['hair','outfit','accessory','pet'])if(state.fashion.equipped[type]&&!fashionOwned.has(state.fashion.equipped[type]))state.fashion.equipped[type]=null;
-function save(){state.x=player.x;state.y=player.y;state.dir=player.dir;state.savedAt=Date.now();try{localStorage.setItem('junja-harbor-v1',JSON.stringify(state));localStorage.setItem('junja-harbor-owned',JSON.stringify(owned))}catch(e){/* storage denied inside some preview browsers: keep playing */}}window.addEventListener('beforeunload',save);
+function save(){
+ state.x=player.x;state.y=player.y;state.dir=player.dir;state.savedAt=Date.now();
+ try{
+  localStorage.setItem('junja-harbor-v1',JSON.stringify(state));
+  localStorage.setItem('junja-harbor-owned',JSON.stringify(owned));
+  // Retain up to seven daily restore points, not every five-second save.
+  const day=nowDay(),key='junja-village-snapshots-v27';
+  const shots=JSON.parse(localStorage.getItem(key)||'[]');
+  if(Array.isArray(shots)&&shots.at(-1)?.day!==day){
+   shots.push({day,save:JSON.stringify(state),owned:[...owned]});
+   localStorage.setItem(key,JSON.stringify(shots.slice(-7)));
+  }
+ }catch(e){/* Storage can be disabled in private preview browsers. */}
+}window.addEventListener('beforeunload',save);
 // LIFE 1.5: an explorable east district and persistent, finite progression.
 const expansionProps=[{type:'workshop',asset:'shop',x:2500,y:640,w:320,h:320},{type:'boutique',asset:'market',x:3100,y:740,w:320,h:335},{type:'lodge',asset:'home',x:2910,y:1740,w:340,h:347}];
 const stations=[
@@ -613,10 +626,55 @@ function openCraft(){
  openModal(`<span class="titlebadge">WOODLAND WORKSHOP</span><h2>나무결 공방</h2><p>숲과 광산에서 모은 재료로 만들어보세요.</p><div class="pill-row">${Object.entries(state.materials).map(([k,v])=>`<span class="titlebadge">${materialNames[k]} ${v}</span>`).join('')}</div><div class="card-grid">${recipes.map(r=>`<div class="mini-card"><span class="emoji">${r.icon}</span><strong>${r.name}</strong><p>${r.desc}</p><p>${Object.entries(r.needs).map(([k,v])=>materialNames[k]+' '+state.materials[k]+'/'+v).join(' · ')}</p><button data-recipe="${r.id}" ${(!r.outfit||!owned.includes(r.outfit))&&Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v)?'':'disabled'}>${r.outfit&&owned.includes(r.outfit)?'제작 완료 · 옷장 보유':'제작 · 경험치 '+r.xp}</button></div>`).join('')}</div><button class="pill-btn ghost" id="craftMap">재료 채집하러 가기</button>`);
  els.panelBody.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=()=>{const r=recipes.find(r=>r.id===b.dataset.recipe);if(!r||(r.outfit&&owned.includes(r.outfit))||!Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v))return;for(const [k,v] of Object.entries(r.needs))state.materials[k]-=v;if(r.outfit){owned.push(r.outfit)}else state.crafted[r.id]=(state.crafted[r.id]||0)+1;state.craftCount++;state.dailyCraft++;state.xp+=r.xp;completeDaily();save();hud();updateJourney(true);toast(r.name+' 제작 완료!');openCraft()});document.getElementById('craftMap').onclick=openWorldMap;
 }
-function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button></div><p class="item-note">접속 기기 브라우저에 자동 저장됩니다. 온라인 계정 연동은 추후 서버 배포가 필요합니다.</p>`);
+function openSaveVault(){
+ const backupKey='junja-village-snapshots-v27';
+ let snaps=[];
+ try{const raw=JSON.parse(localStorage.getItem(backupKey)||'[]');snaps=Array.isArray(raw)?raw:[]}catch{}
+ const nickname=(()=>{try{return localStorage.getItem('junja-village-nickname')||''}catch{return ''}})();
+ openModal('<span class="titlebadge">VILLAGE DATA VAULT</span><h2>🗂️ 나의 마을 저장 보관함</h2>'+
+  '<p>현재 진행 기록은 이 브라우저에 저장돼요. 휴대폰을 바꾸거나 데이터를 삭제할 때 잃지 않도록 저장파일을 직접 보관할 수 있어요.</p>'+
+  '<div class="mini-card"><strong>📥 직접 백업</strong><p>돈, 의상, 집, 레벨, 사냥 전리품, 도감, 월간 기록을 한 개의 파일로 저장해요.</p>'+
+  '<button id="vaultExport">내 게임 데이터 백업 파일 받기</button></div>'+
+  '<div class="mini-card"><strong>📤 백업 복원</strong><p>내가 직접 저장한 준자마을 JSON 파일을 불러옵니다. 현재 기록을 덮어쓰니 먼저 백업하세요.</p>'+
+  '<input id="vaultImport" type="file" accept=".json,application/json" aria-label="준자마을 백업 불러오기" /></div>'+
+  '<div class="mini-card"><strong>🕰 최근 자동 저장 기록</strong><p>이 기기 내에서만 보관 · 최대 7일</p>'+
+  (snaps.length?snaps.slice().reverse().map(shot=>'<p>🗓 '+shot.day+'</p>').join(''):'<p>아직 이전 날짜의 기록이 없어요.</p>')+
+  '<button id="vaultRestore" '+(snaps.length<2?'disabled':'')+'>이전 날짜 복원하기</button></div>'+
+  '<p class="item-note">이 기능은 서버 계정 동기화가 아니에요. 백업 파일을 안전한 개인 저장소에 보관해야 해요.</p>');
+ document.getElementById('vaultExport').onclick=()=>{
+  save();
+  const data={format:'junja-village-backup',version:1,createdAt:new Date().toISOString(),nickname,owned:[...owned],state:{...state}};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
+  const link=document.createElement('a');link.href=url;link.download='junja-village-'+nowDay()+'-backup.json';link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);toast('✅ 백업 파일을 저장했어요');
+ };
+ function restore(data){
+  if(data?.format!=='junja-village-backup'||data.version!==1||!data.state||typeof data.state!=='object')throw Error('준자마을 백업 파일이 아니에요');
+  if(!Number.isFinite(data.state.coins)||data.state.coins<0||!Number.isFinite(data.state.xp)||data.state.xp<0)throw Error('저장된 레벨 또는 금액이 올바르지 않아요');
+  if(!Array.isArray(data.state.collection)||data.state.collection.length>200000)throw Error('물고기 도감 데이터가 손상됐어요');
+  if(!confirm('현재 이 브라우저의 게임 진행 기록을 백업 파일로 교체할까요?'))return;
+  localStorage.setItem('junja-harbor-v1',JSON.stringify(data.state));
+  if(Array.isArray(data.owned))localStorage.setItem('junja-harbor-owned',JSON.stringify(data.owned.filter(x=>typeof x==='string').slice(0,200)));
+  if(typeof data.nickname==='string'&&data.nickname.trim())localStorage.setItem('junja-village-nickname',data.nickname.slice(0,12));
+  location.reload();
+ }
+ document.getElementById('vaultImport').onchange=async e=>{
+  const f=e.target.files?.[0];if(!f)return;
+  if(f.size>4*1024*1024){toast('파일은 4MB 이하여야 해요');return}
+  try{restore(JSON.parse(await f.text()))}catch(err){toast('⚠️ '+String(err.message||err).slice(0,100))}
+ };
+ document.getElementById('vaultRestore').onclick=()=>{
+  const previous=snaps.at(-2);if(!previous?.save)return;
+  let backup;try{backup=JSON.parse(previous.save)}catch{return}
+  try{restore({format:'junja-village-backup',version:1,nickname,owned:previous.owned||[],state:backup})}catch(err){toast('⚠️ '+err.message)}
+ };
+}
+function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button><button class="pill-btn" id="journalVault">🗂️ 저장 백업</button><button class="pill-btn" id="journalCalendar">📅 월간 목표</button></div><p class="item-note">접속 기기 브라우저에 자동 저장됩니다. 온라인 계정 연동은 추후 서버 배포가 필요합니다.</p>`);
  document.getElementById('journalGear').onclick=openFishingGear;
  document.getElementById('journalAquarium').onclick=openAquarium;
  document.getElementById('journalHome').onclick=openHome;
+ document.getElementById('journalVault').onclick=openSaveVault;
+ document.getElementById('journalCalendar').onclick=openLivingCalendar;
 }
 function interaction(kind){if(kind==='seeds'){openFarmShop();return}if(kind.startsWith('farm:')){farmAt(Number(kind.split(':')[1]));return}if(kind==='shop'){openShop();return}if(kind==='fish'){beginFishing();return}if(kind==='market'){openMarket();return}if(kind==='fountain'){party(player.x,player.y-50,20);if(!state.fountainDate||state.fountainDate!==nowDay()){state.coins+=35;state.fountainDate=nowDay();toast('⛲ 오늘의 소원! +35G')}else toast('⛲ 반짝이는 행운의 분수');hud();save();return}if(kind==='home'){openHome();return}if(kind==='harvest'){farmAll();return}}
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
