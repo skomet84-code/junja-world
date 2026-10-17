@@ -57,6 +57,8 @@ try{
  await page.locator('#walkFitting').click();
  await page.waitForTimeout(400);
  await page.screenshot({path:'artifacts/v17-mobile-wardrobe.png'});
+ // Close the wardrobe first; its backdrop correctly blocks taps on the world HUD.
+ await page.locator('#close').click();
  // Nickname editing updates local storage and the running local 3D label.
  await page.locator('#socialStatus').click();
  await page.locator('#villageNickname').fill('준자QA');
