@@ -1,0 +1,33 @@
+name: Junja Village Life Preview QA
+on:
+  push:
+    branches: [junja-village-life-v17]
+  workflow_dispatch:
+
+jobs:
+  village-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify 3D rig, clothing variants, collision and navigation
+        working-directory: life
+        run: npm test
+      - name: Install Playwright Chromium
+        working-directory: life
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify actual mobile 3D render, navigation and wardrobe
+        working-directory: life
+        run: node test_browser.mjs
+      - name: Keep mobile screenshots for visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junja-village-v17-mobile-screens
+          path: life/artifacts/
+          if-no-files-found: ignore
