@@ -1,7 +1,7 @@
 name: Junja Village Public URL Smoke
 on:
   push:
-    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24]
+    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25]
   workflow_dispatch:
 
 jobs:
@@ -33,6 +33,7 @@ jobs:
             if(path==='/game.js'){
               assert(body.includes("isLegacyPlaceholder"),'nickname migration code not in production');
               assert(body.includes("STYLE_SETS"),'five complete premium cosmetic sets missing');
+              assert(body.includes("goToHunting"),'hunting entry button not deployed');
               assert(body.includes("reelChallenge("),'fish rarity difficulty not in production');
               assert(body.includes("STARTER_FISH_NAMES"),'collection compatibility not deployed');
               assert(body.includes("aquariumFilter"),'70-fish aquarium filters not deployed');
@@ -49,6 +50,18 @@ jobs:
           assert(fishingData.includes('용의 수염 잉어'),'mythic fish entries not deployed');
           assert(fishingData.includes('eligibleFish('),'fishing level gates not deployed');
           assert(fishingData.includes('reelChallenge('),'rarity-based reel challenge not deployed');
+          const huntHtml=await fetch(base+'/hunt.html',{signal:abort()});
+          assert.equal(huntHtml.status,200,'standalone hunt 3D page unavailable');
+          assert((await huntHtml.text()).includes('data-skill="strike"'),'hunt skill buttons absent');
+          const huntJs=await fetch(base+'/hunt.js',{signal:abort()});
+          assert.equal(huntJs.status,200,'hunt combat script unavailable');
+          const huntLogic=await huntJs.text();
+          assert(huntLogic.includes('function skillUse('),'combat mechanics are not deployed');
+          assert(huntLogic.includes('function mobHit('),'enemy damage mechanics are not deployed');
+          const huntData=await fetch(base+'/hunt-data.js',{signal:abort()});
+          assert.equal(huntData.status,200,'hunt level and monster data unavailable');
+          assert((await huntData.text()).includes('태고의 수호룡 아스트라'),'4th region boss unavailable');
+          console.log('PASS live hunt 3D static assets, mobs and skill source');
           function makeConnection(name){
             const ws=new WebSocket(base.replace(/^http/,'ws')+'/api/ws');
             const inbox=[],waiting=[];
