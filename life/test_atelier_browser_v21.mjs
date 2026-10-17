@@ -11,7 +11,7 @@ try{
  const normal=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
  await normal.goto(base,{waitUntil:'domcontentloaded'});
  await normal.waitForFunction(()=>window.__JUNJA_TEST__?.getRenderer()?.frames>10);
- assert.equal((await normal.evaluate(()=>window.__JUNJA_TEST__.getState())).coins,800,'normal player gets normal initial coins');
+ assert.equal((await normal.evaluate(()=>window.__JUNJA_TEST__.getState())).coins,1000,'new normal player starts with 1000G');
  await normal.locator('#shopBtn').click();
  const canvas=normal.locator('#fitting3D');
  await canvas.waitFor();
@@ -33,6 +33,6 @@ try{
  const invalid=await browser.newPage();
  await invalid.goto(base+'?ownerGift=wrong',{waitUntil:'domcontentloaded'});
  await invalid.waitForFunction(()=>window.__JUNJA_TEST__?.getRenderer()?.frames>5);
- assert.equal((await invalid.evaluate(()=>window.__JUNJA_TEST__.getState())).coins,800,'invalid owner code must not grant money');
+ assert.equal((await invalid.evaluate(()=>window.__JUNJA_TEST__.getState())).coins,1000,'invalid owner code must not grant money');
  console.log('PASS: mobile head-to-toe view, ordinary wallet, invalid gift; private gift QA when secret provided.');
 }finally{await browser?.close();server.kill('SIGTERM')}
