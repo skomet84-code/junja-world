@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "fluid": true,
+  "outputDirectory": "public",
   "functions": {
     "api/ws.js": {
       "maxDuration": 300,
