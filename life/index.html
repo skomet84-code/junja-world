@@ -82,6 +82,32 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 .hunt-shortcut{position:fixed;left:11px;bottom:calc(139px + env(safe-area-inset-bottom));z-index:9;pointer-events:auto;color:#514c78;background:linear-gradient(150deg,#f7f2ff,#d5c9eb);border:2px solid #fff3ff;border-radius:16px;padding:9px 12px;font-size:13px;font-weight:900;box-shadow:0 5px 11px #37513f2d;touch-action:manipulation}
 .hunt-shortcut:active{transform:translateY(2px)}
 @media(max-width:375px){.hunt-shortcut,.festival-shortcut{font-size:11px;padding:8px}}
+
+/* v27 museum: depth-lit glass walls, natural swim speeds and rarity specimen cards. */
+.aquarium-stage{height:285px;border:9px ridge #c9dfd5;border-top:11px solid #f4ffff;border-bottom:23px solid #9bbebb;background:linear-gradient(165deg,#9ddfe9 0%,#77c2d9 19%,#2c88a8 72%,#237385 100%);isolation:isolate;box-shadow:inset 9px 3px 21px #fff8,inset -18px 2px 27px #124d6b77,inset 0 -19px 32px #174b6a99,0 9px 23px #2e73735a}
+.aquarium-stage::before{z-index:8;inset:0;background:linear-gradient(105deg,#fff8 0%,transparent 18%,#fff2 45%,transparent 47%,#ffffff15 100%);transform:none;pointer-events:none}
+.aquarium-stage::after{content:"";position:absolute;inset:0;z-index:6;border-left:4px solid #e7ffff77;border-right:4px solid #c1eaff66;pointer-events:none}
+.aquarium-water-rays{position:absolute;inset:0;z-index:1;opacity:.36;pointer-events:none;background:repeating-conic-gradient(from 250deg at 15% -15%,#cfffff88 0deg 6deg,transparent 12deg 36deg)}
+.aquarium-backdrop{position:absolute;bottom:28px;left:5%;right:0;color:#8becce;font-size:32px;letter-spacing:15px;opacity:.73;white-space:nowrap;pointer-events:none;z-index:2}
+.aquarium-fish{max-width:none;width:var(--fish-size,90px);z-index:4;filter:drop-shadow(4px 5px 3px #00344d5e);animation:reefSwim var(--float-seconds,6s) ease-in-out infinite alternate;animation-delay:var(--float-delay,0s)}
+.aquarium-fish:nth-of-type(even){animation-name:reefSwimBack}
+.aquarium-fish svg{width:100%;max-width:100%;height:auto;filter:drop-shadow(0 0 2px #e5fefa88)}
+.aquarium-bubbles{z-index:3;left:9%;top:5%;color:#efffff95;font-size:18px;white-space:nowrap;animation:bubbleRise 9s linear infinite}
+@keyframes bubbleRise{0%{transform:translateY(85px);opacity:0}20%{opacity:.6}100%{transform:translateY(-110px);opacity:0}}
+@keyframes reefSwim{0%{transform:translate(-5px,2px) rotate(-3deg)}100%{transform:translate(15px,-13px) rotate(4deg)}}
+@keyframes reefSwimBack{0%{transform:translate(14px,6px) scaleX(-1)}100%{transform:translate(-14px,-12px) scaleX(-1)}}
+.aquarium-stones{position:absolute;bottom:38px;left:5px;right:5px;font-size:20px;opacity:.84;z-index:3;white-space:nowrap;display:flex;justify-content:space-around}
+.aquarium-ground{z-index:5;display:flex;justify-content:space-between;align-items:center;bottom:0;padding:8px 10px 1px;min-height:33px;background:linear-gradient(#c2b39122,#beccb5bb);font-size:9px;letter-spacing:1px;color:#ecfff4;font-weight:900;text-shadow:0 1px 3px #245766}
+.aquarium-item{background:linear-gradient(#fcfffaf0,#eaf4f0);border:1px solid #bbdaca;box-shadow:0 5px 12px #2d686818;min-height:205px;justify-content:space-around}
+.aquarium-item:nth-child(3n){border-color:#d5c6b1}
+.aquarium-item svg{width:100%;height:auto;max-height:105px;filter:drop-shadow(1px 4px 2px #6a918733)}
+.aquarium-item button.specimen-info{background:linear-gradient(115deg,#e8f4fc,#bad9e5);color:#3d7287;margin-top:3px}
+.aquarium-item.locked svg{filter:grayscale(1) brightness(.45);opacity:.32}
+.specimen-portrait{padding:15px 8px;border:2px solid var(--rarity,#a8d0a2);border-radius:22px;background:radial-gradient(circle at 42% 30%,#fcffff,#bfdef0 65%,#8bbabc);text-align:center;box-shadow:inset 0 4px 18px #fff,0 7px 14px #315d7150;overflow:hidden}
+.specimen-portrait svg{width:min(100%,310px);height:auto;filter:drop-shadow(4px 10px 5px #557b8255)}
+.specimen-shine{letter-spacing:2px;color:#5e679a;font-weight:900;font-size:12px}
+@media(prefers-reduced-motion:reduce){.aquarium-fish,.aquarium-bubbles{animation:none}}
+
 </style></head><body><canvas id="game" aria-label="준자마을 입체 게임 필드"></canvas><div id="shade"></div>
 <div class="hud top"><div class="profile"><div class="portrait">🌿</div><div><div class="name" id="name">새싹</div><div class="rank" id="level">Lv. 1 · 초보 낚시꾼</div><div class="xp"><i id="xp"></i></div></div></div><div class="wallet"><i class="gold">★</i><span id="coins">800</span><span style="font-size:10px;color:#fff6">G</span></div></div>
 <div class="hud left"><div class="quest"><div class="eyebrow">✦ 오늘의 의뢰</div><strong id="questText">첫 생활 목표 확인하기</strong><span id="questNext">수첩을 눌러 다음 활동을 확인해요</span><div class="questbar"><i id="questProgress"></i></div><em id="questCount">0 / 1</em></div></div>
