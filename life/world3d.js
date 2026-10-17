@@ -14,7 +14,8 @@ function group(p,x=0,y=0,z=0){const g=new T.Group();g.position.set(x,y,z);p.add(
 function label(parent,text,x,y,z,width=150){
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');
  ctx.fillStyle='#fff8e7';ctx.beginPath();ctx.roundRect(5,12,502,99,28);ctx.fill();ctx.strokeStyle='#bca884';ctx.lineWidth=5;ctx.stroke();ctx.font='800 42px "Malgun Gothic",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#52624b';ctx.fillText(text,256,64,460);
- const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,depthWrite:false}));sprite.position.set(x,y,z);sprite.scale.set(width,width/4,1);
+ const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,depthWrite:false,depthTest:false,transparent:true}));
+ sprite.renderOrder=500;sprite.position.set(x,y,z);sprite.scale.set(width,width/4,1);
  sprite.userData.setLabel=(name)=>{ctx.clearRect(0,0,512,128);ctx.fillStyle='#fff8e7';ctx.beginPath();ctx.roundRect(5,12,502,99,28);ctx.fill();ctx.strokeStyle='#bca884';ctx.lineWidth=5;ctx.stroke();ctx.font='800 42px "Malgun Gothic",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#52624b';ctx.fillText(String(name||'마을 친구').slice(0,12),256,64,460);tex.needsUpdate=true};
  parent.add(sprite);return sprite;
 }
@@ -40,7 +41,7 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
 }
 function tree(scene,x,z,{fruit=false,pink=false,size=1}={}){
  const g=group(scene,x,0,z);g.scale.setScalar(size);cylinder(g,0x9f8059,0,40,0,11,80);const b=cylinder(g,0x9f8059,-9,63,0,6,40);b.rotation.z=.55;
- const colors=pink?[0xe8b4be,0xf2c7c5,0xdca7b6]:[0x84ad6c,0x99bc7a,0x76a168];
+ const colors=pink?[0xe8b4be,0xf2c7c5,0xdca7b6]:[0x83b36b,0x9fc17b,0x75a565];
  for(const [i,a] of [[0,[-27,101,0,35]],[1,[22,105,0,37]],[2,[0,127,-3,41]],[3,[0,102,23,35]]])sphere(g,colors[i%3],a[0],a[1],a[2],a[3],a[3]*.95,a[3]);
  if(fruit)for(const [xx,yy,zz] of [[-24,105,29],[18,122,26],[7,89,35]]){sphere(g,0xe7b166,xx,yy,zz,8);const leaf=sphere(g,0x648c53,xx+3,yy+7,zz,5,2,3);leaf.rotation.z=.4}
  return g;
@@ -65,12 +66,12 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  const isCompact=typeof matchMedia==='function'&&matchMedia('(max-width: 700px)').matches;
  const renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
  // Limit retina backbuffer fill-rate on phones without changing CSS tap coordinates.
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,isCompact?1.35:1.8));renderer.setClearColor(0xbadbd0);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,isCompact?1.35:1.8));renderer.setClearColor(0xbadbd0);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.32;
  renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
  // Mobile shadows are expensive: update when the light follows a meaningful distance.
  renderer.shadowMap.autoUpdate=false;
  let lastShadowPos={x:Infinity,y:Infinity},lastShadowTime=-10;
- const scene=new T.Scene();scene.background=new T.Color(0xbadbd0);
+ const scene=new T.Scene();scene.background=new T.Color(0xb3decd);
  // Raycast only intentionally interactive objects, not the full island/grass meshes.
  const pickRoots=[];
  const camera=new T.OrthographicCamera(-400,400,400,-400,1,5000),raycaster=new T.Raycaster(),groundPlane=new T.Plane(new T.Vector3(0,1,0),0),v=new T.Vector3();
@@ -111,9 +112,16 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  const bedGroups=beds.map((b,i)=>soilBed(scene,b.x,b.y,i)),cropGroups=beds.map((b)=>group(scene,b.x,0,b.y));let cropKey='';
  pickRoots.push(...bedGroups);
  for(const object of [...scene.children])if(object.isGroup)batchStatic(object);
- const player=createAvatar(),villagers=npcs.map((n,i)=>{const a=createAvatar({coat:n.coat,hat:n.hat});a.root.userData.pick={type:'npc',index:i};scene.add(a.root);label(a.root,n.name,0,121,0,70);pickRoots.push(a.root);return a});scene.add(player.root);
- const residents=animals.map((n,i)=>{const a=createAvatar({coat:['lavender','mint','amber','rose'][i],animal:n.species});a.root.scale.setScalar(.85);a.root.userData.pick={type:'animal',id:n.id};scene.add(a.root);label(a.root,n.name,0,n.species==='rabbit'?146:124,0,70);pickRoots.push(a.root);return a});
- const playerLabel=label(scene,nickname,0,132,0,65);
+ const player=createAvatar(),villagers=npcs.map((n,i)=>{const a=createAvatar({coat:n.coat,hat:n.hat});a.root.userData.pick={type:'npc',index:i};scene.add(a.root);label(a.root,n.name,0,142,0,118);pickRoots.push(a.root);return a});scene.add(player.root);
+ const residents=animals.map((n,i)=>{const a=createAvatar({coat:['lavender','mint','amber','rose'][i],animal:n.species});a.root.scale.setScalar(.85);a.root.userData.pick={type:'animal',id:n.id};scene.add(a.root);label(a.root,n.name,0,n.species==='rabbit'?161:140,0,118);pickRoots.push(a.root);return a});
+ const playerLabel=label(scene,nickname,0,143,0,120);
+ const playerSpeech=label(scene,'',0,192,0,172);playerSpeech.visible=false;
+ let playerPhrase='',playerPhraseUntil=0;
+ function sayLocal(text){
+   if(!text){playerSpeech.visible=false;playerPhraseUntil=0;return}
+   playerPhrase=String(text).slice(0,25);playerPhraseUntil=Date.now()+3200;
+   playerSpeech.userData.setLabel('💬 '+playerPhrase);playerSpeech.visible=true;
+ }
  // Online guests are real articulated actors with the same wardrobe rig.
  const guestAvatars=new Map();
  function updateGuests(peers,dt,time){
@@ -124,13 +132,20 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
    let rec=guestAvatars.get(id);
    if(!rec){
     const avatar=createAvatar({coat:p.coat||'mint',hat:p.hat||'none'});
-    scene.add(avatar.root);label(avatar.root,String(p.nick||'마을친구').slice(0,12),0,121,0,70);
-    rec={avatar,prevX:p.x,prevY:p.y,distance:0};
+    scene.add(avatar.root);label(avatar.root,String(p.nick||'마을친구').slice(0,12),0,139,0,120);
+    const speech=label(avatar.root,'',0,186,0,171);speech.visible=false;
+    rec={avatar,speech,spoken:'',prevX:p.x,prevY:p.y,distance:0};
     guestAvatars.set(id,rec);
    }
    const dx=p.x-rec.prevX,dy=p.y-rec.prevY,movement=Math.hypot(dx,dy);
    rec.distance+=movement/70*Math.PI*2;rec.prevX=p.x;rec.prevY=p.y;
    rec.avatar.equip(p.coat||'mint',p.hat||'none');
+   const phrase=p.phraseUntil>Date.now()?p.phrase:null;
+   if(phrase!==rec.spoken){
+    rec.spoken=phrase;
+    rec.speech.visible=Boolean(phrase);
+    if(phrase)rec.speech.userData.setLabel('💬 '+phrase);
+   }
    rec.avatar.animate({x:p.x,y:p.y,vx:movement>0.01?dx/Math.max(dt,.001):0,vy:movement>0.01?dy/Math.max(dt,.001):0,dir:p.dir||0,stride:rec.distance},dt,time);
   }
  }
@@ -202,7 +217,9 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   player.setFashion(fashion);
   player.animate(actor,dt,time);
   updateCompanion(fashion.pet,actor.x,actor.y,dt,time);
-  playerLabel.position.set(actor.x,135,actor.y);
+  playerLabel.position.set(actor.x,143,actor.y);
+  playerSpeech.position.set(actor.x,194,actor.y);
+  if(playerSpeech.visible&&Date.now()>playerPhraseUntil)playerSpeech.visible=false;
   ns.forEach((n,i)=>{villagers[i].animate({x:n.x,y:n.y,dir:0},dt,time+i)});
   as.forEach((n,i)=>{residents[i].animate({x:n.x,y:n.y,vx:n.moving?n.dx-n.x:0,vy:n.moving?n.dy-n.y:0,stride:(n.travel||0)/70*Math.PI*2,dir:0},dt,time+i)});
   updateGuests(peers,dt,time);
@@ -224,5 +241,5 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,pet:petId,faceCameraElevation:Math.round(Math.atan2(650-46,845)*180/Math.PI),coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();renderer.dispose();previewRenderer?.dispose()}};
+ return {render,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,pet:petId,faceCameraElevation:Math.round(Math.atan2(650-46,845)*180/Math.PI),coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();renderer.dispose();previewRenderer?.dispose()}};
 }
