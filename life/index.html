@@ -108,6 +108,12 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 .specimen-shine{letter-spacing:2px;color:#5e679a;font-weight:900;font-size:12px}
 @media(prefers-reduced-motion:reduce){.aquarium-fish,.aquarium-bubbles{animation:none}}
 
+.economy-ledger{display:flex;align-items:center;justify-content:space-between;gap:11px;background:#fffdf3;border-radius:12px;padding:9px 11px;margin:5px 0;border:1px solid #e2e7d6;font-size:12px}
+.economy-ledger span{flex:1;min-width:0;overflow-wrap:anywhere;color:#567365}
+.economy-ledger strong{font-size:12px;white-space:nowrap;color:#325a4a}
+#panelBody [data-sell-fish]{min-height:38px}
+#panelBody [data-bait-equip]{background:#8a91a2;color:#fff}
+#panelBody [data-bait-purchase]{background:#4c947b;color:#fff}
 </style></head><body><canvas id="game" aria-label="준자마을 입체 게임 필드"></canvas><div id="shade"></div>
 <div class="hud top"><div class="profile"><div class="portrait">🌿</div><div><div class="name" id="name">새싹</div><div class="rank" id="level">Lv. 1 · 초보 낚시꾼</div><div class="xp"><i id="xp"></i></div></div></div><div class="wallet"><i class="gold">★</i><span id="coins">800</span><span style="font-size:10px;color:#fff6">G</span></div></div>
 <div class="hud left"><div class="quest"><div class="eyebrow">✦ 오늘의 의뢰</div><strong id="questText">첫 생활 목표 확인하기</strong><span id="questNext">수첩을 눌러 다음 활동을 확인해요</span><div class="questbar"><i id="questProgress"></i></div><em id="questCount">0 / 1</em></div></div>
