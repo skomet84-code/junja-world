@@ -286,11 +286,11 @@ cv.addEventListener('pointermove',e=>{
  if(now-pointer.stamp<125)return;
  const target=screenWorld(pointer.x,pointer.y);
  if(pointer.lastTarget&&Math.hypot(pointer.lastTarget.x-target.x,pointer.lastTarget.y-target.y)<22)return;
- pointer.stamp=now;pointer.lastTarget=target;
+ pointer.stamp=now;pointer.lastTarget=target;pointer.projectedScreen={x:pointer.x,y:pointer.y};
  moveTo(target.x,target.y,null,true);
 },{passive:false});
 cv.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;const p=pointer;pointer=null;if(cv.hasPointerCapture(e.pointerId))cv.releasePointerCapture(e.pointerId);
- if(p.drag){const w=screenWorld(e.clientX,e.clientY);if(!p.lastTarget||Math.hypot(p.lastTarget.x-w.x,p.lastTarget.y-w.y)>2)moveTo(w.x,w.y,null,true)}else handleTap(e.clientX,e.clientY);
+ if(p.drag){const sameFingerPosition=p.projectedScreen&&Math.hypot(p.projectedScreen.x-e.clientX,p.projectedScreen.y-e.clientY)<4;const w=sameFingerPosition?p.lastTarget:screenWorld(e.clientX,e.clientY);if(!p.lastTarget||Math.hypot(p.lastTarget.x-w.x,p.lastTarget.y-w.y)>2)moveTo(w.x,w.y,null,true)}else handleTap(e.clientX,e.clientY);
 });
 cv.addEventListener('pointercancel',()=>{pointer=null;stopWalking()});
 let keys={};const movementKeys=['w','a','s','d','W','A','S','D','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
