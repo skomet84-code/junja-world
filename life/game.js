@@ -326,7 +326,7 @@ function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],sta
 }
 function farmAll(){let p=bedCenters.findIndex((_,i)=>state.beds[i].crop&&cropStage(state.beds[i])===3);if(p>=0){moveTo(bedCenters[p].x,bedCenters[p].y+56,{type:'farm',idx:p});toast('🌿 수확할 밭으로 이동해요');return}const v=bedCenters.findIndex((_,i)=>!state.beds[i].crop);if(v>=0){moveTo(bedCenters[v].x,bedCenters[v].y+56,{type:'farm',idx:v});toast('🌱 빈 밭으로 이동해요');return}openFarmShop()}
 function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*3)}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${o.cost*3}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*3;if(state.coins<cost){toast('코인이 부족해요');return}state.coins-=cost;state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
-function openMarket(){const fishCount=state.collection.length,uniq=new Set(state.collection).size;openModal(`<span class="titlebadge">HARBOR EXCHANGE</span><h2>⚓ 준자 교역소</h2><p>축제 시장에서 오늘의 특별 납품을 완료해보세요.</p><div class="mini-card"><strong>🐟 물고기 수집 도감</strong><p>잡은 물고기 총 ${state.fish}마리 · 발견 어종 ${uniq}/6</p><button id="marketBag">수집 가방 열기</button></div><div class="mini-card" style="margin-top:10px"><strong>🎁 오늘의 마을 의뢰</strong>${dailyTask().map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} ${o.done}/${o.target}</p>`).join('')}<p>전부 완료하면 550G + 경험치 150 획득</p></div>`);document.getElementById('marketBag').onclick=openBag}
+function openMarket(){const fishCount=state.collection.length,uniq=new Set(state.collection).size;openModal(`<span class="titlebadge">HARBOR EXCHANGE</span><h2>⚓ 준자 교역소</h2><p>축제 시장에서 오늘의 특별 납품을 완료해보세요.</p><div class="mini-card"><strong>🐟 물고기 수집 도감</strong><p>잡은 물고기 총 ${state.fish}마리 · 발견 어종 ${uniq}/6</p><button id="marketBag">수집 가방 열기</button></div><div class="mini-card" style="margin-top:10px"><strong>🎁 오늘의 마을 의뢰</strong>${dailyTask().map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} ${o.done}/${o.target}</p>`).join('')}<p>전부 완료하면 550G + 경험치 150 획득</p></div>`);document.getElementById('marketBag').onclick=openAquarium}
 function openNpc(npc){state.friends[npc.name]=state.friends[npc.name]||0;state.talkDays=state.talkDays||{};state.friendBondDay=state.friendBondDay||{};if(state.talkDays[npc.name]!==nowDay()){state.talkDays[npc.name]=nowDay();state.dailyTalk++;addXp(3)}let heart=state.friends[npc.name];completeDaily();openModal(`<span class="titlebadge">VILLAGER</span><h2>💗 ${npc.name}와 대화하기</h2><p>${npc.text}</p><h3>친밀도 ${'💗'.repeat(Math.min(5,Math.floor(heart/2)+1))}</h3><p>친밀도 ${heart} · 이야기를 나누거나 선물을 줄 수 있어요.</p><div class="pill-row"><button class="pill-btn" id="friendTalk">이야기 나누기</button><button class="pill-btn alt" id="friendGift">🎁 꽃 선물하기 (50G)</button></div>`);document.getElementById('friendTalk').onclick=()=>{if(state.friendBondDay[npc.name]===nowDay()){toast(npc.name+'와 오늘의 대화는 마쳤어요. 내일 또 인사해요!');return}state.friendBondDay[npc.name]=nowDay();const texts=['마을 바람이 정말 상쾌해요!','오늘은 좋은 일이 생길 것 같은데요?','부두 근처에 희귀한 물고기가 있대요.','새로운 옷을 입고 오셨군요!'];state.friends[npc.name]++;toast('💞 '+npc.name+': '+texts[Math.floor(Math.random()*texts.length)]);save();openNpc(npc)};document.getElementById('friendGift').onclick=()=>{if(state.coins<50){toast('코인이 부족해요');return}state.coins-=50;state.friends[npc.name]+=2;hud();party(npc.x,npc.y-80,12);toast('💝 '+npc.name+'가 정말 기뻐해요!');save();openNpc(npc)}}
 function openDecor(){const cards=decorCatalog.map(o=>`<div class="mini-card"><span class="emoji">${o.emoji}</span><strong>${o.label}</strong><p>${state.crafted[o.id]>0?'제작품 '+state.crafted[o.id]+'개 · 무료 배치':'🪙 '+o.cost+'G · 구매 배치'}</p><button data-decor="${o.id}">배치하기</button></div>`).join('');openModal(`<span class="titlebadge">GARDEN ATELIER</span><h2>🏡 내 마을 꾸미기</h2><p>장식을 선택하고, 마을의 원하는 빈 바닥을 터치해 배치해요.</p><div class="card-grid">${cards}</div><div class="pill-row"><button class="pill-btn ghost" id="removeDecoration">설치된 장식 회수하기</button><button class="pill-btn ghost" id="openHomeLink">내 집 꾸미기</button></div>`);els.panelBody.querySelectorAll('[data-decor]').forEach(btn=>btn.onclick=()=>{placeDecor=btn.dataset.decor;closeModal();toast('👆 비어 있는 바닥을 터치해 배치해요!');els.hint.textContent='장식 배치 모드 · 바닥 터치 / 취소는 꾸미기 버튼';els.hint.classList.remove('hidden')});document.getElementById('removeDecoration').onclick=()=>{placeDecor='remove';closeModal();toast('원래 설치한 장식을 터치하면 회수해요!')};document.getElementById('openHomeLink').onclick=openHome}
 function placeAt(x,y){if(placeDecor==='remove'){const i=state.decorations.findIndex(o=>Math.hypot(o.x-x,o.y-y)<70);if(i<0){toast('회수할 장식을 터치해주세요');return}let old=state.decorations.splice(i,1)[0],v=decorCatalog.find(a=>a.id===old.id);state.coins+=Math.floor((v?.cost||0)*.4);placeDecor=null;toast('📦 장식 회수 완료 · 일부 코인 환급');hud();save();return}
@@ -379,7 +379,7 @@ window.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(
 window.addEventListener('keyup',e=>{delete keys[e.key]});
 window.addEventListener('blur',()=>{keys={};pointer=null;stopWalking()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){keys={};pointer=null;stopWalking();save()}last=performance.now()});
-function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers)){let k=1-Math.exp(-dt*9);o.x+=(o.targetX-o.x)*k;o.y+=(o.targetY-o.y)*k}if(socialId&&t-lastPositionSent>.13){lastPositionSent=t;socialSend({type:'pos',x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat})}if(Math.floor(t)%4===0&&Math.floor(t)!==lastClock){lastClock=Math.floor(t);const clock=document.getElementById('worldClock');const hour=new Date().getHours();clock.textContent=seasonLabels[state.season]+' · '+(hour<11?'산뜻한 아침':hour<17?'따스한 낮':'노을빛 저녁')+' · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});} if(fishPhase==='wait'&&performance.now()>castUntil){fishPhase='bite';castUntil=performance.now()+2200;els.fishTitle.textContent='❗ 입질이 왔어요!';els.fishDesc.textContent='시간 안에 챔질하기를 눌러주세요';els.fishAction.textContent='🐟 지금 챔질하기!';els.gauge.style.display='none';party(1558,1353,10)}
+function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers)){let k=1-Math.exp(-dt*9);o.x+=(o.targetX-o.x)*k;o.y+=(o.targetY-o.y)*k}if(socialId&&t-lastPositionSent>.13){lastPositionSent=t;socialSend({type:'pos',x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat})}if(Math.floor(t)%4===0&&Math.floor(t)!==lastClock){lastClock=Math.floor(t);const clock=document.getElementById('worldClock');const hour=new Date().getHours();clock.textContent=seasonLabels[state.season]+' · '+(hour<11?'산뜻한 아침':hour<17?'따스한 낮':'노을빛 저녁')+' · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});} if(fishPhase==='wait'&&performance.now()>castUntil){fishPhase='bite';castUntil=performance.now()+2200+rodById(state.fishingGear.equipped).window*5000;els.fishTitle.textContent='❗ 입질이 왔어요!';els.fishDesc.textContent='시간 안에 챔질하기를 눌러주세요';els.fishAction.textContent='🐟 지금 챔질하기!';els.gauge.style.display='none';party(1558,1353,10)}
  if(fishPhase==='bite'&&performance.now()>castUntil){fishFailure('물고기가 도망갔어요!');}
  if(fishPhase==='reel'){gaugePos+=dt*gaugeDir*1.36;if(gaugePos>1){gaugePos=1;gaugeDir=-1}if(gaugePos<0){gaugePos=0;gaugeDir=1}els.needle.style.left=`calc(${gaugePos*100}% - 2px)`}
   if(els.modal.classList.contains('open')){player.vx=player.vy=0;return}
@@ -476,13 +476,79 @@ function openShop(section=wardrobeTab){
  document.getElementById('walkFitting').onclick=()=>world3D?.walkFitting();
  document.getElementById('resetFitting').onclick=()=>{fittingLook=fashionSnapshot();openShop(section)};
 }
-function openBag(){const fishIcons={'송사리':'🐟','붕어':'🐠','금붕어':'🐡','황금 잉어':'✨','비단 송어':'🐟','은빛 농어':'🐠'};const list=state.collection.slice(-12).reverse();openModal(`<span class="titlebadge">COLLECTION BOOK</span><h2>🎒 나의 수집 가방</h2><h3>채집 재료</h3><p>${Object.entries(state.materials).map(([k,v])=>materialNames[k]+' '+v+'개').join(' · ')}</p><h3>제작품</h3><p>${recipes.map(r=>r.name+' '+(state.crafted[r.id]||0)+'개').join(' · ')}</p><p>낚은 물고기와 꾸미기 아이템을 모아보세요. (${state.collection.length}마리)</p><div class="inventory">${list.map(n=>`<div class="slot"><b>${fishIcons[n]||'🐟'}</b>${n}</div>`).join('')||'<div class="slot"><b>🎣</b>첫 물고기를 낚아보세요</div>'}</div><p style="margin-top:20px">🌸 옷: ${CATALOG_BY_ID[state.fashion.equipped.outfit]?.name||outfits.find(o=>o.id===state.coat)?.name||'기본 옷'} · 모자: ${outfits.find(o=>o.id===state.hat)?.name||'없음'} · 펫: ${CATALOG_BY_ID[state.fashion.equipped.pet]?.name||'없음'}</p>`) }
+function openFishingGear(){
+ const equipped=rodById(state.fishingGear.equipped);
+ openModal(`<span class="titlebadge">FISHING MASTER</span><h2>🎣 낚시 장비 상점</h2>
+  <p>좋은 낚싯대일수록 입질이 빨라지고, 판정 범위가 넓어지며 희귀 물고기를 만날 확률이 올라가요.</p>
+  <div class="mini-card"><strong>현재 장비 · ${equipped.name}</strong>
+  <p>입질 대기 약 ${Math.round((1-equipped.wait)*100)}% 단축 · 성공 구간 ${Math.round(equipped.window*200)}%p 확대</p>
+  <p>희귀 확률 상승 · 낚시 보상 +${Math.round(equipped.coins*100)}%</p></div>
+  <div class="card-grid">${RODS.map(rod=>{
+   const owned=state.fishingGear.owned.includes(rod.id);
+   const unlocked=lifeLevel()>=rod.level;
+   return `<div class="mini-card"><span class="emoji">${rod.icon}</span><strong>${rod.name}</strong>
+    <p>Lv.${rod.level} 필요 · ${rod.price.toLocaleString()}G</p>
+    <p>대기 -${Math.round((1-rod.wait)*100)}% · 판정 +${Math.round(rod.window*200)}%p · 보상 +${Math.round(rod.coins*100)}%</p>
+    <button data-rod="${rod.id}" ${!unlocked?'disabled':''}>${state.fishingGear.equipped===rod.id?'사용 중':owned?'장착하기':unlocked?'구매하기':'레벨 부족'}</button>
+   </div>`;
+  }).join('')}</div>
+  <button class="pill-btn ghost" id="openAquariumFromGear">🐠 내 어항 보기</button>`);
+ els.panelBody.querySelectorAll('[data-rod]').forEach(btn=>btn.onclick=()=>{
+  const rod=RODS.find(r=>r.id===btn.dataset.rod);
+  if(!rod||lifeLevel()<rod.level)return;
+  if(!state.fishingGear.owned.includes(rod.id)){
+   if(state.coins<rod.price){toast('장비 구매 코인이 부족해요');return}
+   state.coins-=rod.price;state.fishingGear.owned.push(rod.id);
+  }
+  state.fishingGear.equipped=rod.id;save();hud();toast(rod.name+' 장착했어요');openFishingGear();
+ });
+ document.getElementById('openAquariumFromGear').onclick=openAquarium;
+}
+function openAquarium(){
+ const available=new Set(state.collection.filter(n=>FISH_BY_NAME[n]));
+ const cap=aquariumSlots(lifeLevel());
+ state.aquarium.display=state.aquarium.display.filter(n=>available.has(n)).slice(0,cap);
+ if(!state.aquarium.display.length&&available.size)state.aquarium.display=[...available].slice(0,Math.min(3,cap));
+ const display=state.aquarium.display;
+ const tank=`<div class="aquarium-stage">
+  <div class="aquarium-bubbles">◌　◦　◌　◦</div>
+  ${display.map((name,i)=>`<div class="aquarium-fish" style="top:${22+(i%3)*23}%;left:${7+(i%4)*18}%;animation-delay:-${i*.8}s">${fishArt(name,120)}</div>`).join('')}
+  <div class="aquarium-ground">✧　🪸　☘　🪨　🐚　✧</div>
+ </div>`;
+ openModal(`<span class="titlebadge">MY AQUARIUM</span><h2>🐠 나만의 어항 컬렉션</h2>
+  <p>발견한 물고기를 수족관에 배치해요. 전시해도 보유 기록은 없어지지 않아요.</p>
+  <p><b>발견 어종 ${available.size}/6 · 전시 ${display.length}/${cap}칸</b> · Lv.5/8/12 전시 공간 확장</p>
+  ${tank}
+  <div class="aquarium-list">${FISH.map(f=>{
+   const caught=available.has(f.name),placed=display.includes(f.name);
+   return `<div class="aquarium-item ${caught?'':'locked'}">${fishArt(f.name,100)}
+    <strong>${caught?f.name:'미발견 물고기'}</strong><small>${f.rarity} · ${state.collection.filter(x=>x===f.name).length}마리 기록</small>
+    <button data-fish="${f.name}" ${!caught?'disabled':''}>${placed?'전시 해제':'어항에 전시'}</button></div>`;
+  }).join('')}</div>
+  <button class="pill-btn ghost" id="aquariumRodShop">낚싯대 업그레이드</button>`);
+ els.panelBody.querySelectorAll('[data-fish]').forEach(btn=>btn.onclick=()=>{
+  const name=btn.dataset.fish;if(!available.has(name))return;
+  const index=state.aquarium.display.indexOf(name);
+  if(index>=0)state.aquarium.display.splice(index,1);
+  else if(state.aquarium.display.length>=cap){toast('어항 전시 공간이 가득 찼어요. 레벨을 올려 확장하세요');return}
+  else state.aquarium.display.push(name);
+  save();openAquarium();
+ });
+ document.getElementById('aquariumRodShop').onclick=openFishingGear;
+}
+function openBag(){const fishIcons={'송사리':'🐟','붕어':'🐠','금붕어':'🐡','황금 잉어':'✨','비단 송어':'🐟','은빛 농어':'🐠'};const list=state.collection.slice(-12).reverse();openModal(`<span class="titlebadge">COLLECTION BOOK</span><h2>🎒 나의 수집 가방</h2><h3>채집 재료</h3><p>${Object.entries(state.materials).map(([k,v])=>materialNames[k]+' '+v+'개').join(' · ')}</p><h3>제작품</h3><p>${recipes.map(r=>r.name+' '+(state.crafted[r.id]||0)+'개').join(' · ')}</p><p>낚은 물고기와 꾸미기 아이템을 모아보세요. (${state.collection.length}마리)</p><div class="inventory">${list.map(n=>`<div class="slot"><b>${fishIcons[n]||'🐟'}</b>${n}</div>`).join('')||'<div class="slot"><b>🎣</b>첫 물고기를 낚아보세요</div>'}</div><div class="pill-row"><button class="pill-btn" id="aquariumInBag">🐠 내 어항 컬렉션</button><button class="pill-btn ghost" id="rodInBag">🎣 낚싯대 상점</button></div><p style="margin-top:20px">🌸 옷: ${CATALOG_BY_ID[state.fashion.equipped.outfit]?.name||outfits.find(o=>o.id===state.coat)?.name||'기본 옷'} · 모자: ${outfits.find(o=>o.id===state.hat)?.name||'없음'} · 펫: ${CATALOG_BY_ID[state.fashion.equipped.pet]?.name||'없음'}</p>`);
+ document.getElementById('aquariumInBag').onclick=openAquarium;
+ document.getElementById('rodInBag').onclick=openFishingGear;
+}
 function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 준자마을 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
 function beginFishing(){closeModal();stopWalking();if(distance(player,{x:1465,y:1177})>190){moveTo(1464,1168,{type:'action',kind:'fish'});toast('🎣 부두로 이동하고 있어요');return}
- fishPhase='wait';fishAttempts=0;castMode=true;castUntil=performance.now()+1300+Math.random()*1700;els.fishTitle.textContent='🎣 낚싯대를 던졌어요';els.fishDesc.textContent='물고기가 입질할 때까지 기다려요…';els.fishAction.textContent='찌를 바라보는 중…';els.gauge.style.display='none';els.fishing.classList.add('open');}
+ fishPhase='wait';fishAttempts=0;castMode=true;castUntil=performance.now()+(1300+Math.random()*1700)*rodById(state.fishingGear.equipped).wait;els.fishTitle.textContent='🎣 낚싯대를 던졌어요';els.fishDesc.textContent='물고기가 입질할 때까지 기다려요…';els.fishAction.textContent='찌를 바라보는 중…';els.gauge.style.display='none';els.fishing.classList.add('open');}
 function fishFailure(s){els.fishing.classList.remove('open');fishPhase='idle';castMode=false;toast('💨 '+s)}
-function fishingAction(){if(fishPhase==='bite'){fishPhase='reel';fishAttempts=0;gaugePos=0;gaugeDir=1;els.fishTitle.textContent='🐟 릴을 감아 올려요!';els.fishDesc.textContent='초록 영역에서 두 번 터치해서 성공하세요';els.fishAction.textContent='✨ 지금 릴 감기';els.gauge.style.display='block';return}if(fishPhase==='reel'){if(gaugePos>.30&&gaugePos<.70){fishAttempts++;party(player.x,player.y-30,9);if(fishAttempts>=2){const names=['송사리','붕어','금붕어','비단 송어','은빛 농어','황금 잉어'];let roll=Math.random();let idx=roll>.982?5:roll>.84?4:roll>.66?3:Math.floor(roll*3);let fish=names[idx],money=[36,55,88,120,185,600][idx]+lifeBonus('fish');state.fish++;state.dailyFish++;state.collection.push(fish);state.xp+=36;state.coins+=money;hud();save();completeDaily();checkAchievements();fishPhase='idle';castMode=false;els.fishing.classList.remove('open');toast(`🐟 ${fish} 획득! +${money}G`);party(player.x,player.y-75,26);return}els.fishDesc.textContent='좋아요! 한 번 더 맞춰보세요 ('+fishAttempts+'/2)'}else{fishAttempts=Math.max(0,fishAttempts-1);els.fishDesc.textContent='앗! 초록 영역에서 눌러주세요'}}}
-els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing;document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 준자마을 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
+function fishingAction(){if(fishPhase==='bite'){fishPhase='reel';fishAttempts=0;gaugePos=0;gaugeDir=1;els.fishTitle.textContent='🐟 릴을 감아 올려요!';els.fishDesc.textContent='초록 영역에서 두 번 터치해서 성공하세요';els.fishAction.textContent='✨ 지금 릴 감기';els.gauge.style.display='block';return}if(fishPhase==='reel'){if(gaugePos>.30-rodById(state.fishingGear.equipped).window&&gaugePos<.70+rodById(state.fishingGear.equipped).window){fishAttempts++;party(player.x,player.y-30,9);if(fishAttempts>=2){const idx=fishRoll(Math.random(),state.fishingGear.equipped);
+ let fish=FISH[idx].name,money=rewardForFish(FISH[idx],state.fishingGear.equipped,lifeBonus('fish'));state.fish++;state.dailyFish++;state.collection.push(fish);if(!state.dailyFishNames.includes(fish))state.dailyFishNames.push(fish);state.xp+=36;state.coins+=money;hud();save();completeDaily();checkAchievements();fishPhase='idle';castMode=false;els.fishing.classList.remove('open');toast(`🐟 ${fish} 획득! +${money}G`);party(player.x,player.y-75,26);return}els.fishDesc.textContent='좋아요! 한 번 더 맞춰보세요 ('+fishAttempts+'/2)'}else{fishAttempts=Math.max(0,fishAttempts-1);els.fishDesc.textContent='앗! 초록 영역에서 눌러주세요'}}}
+els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing;
+ const gearShortcut=document.getElementById('fishGear');
+ if(gearShortcut)gearShortcut.onclick=()=>{els.fishing.classList.remove('open');fishPhase='idle';openFishingGear()};document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 준자마을 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
 function showRenderError(error){
  const panel=document.getElementById('renderError');panel.hidden=false;
  const reason=document.getElementById('renderErrorReason');
