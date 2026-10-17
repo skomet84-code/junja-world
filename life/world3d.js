@@ -12,7 +12,9 @@ function group(p,x=0,y=0,z=0){const g=new T.Group();g.position.set(x,y,z);p.add(
 function label(parent,text,x,y,z,width=150){
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');
  ctx.fillStyle='#fff8e7';ctx.beginPath();ctx.roundRect(5,12,502,99,28);ctx.fill();ctx.strokeStyle='#bca884';ctx.lineWidth=5;ctx.stroke();ctx.font='800 42px "Malgun Gothic",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#52624b';ctx.fillText(text,256,64,460);
- const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,depthWrite:false}));sprite.position.set(x,y,z);sprite.scale.set(width,width/4,1);parent.add(sprite);return sprite;
+ const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,depthWrite:false}));sprite.position.set(x,y,z);sprite.scale.set(width,width/4,1);
+ sprite.userData.setLabel=(name)=>{ctx.clearRect(0,0,512,128);ctx.fillStyle='#fff8e7';ctx.beginPath();ctx.roundRect(5,12,502,99,28);ctx.fill();ctx.strokeStyle='#bca884';ctx.lineWidth=5;ctx.stroke();ctx.font='800 42px "Malgun Gothic",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#52624b';ctx.fillText(String(name||'마을 친구').slice(0,12),256,64,460);tex.needsUpdate=true};
+ parent.add(sprite);return sprite;
 }
 function gable(parent,color,width,depth,height,y){
  const shape=new T.Shape();shape.moveTo(-width/2,0);shape.lineTo(width/2,0);shape.lineTo(0,height);shape.closePath();const g=new T.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:4,bevelThickness:4});const roof=new T.Mesh(g,material(color));roof.position.set(0,y,-depth/2);roof.castShadow=true;roof.receiveShadow=true;parent.add(roof);return roof;
@@ -57,7 +59,7 @@ function batchStatic(root){
   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setAttribute('normal',new T.Float32BufferAttribute(normals,3));geo.computeBoundingSphere();const merged=new T.Mesh(geo,mat);merged.castShadow=true;merged.receiveShadow=true;root.add(merged);
  }
 }
-export function createWorld({canvas,width,height,stations,resources,beds,npcs,animals,walkable}){
+export function createWorld({canvas,width,height,stations,resources,beds,npcs,animals,walkable,nickname='준자'}){
  const isCompact=typeof matchMedia==='function'&&matchMedia('(max-width: 700px)').matches;
  const renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
  // Limit retina backbuffer fill-rate on phones without changing CSS tap coordinates.
@@ -106,7 +108,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  for(const object of [...scene.children])if(object.isGroup)batchStatic(object);
  const player=createAvatar(),villagers=npcs.map((n,i)=>{const a=createAvatar({coat:n.coat,hat:n.hat});a.root.userData.pick={type:'npc',index:i};scene.add(a.root);label(a.root,n.name,0,121,0,70);pickRoots.push(a.root);return a});scene.add(player.root);
  const residents=animals.map((n,i)=>{const a=createAvatar({coat:['lavender','mint','amber','rose'][i],animal:n.species});a.root.scale.setScalar(.85);a.root.userData.pick={type:'animal',id:n.id};scene.add(a.root);label(a.root,n.name,0,n.species==='rabbit'?146:124,0,70);pickRoots.push(a.root);return a});
- const playerLabel=label(scene,'준자',0,132,0,65);
+ const playerLabel=label(scene,nickname,0,132,0,65);
  // Online guests are real articulated actors with the same wardrobe rig.
  const guestAvatars=new Map();
  function updateGuests(peers,dt,time){
@@ -178,5 +180,5 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,screenToWorld,pick,fitting,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();renderer.dispose();previewRenderer?.dispose()}};
+ return {render,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();renderer.dispose();previewRenderer?.dispose()}};
 }
