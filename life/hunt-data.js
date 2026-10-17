@@ -31,6 +31,6 @@ export const MAX_ACTIVE_ENEMIES=7;
 export function huntLevel(xp){return Math.max(1,1+Math.floor((Number(xp)||0)/160))}
 export function zoneUnlocked(zone,level){return level>=zone.level}
 export function combatStats(level){const lv=Math.max(1,Math.floor(level));return {maxHp:110+lv*13,maxMp:90+lv*5,attack:11+Math.floor(lv*2.2),defense:Math.floor(lv*.54)}}
-export function enemyDamage(zoneIndex,boss,level){return Math.max(3,Math.floor((boss?22:7)*(1+zoneIndex*.74)-Math.floor(level*.1)))}
+export function enemyDamage(zoneIndex,boss,level){return Math.max(3,Math.floor((boss?13:7)*(1+zoneIndex*(boss?.35:.74))-Math.floor(level*.1)))}
 export function canCraft(recipe,materials,owned,coins){return !owned.includes(recipe.gives)&&coins>=recipe.coins&&recipe.requires.every(([id,n])=>(materials[id]||0)>=n)}
 export function dailyBossKey(zoneId,date){return zoneId+':'+date}
