@@ -3,6 +3,7 @@ import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './f
 import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
 import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js';
+import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket} from './inventory-v29.js';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -13,7 +14,7 @@ const A={};
 const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
 let saved={};try{saved=JSON.parse(localStorage.getItem('junja-harbor-v1')||'{}')}catch{}
 const state={...seedData,...saved};
-initEconomy(state);initializeFishStock(state);
+initEconomy(state);initializeFishStock(state);initBag(state);
 state.baitInventory=state.baitInventory&&typeof state.baitInventory==='object'?state.baitInventory:{};
 if(!BAITS.some(b=>b.id===state.baitEquipped))state.baitEquipped='none';
 const earn=(amount,kind,reason)=>credit(state,Math.max(0,Math.round(Number(amount)||0)),kind,reason,Math.max(1,1+Math.floor((Number(state.xp)||0)/160))).amount;
@@ -97,7 +98,7 @@ function openLivingCalendar(){
  const progress=monthProgress(state,q,FISH_BY_NAME),done=board.claimed.includes(q.id);
  return '<div class="mini-card"><strong>'+q.label+'</strong><p>'+progress+' / '+q.goal+'</p><div class="mini-progress"><i style="width:'+(progress/q.goal*100)+'%"></i></div><p>🎁 '+q.reward.toLocaleString('ko-KR')+'G · 100XP</p><button data-month="'+q.id+'" '+(done||progress<q.goal?'disabled':'')+'>'+(done?'✅ 이번 달 수령 완료':progress>=q.goal?'보상 받기':'도전 중')+'</button></div>'
  }).join('')+'</div>'+
- '<div class="mini-card"><strong>🏅 월간 기념 배지</strong><p>월간 목표 5개를 모두 완료하면 이번 달만의 기념 배지가 컬렉션에 추가돼요.</p><p>누적 획득: '+(state.seasonBadges||[]).length+'개월</p><button id="monthlyBadge" '+(count<MONTHLY_GOALS.length||(state.seasonBadges||[]).includes(board.id)?'disabled':'')+'>이번 달 배지 받기</button></div>'+
+ '<div class="mini-card"><strong>🏅 월간 기념 배지</strong><p>월간 목표 5개를 모두 완료하면 이번 달 기념 배지와 🎟️ 물고기 자동 판매권 1장을 받아요.</p><p>누적 획득: '+(state.seasonBadges||[]).length+'개월</p><button id="monthlyBadge" '+(count<MONTHLY_GOALS.length||(state.seasonBadges||[]).includes(board.id)?'disabled':'')+'>이번 달 배지 받기</button></div>'+
  '<div class="pill-row"><button id="calendarFestival" class="pill-btn">🎪 주간 축제로 돌아가기</button><button id="calendarAlbum" class="pill-btn ghost">🐠 어항 도감</button></div>');
  els.panelBody.querySelectorAll('[data-month]').forEach(btn=>btn.onclick=()=>{
   const q=MONTHLY_GOALS.find(g=>g.id===btn.dataset.month);
@@ -108,7 +109,9 @@ function openLivingCalendar(){
  document.getElementById('monthlyBadge').onclick=()=>{
   state.seasonBadges=Array.isArray(state.seasonBadges)?state.seasonBadges:[];
   if(board.claimed.length<MONTHLY_GOALS.length||state.seasonBadges.includes(board.id))return;
-  state.seasonBadges.push(board.id);save();toast('🏅 '+board.id+' 월간 마을 배지 획득!');openLivingCalendar();
+  state.seasonBadges.push(board.id);
+  const ticket=claimEventAutoSellTicket(state,board.id);
+  save();toast('🏅 '+board.id+' 월간 배지'+(ticket?' · 🎟️ 자동 판매권 1장 지급!':''));openLivingCalendar();
  };
  document.getElementById('calendarFestival').onclick=openFestival;
  document.getElementById('calendarAlbum').onclick=openAquarium;
@@ -354,7 +357,9 @@ function openStation(id){
 
 function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
  const remaining=(state.nodeReady[id]||0)-Date.now();if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
- state.nodeReady[id]=Date.now()+45000;const amount=2+lifeBonus('gather');state.materials[n.kind]+=amount;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+' · 가방에 보관했어요');
+ const amount=2+lifeBonus('gather');
+ if(!canStore(state,amount)){toast('🎒 가방이 가득 찼어요! 판매 또는 가방 확장 후 채집해요');return}
+ state.nodeReady[id]=Date.now()+45000;addBagItems(state,'material',n.kind,amount);state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+' · 가방에 보관했어요');
 }
 
 function openDelivery(){
@@ -985,7 +990,7 @@ function openFishingGear(){
   <p>좋은 낚싯대는 입질을 단축하고 포획 구간을 넓혀줘요. 희귀 Lv.6 · 영웅 Lv.10 · 전설 Lv.16 · 신화 Lv.22부터 도전하며 낚싯대 등급 조건도 있어요.</p>
   <div class="mini-card"><strong>현재 장비 · ${equipped.name}</strong>
   <p>입질 대기 약 ${Math.round((1-equipped.wait)*100)}% 단축 · 성공 구간 ${Math.round(equipped.window*200)}%p 확대</p>
-  <p>희귀 확률 상승 · 낚시 보상 +${Math.round(equipped.coins*100)}%</p></div>
+  <p>상위 낚싯대일수록 필요한 릴 터치 횟수가 줄고, 허용 실수·제한시간·판정 구간이 개선돼요.</p></div>
   <div class="card-grid">${RODS.map(rod=>{
    const owned=state.fishingGear.owned.includes(rod.id);
    const unlocked=lifeLevel()>=rod.level;
@@ -1081,6 +1086,7 @@ function openBag(){const fishIcons={'송사리':'🐟','붕어':'🐠','금붕�
 }
 function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 준자마을 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
 function beginFishing(){
+ if(!canStore(state,1)){closeModal();toast('🎒 가방이 가득 찼어요! 수산시장에서 판매하거나 확장해요');return}
  closeModal();stopWalking();
  if(distance(player,{x:1465,y:1177})>190){moveTo(1464,1168,{type:'action',kind:'fish'});toast('🎣 부두로 이동하고 있어요');return}
  fishPhase='wait';hookedFish=null;reelProfile=null;reelMisses=0;fishAttempts=0;castMode=true;
@@ -1121,7 +1127,8 @@ function fishingAction(){
    };
    if(!state.dailyFishNames.includes(f.name))state.dailyFishNames.push(f.name);
    state.xp+=32+reelProfile.tier*17+(isFirst?30:0);
-   addFishStock(state,f.name,1);hud();save();completeDaily();checkAchievements();
+   if(!addBagItems(state,'fish',f.name,1))toast('🎒 가방이 가득 찼어요. 어시장에 들러보세요');
+   hud();save();completeDaily();checkAchievements();
    fishPhase='idle';castMode=false;hookedFish=null;reelProfile=null;
    els.fishing.classList.remove('open');
    toast('🏆 '+f.rarity+' '+f.name+' 포획! '+(isFirst?'✨ 도감 신규 등록 · ':'')+'🎒 물고기 1마리 보관 · 시장에서 판매 가능');
