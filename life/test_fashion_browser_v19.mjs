@@ -75,9 +75,12 @@ try{
  await page.locator('#close').click();
  await page.waitForFunction(()=>window.__JUNJA_TEST__.getRenderer().pet==='fashion_pet_01',null,{timeout:5000});
  await page.screenshot({path:'artifacts/v19-pet-following.png'});
+ const beforeReload=await page.evaluate(()=>({live:window.__JUNJA_TEST__.getState().fashion,saved:JSON.parse(localStorage.getItem('junja-harbor-v1')||'{}').fashion}));
+ console.log('FASHION BEFORE RELOAD',JSON.stringify(beforeReload));
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__JUNJA_TEST__?.getRenderer()?.frames>4,null,{timeout:60000});
  const persisted=await page.evaluate(()=>window.__JUNJA_TEST__.getState());
+ console.log('FASHION AFTER RELOAD',JSON.stringify(persisted.fashion));
  assert.equal(persisted.fashion.equipped.pet,'fashion_pet_01');
  assert.equal(persisted.fashion.equipped.hair,'fashion_hair_01');
  assert.equal(persisted.fashion.equipped.accessory,'fashion_accessory_01');
