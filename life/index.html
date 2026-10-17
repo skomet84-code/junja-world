@@ -39,6 +39,28 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 .fashion-total{color:#72836e;font-size:11px;font-weight:800;margin:9px 0}
 .fashion-item button{font-size:11px;min-height:35px;padding:7px 4px}
 @media(max-width:550px){.fashion-tab{padding:8px 10px;font-size:11px}.fashion-item .fashion-color{width:58px;height:54px}.fitting-controls{gap:5px}.fitting-controls .pill-btn{font-size:11px;padding:7px!important}}
+/* v20 readability & subtly richer pastels; v18 world scale and movement untouched. */
+#shade{background:radial-gradient(ellipse at center,transparent 57%,rgba(12,57,43,.13) 100%)}
+.profile .name{font-size:14px;color:#344d39;letter-spacing:.25px;font-weight:950}
+.speech-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 14px}
+.speech-grid button{border-radius:15px;padding:13px 8px;background:linear-gradient(155deg,#eff5e8,#dbead9);border:1px solid #c0d0bb;color:#36584c;font-weight:850;font-size:12px}
+.speech-grid button:active{transform:scale(.98)}
+.aquarium-stage{height:210px;overflow:hidden;position:relative;border:8px solid #e8e7d5;border-top:13px solid #f5f7f4;border-bottom:17px solid #a2c3bb;border-radius:19px;background:linear-gradient(170deg,#9cd5d7 0%,#81bec2 43%,#6bb0ad 85%,#c8d3a7 100%);box-shadow:inset 0 9px 22px #296a7552,0 7px 15px #1c56502b}
+.aquarium-stage::before{content:"";position:absolute;inset:0 10% 35% 12%;background:linear-gradient(90deg,#ffffff18,transparent 40%,#ffffff13);transform:skew(-13deg);pointer-events:none}
+.aquarium-bubbles{position:absolute;left:15px;top:8px;color:#eeffffa0;font-size:20px;letter-spacing:22px}
+.aquarium-fish{position:absolute;max-width:40%;animation:fishFloat 5s ease-in-out infinite alternate;filter:drop-shadow(2px 5px 2px #2c69714a)}
+.aquarium-fish svg{max-width:100%;height:auto}
+.aquarium-ground{position:absolute;bottom:1px;width:100%;text-align:center;font-size:19px;background:linear-gradient(transparent,#d8dbad9f);padding-top:12px}
+@keyframes fishFloat{0%{transform:translateX(-8px) translateY(0)}100%{transform:translateX(13px) translateY(-10px)}}
+.aquarium-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.aquarium-item{padding:9px;background:#e7f2e8;border:1px solid #d1e2cf;border-radius:14px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;min-width:0}
+.aquarium-item strong{font-size:12px;color:#40635f}
+.aquarium-item small{font-size:10px;color:#687b76}
+.aquarium-item.locked svg{filter:grayscale(1);opacity:.35}
+.aquarium-item button{width:100%;background:#6a9da1;color:#fff;padding:8px 5px;border-radius:10px;font-weight:800;font-size:11px}
+.aquarium-item button:disabled{opacity:.45}
+.home-interior{position:relative;border:9px solid #c29a6d;border-bottom:30px solid #b18757;border-radius:12px;height:165px;box-shadow:inset 0 12px 22px #0000000e;text-align:center;display:flex;align-items:center;justify-content:space-evenly;font-size:38px;overflow:hidden}
+@media(max-width:550px){.profile .name{font-size:12px}.speech-grid button{padding:12px 6px}.aquarium-stage{height:185px}}
 #renderError{position:fixed;inset:20%;z-index:99;padding:24px;border-radius:24px;background:#fff9e9;box-shadow:0 12px 40px #31433355;text-align:center}#renderError[hidden]{display:none}
 @media(max-width:550px){.quest{max-width:154px}.act .em{font-size:20px}.act small{font-size:9px}.top{top:calc(10px + env(safe-area-inset-top))}.left{top:calc(102px + env(safe-area-inset-top))}.minimap{top:calc(102px + env(safe-area-inset-top))}.social-status{bottom:calc(84px + env(safe-area-inset-bottom))}.goods{gap:7px}}
 </style></head><body><canvas id="game" aria-label="준자마을 입체 게임 필드"></canvas><div id="shade"></div>
@@ -49,5 +71,5 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 <div class="hud hint" id="hint">✨ 바닥 터치 이동 · 부두에 가서 낚시하기</div>
 <div class="hud actions"><button class="act" id="shopBtn"><span class="em">👒</span><small>옷장</small></button><button class="act" id="farmBtn"><span class="em">🌱</span><small>농사</small></button><button class="act primary" id="fishBtn"><span class="em">🎣</span><small>낚시</small></button><button class="act" id="craftBtn"><span class="em">🪵</span><small>제작</small></button><button class="act" id="decorBtn"><span class="em">🏡</span><small>꾸미기</small></button><button class="act" id="bagBtn"><span class="em">🎒</span><small>가방</small></button><button class="act" id="guideBtn"><span class="em">📜</span><small>안내</small></button></div><button class="social-status" id="socialStatus" type="button">👫 친구 · 혼자 플레이 중</button><div class="toast" id="toast"></div>
 <div class="modal" id="modal"><div class="panel" id="panel"><button class="close" id="close" aria-label="닫기">×</button><div id="panelBody"></div></div></div>
-<div class="fishingUI" id="fishing"><div class="fish-title" id="fishTitle">🎣 물고기가 오기를 기다리는 중…</div><div class="fish-desc" id="fishDesc">수면의 찌를 잘 살펴봐요</div><div class="gauge" id="gauge"><div class="needle" id="needle"></div></div><button class="fishbtn" id="fishAction">낚싯대 던지기</button></div>
+<div class="fishingUI" id="fishing"><div class="fish-title" id="fishTitle">🎣 물고기가 오기를 기다리는 중…</div><div class="fish-desc" id="fishDesc">수면의 찌를 잘 살펴봐요</div><div class="gauge" id="gauge"><div class="needle" id="needle"></div></div><button class="fishbtn" id="fishAction">낚싯대 던지기</button><button class="fishbtn" id="fishGear" style="margin-top:7px;background:#d2e6dc;border-color:#bed7ca;font-size:12px">🎣 낚시 장비 확인·업그레이드</button></div>
 <div id="renderError" hidden role="alert"><h2>입체 마을을 열지 못했어요</h2><p>WebGL을 지원하는 Safari 또는 Chrome에서 다시 열어주세요.</p><p id="renderErrorReason" style="word-break:break-word;color:#93584d;font-size:12px"></p><button onclick="location.reload()">다시 열기</button></div><script src="navigation.js"></script><script type="module" src="game.js"></script></body></html>
