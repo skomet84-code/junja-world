@@ -1,3 +1,30 @@
+# JUNJA VILLAGE LIFE v19 — Luxury Avatar Atelier (experimental preview)
+
+[▶ Open v19 village preview](https://raw.githack.com/skomet84-code/junja-world/junja-village-life-v19/life/index.html)
+
+## v18 movement is LOCKED
+
+This branch inherits navigation.js and the complete v18 touch movement path unchanged. Avatar **scale** and orthographic view size remain unchanged; only the 3D camera's elevation / look target and the frontal fill lighting were adjusted to reveal more face and garment detail. The browser tests must continue to pass the real-pointer iPhone-sized navigation and stuck-save recovery checks.
+
+## New playable wardrobe and economy
+
+- **100 new, individually named 3D catalog items:** 20 hairstyles, 40 wearable outfits, 20 accessories, and 20 companion pets, plus all previously owned classic clothing.
+- Hair is built from 3D locks and sculpted scalp shapes, outfits use common animated shoulder/arm joints with differing fabrics, silhouette and accents, accessories attach to head/torso/pelvis, and pets have 20 distinct color/species configurations and follow their owner.
+- Atelier buttons switch among the four categories and classic outfits. Preview by rotating/walking before paying, buy with coins, equip/unequip, and resume owned items after reload.
+- Graded in-game coin prices (일반 → 고급 → 희귀 → 영웅 → 전설 → 신화) increase with premium design. Purchases are guarded by coin balance; owned and equipped items are saved to the existing local save.
+- Pets grant small **fishing, harvesting, gathering and delivery** bonus coins/resources. Pets never alter avatar speed or pathfinding.
+- This is a playable preview, not a production-authoritative economy; browser local storage is still susceptible to tampering.
+
+## Automated checks
+
+`cd life && npm test` checks legacy character and route regression, plus all 100 catalog items, 40 dressed skeleton poses, 20 accessories/hair and 20 pet morphologies.
+
+The GitHub Actions preview workflow adds Chromium/WebGL at mobile iPhone-like 390×844 viewport: real finger pointer navigation, the trapped-position recovery test, storefront purchase + exact debit + unaffordable purchase rejection, saved clothing after reload, headwear/accessory/pet preview and world pet following.
+
+**Caveats:** GitHACK preview is static, so friend relay is offline there. Real iOS Safari and a human visual art-quality review remain to be completed. In-game currencies and assets are not a paid real-world product. No JUNJA LAND or Adventure live deploy is altered.
+
+---
+
 # JUNJA VILLAGE LIFE v17 — improved mobile 3D / costumes / life progression
 
 [▶ Play the v17 preview](https://raw.githack.com/skomet84-code/junja-world/junja-village-life-v17/life/index.html)
