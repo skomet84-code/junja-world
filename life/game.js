@@ -275,8 +275,23 @@ function handleTap(sx,sy){
 let pointer=null;
 function screenWorld(x,y){return world3D?world3D.screenToWorld(x,y):{x:(x-CW/2)/scale+camera.x,y:(y-CH/2)/scale+camera.y}}
 cv.addEventListener('pointerdown',e=>{if(pointer||e.button!==0||els.modal.classList.contains('open'))return;e.preventDefault();cv.setPointerCapture(e.pointerId);pointer={id:e.pointerId,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,drag:false,stamp:0};},{passive:false});
-cv.addEventListener('pointermove',e=>{if(!pointer||pointer.id!==e.pointerId)return;e.preventDefault();pointer.x=e.clientX;pointer.y=e.clientY;if(Math.hypot(pointer.x-pointer.startX,pointer.y-pointer.startY)>7)pointer.drag=true;},{passive:false});
-cv.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;const p=pointer;pointer=null;if(cv.hasPointerCapture(e.pointerId))cv.releasePointerCapture(e.pointerId);if(p.drag){const w=screenWorld(e.clientX,e.clientY);moveTo(w.x,w.y,null,true)}else handleTap(e.clientX,e.clientY);});
+cv.addEventListener('pointermove',e=>{
+ if(!pointer||pointer.id!==e.pointerId)return;
+ e.preventDefault();pointer.x=e.clientX;pointer.y=e.clientY;
+ if(Math.hypot(pointer.x-pointer.startX,pointer.y-pointer.startY)>9)pointer.drag=true;
+ if(!pointer.drag)return;
+ // Replan only on a real finger movement. Reprojecting a stationary finger
+ // each frame against the following camera makes the destination slide away.
+ const now=performance.now();
+ if(now-pointer.stamp<125)return;
+ const target=screenWorld(pointer.x,pointer.y);
+ if(pointer.lastTarget&&Math.hypot(pointer.lastTarget.x-target.x,pointer.lastTarget.y-target.y)<22)return;
+ pointer.stamp=now;pointer.lastTarget=target;
+ moveTo(target.x,target.y,null,true);
+},{passive:false});
+cv.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;const p=pointer;pointer=null;if(cv.hasPointerCapture(e.pointerId))cv.releasePointerCapture(e.pointerId);
+ if(p.drag){const w=screenWorld(e.clientX,e.clientY);if(!p.lastTarget||Math.hypot(p.lastTarget.x-w.x,p.lastTarget.y-w.y)>2)moveTo(w.x,w.y,null,true)}else handleTap(e.clientX,e.clientY);
+});
 cv.addEventListener('pointercancel',()=>{pointer=null;stopWalking()});
 let keys={};const movementKeys=['w','a','s','d','W','A','S','D','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
 window.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)||els.modal.classList.contains('open')){if(e.key==='Escape')closeModal();return}if(movementKeys.includes(e.key)){e.preventDefault();keys[e.key]=true}if(e.key==='Escape'){stopWalking();placeDecor=null;if(fishPhase!=='idle')fishFailure('낚시 취소')}});
@@ -287,7 +302,7 @@ function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers))
  if(fishPhase==='bite'&&performance.now()>castUntil){fishFailure('물고기가 도망갔어요!');}
  if(fishPhase==='reel'){gaugePos+=dt*gaugeDir*1.36;if(gaugePos>1){gaugePos=1;gaugeDir=-1}if(gaugePos<0){gaugePos=0;gaugeDir=1}els.needle.style.left=`calc(${gaugePos*100}% - 2px)`}
   if(els.modal.classList.contains('open')){player.vx=player.vy=0;return}
-  if(pointer?.drag&&performance.now()-pointer.stamp>75){pointer.stamp=performance.now();const w=screenWorld(pointer.x,pointer.y);moveTo(w.x,w.y,null,true)}
+  // Pointer paths are updated from pointermove events, not a drifting frame loop.
   const kvx=Number(!!(keys.ArrowRight||keys.d||keys.D))-Number(!!(keys.ArrowLeft||keys.a||keys.A)),kvy=Number(!!(keys.ArrowDown||keys.s||keys.S))-Number(!!(keys.ArrowUp||keys.w||keys.W));
   if(kvx||kvy){if(fishPhase!=='idle')fishFailure('이동하여 낚시를 마쳤어요');stopWalking();const len=Math.hypot(kvx,kvy),target={x:player.x+kvx/len*190*dt,y:player.y+kvy/len*190*dt};if(navigation.clear(player,target)){const moved=navigation.advance(player,[target],dt);if(moved>0){player.vx=kvx/len*190;player.vy=kvy/len*190}}}
   else if(path.length){navigation.advance(player,path,dt);if(player.blocked){stopWalking();toast('길이 막혀 멈췄어요')}else if(!path.length)arrive();}
