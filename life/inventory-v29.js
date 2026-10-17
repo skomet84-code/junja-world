@@ -12,7 +12,7 @@ export const BAG_TIERS=Object.freeze([
  {level:7,slots:320,price:520000,name:'갓준자 전설 가방'}
 ].map(o=>Object.freeze(o)));
 export function bagUsed(s){
- const fields=[s.fishStock,s.materials,s.hunt?.materials,s.crafted];
+ const fields=[s.fishStock,s.materials,s.hunt?.materials,s.crafted,s.hunt?.potions];
  return fields.reduce((a,b)=>a+Object.values(b||{}).reduce((t,n)=>t+count(n),0),0);
 }
 export function initBag(s){
