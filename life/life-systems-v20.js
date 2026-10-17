@@ -883,11 +883,15 @@ export function reelChallenge(fish,rodId){
  const hits=[2,2,3,4,5,6];
  const baseWidth=widths[index]-Math.max(0,size-1.3)*.024;
  // Better rods widen the strike zone, but never remove the difficulty of boss fish.
- const width=Math.max(.075,Math.min(.6,baseWidth+rod.window*.45));
- return {width,hits:hits[index]+(size>2.5?1:0),
-  speed:1.12+index*.21+Math.max(0,size-1)*.12,
-  seconds:Math.max(11,22-index*2),
-  maxMisses:index>=4?2:index>=2?3:4,
+ const upgrade=Math.max(0,RODS.findIndex(r=>r.id===rod.id));
+ // A high-grade rod improves real play, not merely the rarity lottery:
+ // fewer successful reel taps, gentler speed, longer struggle and more errors.
+ const width=Math.max(.075,Math.min(.64,baseWidth+rod.window*.8));
+ const required=hits[index]+(size>2.5?1:0);
+ return {width,hits:Math.max(index>=4?3:1,required-Math.floor(upgrade/2)),
+  speed:Math.max(.76,1.12+index*.21+Math.max(0,size-1)*.12-upgrade*.065),
+  seconds:Math.max(11,22-index*2)+Math.floor(upgrade/2)*2,
+  maxMisses:(index>=4?2:index>=2?3:4)+Math.floor(upgrade/2),
   tier:index};
 }
 export function rewardForFish(f,rodId,levelBonus=0){
