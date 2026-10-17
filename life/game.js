@@ -69,6 +69,12 @@ function claimAttendance(){
  state.coins+=coins;save();hud();toast('🎟 출석 '+streak+'일차 · '+coins.toLocaleString('ko-KR')+'G');
  return coins;
 }
+// Explore the physical map to collect three daily location stamps.
+function dailyRallyStops(){
+ const choices=['pier','forest','workshop','quarry','boutique','home'];
+ const day=Math.floor(Date.UTC(...nowDay().split('-').map((v,i)=>i===1?Number(v)-1:Number(v)))/86400000);
+ return [0,1,2].map(i=>choices[(day+i*2)%choices.length]);
+}
 function openFestival(){
  ensureFestival();const a=state.attendance||{};
  openModal(`<span class="titlebadge">JUNJA VILLAGE FESTIVAL · ${state.festival.week}</span>
@@ -78,6 +84,14 @@ function openFestival(){
    <p>${a.last===nowDay()?'✅ 오늘 출석 완료 · '+(a.streak||1)+'일 연속':'오늘 출석 보상 수령 가능'} · 누적 ${a.total||0}일</p>
    <button id="festivalAttendance" ${a.last===nowDay()?'disabled':''}>출석 보상 받기</button>
   </div>
+  <h3>🗺️ 오늘의 탐험 스탬프</h3>
+  <p>마을 속 세 곳을 직접 방문해 도장을 모아보세요. 세 곳 완료 시 1,200G + 90XP</p>
+  <div class="pill-row">${dailyRallyStops().map(id=>{
+   const st=stations.find(x=>x.id===id),done=state.dailyVisits.includes(id);
+   return `<button class="pill-btn ${done?'':'ghost'}" data-rally="${id}">${done?'✅':'📍'} ${st?.name||id}</button>`;
+  }).join('')}</div>
+  <div class="mini-card"><strong>${dailyRallyStops().filter(id=>state.dailyVisits.includes(id)).length}/3곳 방문</strong>
+  <button id="festivalRallyClaim" ${state.festivalRallyDay===nowDay()||!dailyRallyStops().every(id=>state.dailyVisits.includes(id))?'disabled':''}>${state.festivalRallyDay===nowDay()?'✅ 오늘 탐험 완료':'스탬프 보상 수령'}</button></div>
   <h3>⭐ 주간 의뢰</h3>
   <div class="card-grid">${FESTIVAL_TASKS.map(q=>{
    const done=festivalProgress(q),claimed=state.festival.claimed.includes(q.id);
@@ -90,6 +104,12 @@ function openFestival(){
    <button id="festivalMuseum" ${state.festivalMuseumClaimed||new Set(state.collection).size<6?'disabled':''}>${state.festivalMuseumClaimed?'✅ 보상 받음':'컬렉션 보상 수령'}</button></div>
   <p style="font-size:12px;color:#627b68">돈을 모으면 프리미엄 아틀리에의 로열 코디 세트를 완성할 수 있어요.</p>`);
  document.getElementById('festivalAttendance').onclick=()=>{claimAttendance();openFestival()};
+ els.panelBody.querySelectorAll('[data-rally]').forEach(btn=>btn.onclick=()=>goStation(btn.dataset.rally));
+ document.getElementById('festivalRallyClaim').onclick=()=>{
+  if(state.festivalRallyDay===nowDay()||!dailyRallyStops().every(id=>state.dailyVisits.includes(id)))return;
+  state.festivalRallyDay=nowDay();state.coins+=1200;state.xp+=90;
+  save();hud();toast('🎉 오늘의 탐험 스탬프! +1,200G');openFestival();
+ };
  els.panelBody.querySelectorAll('[data-festival]').forEach(b=>b.onclick=()=>{
   const q=FESTIVAL_TASKS.find(x=>x.id===b.dataset.festival);
   if(!q||festivalProgress(q)<q.goal||state.festival.claimed.includes(q.id))return;
