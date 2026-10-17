@@ -47,7 +47,7 @@ function mobOverhead(root,model){
  under.position.z=1;under.scale.set(66,7,1);ui.add(under);
  const hp=new T.Mesh(barGeometry,new T.MeshBasicMaterial({color:model.boss?0xf6c875:0x93ddb0,depthWrite:false,depthTest:false}));
  hp.position.set(0,0,2);hp.scale.set(62,4.8,1);ui.add(hp);
- return {ui,hp,labelTexture:label.tex};
+ return {ui,hpFill:hp,labelTexture:label.tex};
 }
 let renderer,scene,camera,playerMesh,currentZone=null,areaIndex=0,worldDecor=null,monsters=[],fx=[],active=false;
 const VIEW_HEIGHT=650;
@@ -178,7 +178,7 @@ function clearZone(){
  for(const m of monsters){scene.remove(m.root);m.labelTexture?.dispose();m.root.traverse(o=>{if(o.material?.type==='SpriteMaterial'||o.material?.type==='MeshBasicMaterial'&&o.material.depthTest===false)o.material.dispose()})}
  monsters.length=0;target=null;
  if(worldDecor){scene.remove(worldDecor);worldDecor=null}
- for(const f of fx)scene.remove(f.mesh);fx.length=0;
+ for(const f of fx){scene.remove(f.mesh);if(f.mesh.geometry!==impactGeo)f.mesh.geometry.dispose();f.mesh.material.dispose()}fx.length=0;
 }
 function startZone(index){
  const zone=HUNT_ZONES[index];if(!zoneUnlocked(zone,level())){toast('Lv.'+zone.level+'부터 입장할 수 있어요');return}
@@ -246,11 +246,27 @@ function effect(x,z,color=0xfbe7a9){
  const mesh=new T.Mesh(new T.RingGeometry(12,15,32),new T.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false,side:T.DoubleSide}));
  mesh.position.set(x,2,z);mesh.rotation.x=-Math.PI/2;scene.add(mesh);fx.push({mesh,ttl:.42});
 }
+function hitBurst(x,z,critical=false){
+ // Reuses a tiny low-poly shared geometry. Transient mesh count is bounded on mobile.
+ const count=critical?13:7;
+ for(let i=0;i<count&&fx.length<110;i++){
+  const angle=(i/count)*Math.PI*2+Math.random()*.38;
+  const color=critical?0xffd37f:i%3===0?0xfff7d1:i%3===1?0xa9eee5:0xf6b5de;
+  const mesh=new T.Mesh(impactGeo,new T.MeshBasicMaterial({color,transparent:true,opacity:.92,depthWrite:false}));
+  mesh.position.set(x+Math.cos(angle)*8,36+Math.random()*23,z+Math.sin(angle)*9);
+  mesh.scale.setScalar(critical?4:3);
+  scene.add(mesh);
+  fx.push({mesh,ttl:.40,life:.40,velocity:new T.Vector3(Math.cos(angle)*(critical?110:78),(critical?95:70)+Math.random()*45,Math.sin(angle)*(critical?110:78))});
+ }
+ const stroke=new T.Mesh(new T.TorusGeometry(critical?45:33,critical?4.5:3.2,6,35,Math.PI*1.55),new T.MeshBasicMaterial({color:critical?0xffe2a1:0xe7fff1,transparent:true,opacity:.93,depthWrite:false,side:T.DoubleSide}));
+ stroke.rotation.set(Math.PI*.38,0,-.46);stroke.position.set(x,39,z);scene.add(stroke);
+ fx.push({mesh:stroke,ttl:.30,life:.30,slash:true});
+}
 function mobHit(m,damage){
  if(!m||m.hp<=0)return;
- const critical=Math.random()<.09,amount=Math.max(1,Math.round(damage*(critical?1.5:1)));
+ const critical=Math.random()<.14,amount=Math.max(1,Math.round(damage*(critical?1.5:1)));
  m.hp=Math.max(0,m.hp-amount);m.lastHit=performance.now();m.hitFlashUntil=m.lastHit+260;m.hitCount++;
- const hpRatio=healthRatio(m);m.hp.scale.x=62*hpRatio;m.hp.position.x=-31*(1-hpRatio);
+ const hpRatio=healthRatio(m);m.hpFill.scale.x=62*hpRatio;m.hpFill.position.x=-31*(1-hpRatio);
  effect(m.x,m.z,m.model.boss?0xffd484:0xe8ffca);
  hitBurst(m.x,m.z,critical||m.model.boss);
  screenShake=Math.min(6.5,screenShake+(critical?4.1:1.5));
@@ -291,6 +307,7 @@ function skillUse(id){
  const affected=id==='strike'?[selected]:monsters.filter(m=>m.hp>0&&m.root.visible&&Math.hypot(m.x-center.x,m.z-center.z)<=(skill.aoe||160));
  for(const mob of affected)mobHit(mob,damage);
  effect(center.x,center.z,id==='star'?0xe9b5ff:id==='whirl'?0xb5ebef:0xfbe099);
+ for(let n=0;n<(id==='star'?3:1);n++)hitBurst(center.x+Math.cos(n*2.1)*19,center.z+Math.sin(n*2.1)*19,id==='star');
  if(id==='star')floatNumber(center.x,center.z,'✨ 별빛 폭발','#ffd2ff');
  updateHud();
 }
@@ -345,7 +362,7 @@ function update(time,dt){
   mob.body.position.y=Math.sin(time*(mob.model.boss?1.4:2.7)+mob.index)*2.5+hitRemaining*13;
   mob.body.rotation.z=Math.sin(time*1.5+mob.index)*.035+hitRemaining*(mob.index%2?-.13:.13);
   mob.ui.quaternion.copy(camera.quaternion);
-  if(mob.hp>0)mob.hp.material.color.setHex(hitRemaining>.05?0xffe7a1:mob.model.boss?0xf6c875:0x93ddb0);
+  if(mob.hp>0)mob.hpFill.material.color.setHex(hitRemaining>.05?0xffe7a1:mob.model.boss?0xf6c875:0x93ddb0);
   if(d<70&&now>mob.attackAt&&now>hero.hurtAt+350){
    mob.attackAt=now+(mob.model.boss?2200:2550);hero.hurtAt=now;
    const amount=enemyDamage(areaIndex,mob.model.boss,level());
@@ -358,8 +375,13 @@ function update(time,dt){
    }
   }
  }
- for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.ttl-=dt;f.mesh.scale.multiplyScalar(1+dt*4);
-  f.mesh.material.opacity=Math.max(0,f.ttl/.42);if(f.ttl<=0){scene.remove(f.mesh);f.mesh.geometry.dispose();f.mesh.material.dispose();fx.splice(i,1)}}
+ for(let i=fx.length-1;i>=0;i--){
+  const f=fx[i];f.ttl-=dt;
+  if(f.velocity){f.mesh.position.addScaledVector(f.velocity,dt);f.velocity.y-=190*dt;f.mesh.rotation.y+=dt*8}
+  else f.mesh.scale.multiplyScalar(1+dt*(f.slash?1.2:4));
+  f.mesh.material.opacity=Math.max(0,f.ttl/(f.life||.42));
+  if(f.ttl<=0){scene.remove(f.mesh);if(f.mesh.geometry!==impactGeo)f.mesh.geometry.dispose();f.mesh.material.dispose();fx.splice(i,1)}
+}
  camera.position.lerp(new T.Vector3(hero.x,285,hero.z+450),Math.min(1,dt*9));
  camera.lookAt(hero.x,40,hero.z);
  if(screenShake>.08){const j=screenShake*.6;camera.position.x+=Math.sin(now*.11)*j;camera.position.y+=Math.cos(now*.17)*j*.45;camera.lookAt(hero.x,40,hero.z);screenShake=Math.max(0,screenShake-dt*26)}
