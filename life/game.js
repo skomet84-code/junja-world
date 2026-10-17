@@ -129,7 +129,11 @@ function lifePerkGuide(){
  return [['Lv.3','채집 재료 +1개',3],['Lv.4','수확 수입 +12G',4],['Lv.6','교역 납품 +25G',6],['Lv.8','낚시 수입 +15G',8]].map(([label,name,need])=>'<p>'+(lv>=need?'✅':'🔒')+' '+label+' · '+name+'</p>').join('');
 }
 function initJourney(){
- if(!walkable(player.x,player.y)){player.x=1050;player.y=955}camera.x=player.x;camera.y=player.y;
+ // Old saved positions may be inside newer buildings/trees. Ensure avatar-width clearance.
+ if(!navigation.safe(player)){
+  const fixed=navigation.nearest(player,288)||navigation.nearest({x:1050,y:955},288);
+  if(fixed){player.x=fixed.x;player.y=fixed.y;player.vx=player.vy=0;save()}
+ }camera.x=player.x;camera.y=player.y;
  els.welcome.textContent='준자마을 · 작고 다정한 하루';
  els.hint.textContent='터치: 목적지 이동 · 꾹 누르고 드래그: 방향 변경';
  document.querySelector('.eyebrow').textContent='✦ 나의 생활 목표';
@@ -216,8 +220,25 @@ function pathfind(from,to){return navigation.route(from,to)}
 function stopWalking(){path=[];goal=null;popup=null;player.vx=player.vy=0;}
 function moveTo(x,y,arrival,quiet=false){
  if(fishPhase!=='idle')fishFailure('이동하여 낚시를 마쳤어요');
- const way=pathfind(player,{x,y});if(!way.length){stopWalking();if(!quiet)toast('길이 막혀 있어요. 가까운 길을 선택해주세요');return false}
- path=way;goal={...way[way.length-1]};popup=arrival||null;els.hint.classList.add('hidden');return true;
+ if(!Number.isFinite(x)||!Number.isFinite(y)){if(!quiet)toast('이동 위치를 찾지 못했어요');return false}
+ if(!navigation.safe(player)){
+  const safe=navigation.nearest(player,288)||navigation.nearest({x:1050,y:955},288);
+  if(safe){player.x=safe.x;player.y=safe.y;player.vx=player.vy=0;save()}
+ }
+ if(Math.hypot(x-player.x,y-player.y)<9){stopWalking();return true}
+ const way=pathfind(player,{x,y});
+ if(!way.length){
+  stopWalking();
+  if(!quiet)toast('여기서는 길이 이어지지 않아요. 길 쪽을 터치해주세요');
+  return false;
+ }
+ path=way;goal={...way[way.length-1]};
+ const snapped=Math.hypot(goal.x-x,goal.y-y);
+ // Never repeatedly reopen an unreachable shop when the user is only able to
+ // approach a wall. Station callbacks require arriving near the actual entrance.
+ popup=arrival&&snapped<70?arrival:null;
+ if(!quiet&&snapped>70)toast('가까이 갈 수 있는 길까지 이동할게요');
+ els.hint.classList.add('hidden');return true;
 }
 function arrive(){const p=popup;popup=null;goal=null;player.vx=player.vy=0;if(!p)return;
  if(p.type==='action')interaction(p.kind);
