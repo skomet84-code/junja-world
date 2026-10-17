@@ -18,12 +18,12 @@ try{
  await ready();browser=await chromium.launch({headless:true,args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader']});
  const normal=await makePage();
  const first=await normal.evaluate(()=>window.__JUNJA_TEST__.getState().nickname);
- assert.match(first,/^새싹\\d{4}$/,'new visitors must not be named 마을주민');
+ assert.match(first,/^새싹\d{4}$/,'new visitors must not be named 마을주민');
  assert.equal(await normal.evaluate(()=>window.__JUNJA_TEST__.getRenderer().faceCameraElevation),32);
  assert(await normal.evaluate(()=>document.getElementById('name').textContent)===first);
  await normal.close();
  const legacy=await makePage({'junja-village-nickname':'마을주민1234'});
- assert.match(await legacy.evaluate(()=>window.__JUNJA_TEST__.getState().nickname),/^새싹\\d{4}$/,'migrate generic nick');
+ assert.match(await legacy.evaluate(()=>window.__JUNJA_TEST__.getState().nickname),/^새싹\d{4}$/,'migrate generic nick');
  await legacy.close();
  const saved=await makePage({'junja-village-nickname':'친구Q'});
  assert.equal(await saved.evaluate(()=>window.__JUNJA_TEST__.getState().nickname),'친구Q','keep custom nickname');
