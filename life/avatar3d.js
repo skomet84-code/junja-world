@@ -1,4 +1,6 @@
 import * as T from './vendor/three.module.js';
+import {CATALOG_BY_ID} from './fashion-catalog.js';
+import {renderHair,renderAccessory,decorateOutfit} from './fashion-3d.js';
 
 // Original Junja clay character. Every wearable is real geometry on the same rig.
 const skin = new T.MeshStandardMaterial({color:0xf3c5a0,roughness:.82});
@@ -21,6 +23,10 @@ function clear(g){for(const child of [...g.children]){g.remove(child);child.trav
 const sharedGeometries={sphere,cylinder};function capsuleCacheHas(g){return [...capsuleCache.values()].includes(g)}
 const palette={mint:0x79ab8f,blue:0x699fba,rose:0xd597a6,amber:0xd5a15b,lavender:0xa496c6,coral:0xdd987a,navy:0x485c79,cream:0xe7d6b2,forest:0x638960,pink:0xe5a9bf,linen:0xd8c7a6};
 const outfits={};for(const [id,color] of Object.entries(palette))outfits[id]={main:mat(color),dark:mat(new T.Color(color).multiplyScalar(.78)),light:mat(new T.Color(color).lerp(new T.Color(0xfff3d7),.45))};
+for(const item of Object.values(CATALOG_BY_ID))if(item.type==='outfit'){
+ outfits[item.id]={main:mat(item.color),dark:mat(new T.Color(item.color).multiplyScalar(.76)),
+ light:mat(item.accent)};
+}
 const pants=mat(0xa1947b),gold=mat(0xe4bc62),ribbonMat=mat(0xc67493),strawMat=mat(0xe6c58b);
 
 export function createAvatar({coat='mint',hat='none',animal=null}={}){
@@ -47,6 +53,8 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   for(let i=0;i<5;i++){const lock=ball(hair,hairMat,-14+i*7,25+Math.sin(i)*3,-4,9,7,10);lock.rotation.z=(i-2)*.16}
  }
  const hatSocket=group(head,0,24),garment=group(torso),limbs=[];
+ const newHair=group(head),accHead=group(head),accTorso=group(torso),accPelvis=group(pelvis);
+ let fashionHair=null,fashionAccessory=null;
  for(const side of [-1,1]){
   const arm=group(torso,side*17,24),elbow=group(arm,0,-15),armCloth=group(arm),foreCloth=group(elbow);
   tube(arm,skin,4.3,17,0,-7,0);tube(elbow,skin,3.7,15,0,-6,0);ball(elbow,skin,0,-14,0,4.5,5,4.5);
@@ -63,7 +71,8 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
  function equip(nextCoat,nextHat){
   if(equipped.coat!==nextCoat){
    equipped.coat=nextCoat;clear(garment);const cloth=outfits[nextCoat]||outfits.mint;
-   const dress=['lavender','pink'].includes(nextCoat);
+   const item=CATALOG_BY_ID[nextCoat]?.type==='outfit'?CATALOG_BY_ID[nextCoat]:null;
+    const dress=['lavender','pink'].includes(nextCoat)||['dress','robe','royal'].includes(item?.shape);
    // One shell replaces the visible torso; sleeves share the exact shoulder/elbow hierarchy.
    body.visible=false;
    // Tailored one-piece torso mesh: soft continuous shoulders, waist and hem instead of a pasted-on sphere.
@@ -77,6 +86,7 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
    for(const y of [18,11,4])ball(garment,gold,0,y,15.5,1.35,1.35,.9);
    // Garment details are rig-local: no separate paper-doll planes or misaligned image cutouts.
    const details=group(garment);details.name='outfit-details';
+    if(item)decorateOutfit(details,item);
    const belt=(color,r=15.4,y=2)=>{const ring=new T.Mesh(new T.TorusGeometry(r,.95,6,36),color);ring.rotation.x=Math.PI/2;ring.position.y=y;details.add(ring);return ring};
    if(nextCoat==='navy'){
     belt(gold,15.2,1);
@@ -110,7 +120,7 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
    }else if(nextCoat==='mint'){
     for(const side of [-1,1])ball(details,cloth.light,side*7,24,14.2,4.5,5,2);
    }
-   const legMaterial=dress?outfits.cream.light:nextCoat==='navy'?outfits.navy.dark:nextCoat==='blue'?outfits.blue.dark:nextCoat==='forest'?outfits.forest.dark:pants;
+   const legMaterial=item?outfits[nextCoat].dark:dress?outfits.cream.light:nextCoat==='navy'?outfits.navy.dark:nextCoat==='blue'?outfits.blue.dark:nextCoat==='forest'?outfits.forest.dark:pants;
    for(const limb of limbs){limb.upperPant.material=legMaterial;limb.lowerPant.material=legMaterial;clear(limb.armCloth);clear(limb.foreCloth);
     ball(limb.armCloth,cloth.main,0,-2.5,0,7.2,7.2,7.2); // joined shoulder cap
     tube(limb.armCloth,cloth.main,5.9,19,0,-7.5,0);
@@ -134,6 +144,19 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
     ball(hatSocket,m,nextHat==='beret'?-3:0,0,0,25,10,23);disc(hatSocket,nextHat==='captain'?outfits.navy.main:m,0,-5,0,23,3);
     if(nextHat==='beanie')ball(hatSocket,white,0,10,0,5);if(nextHat==='captain'||nextHat==='navycap'){ball(hatSocket,m,0,-5,18,21,2,12);ball(hatSocket,gold,0,1,23,3,3,1)}}
   }
+ }
+ function setFashion({hair:hairId=null,accessory:accId=null}={}){
+  const h=CATALOG_BY_ID[hairId]?.type==='hair'?hairId:null;
+  const a=CATALOG_BY_ID[accId]?.type==='accessory'?accId:null;
+  if(fashionHair!==h){fashionHair=h;clear(newHair);if(h)renderHair(newHair,CATALOG_BY_ID[h])}
+  if(fashionAccessory!==a){
+   fashionAccessory=a;clear(accHead);clear(accTorso);clear(accPelvis);
+   if(a)renderAccessory({head:accHead,torso:accTorso,pelvis:accPelvis},CATALOG_BY_ID[a]);
+  }
+  const showOriginal=!fashionHair;
+  hair.visible=showOriginal&&(equipped.hat==='none'||['crown','cat','ribbon'].includes(equipped.hat));
+  bangs.visible=showOriginal;
+  newHair.visible=!['straw','flower','beret','beanie','navycap','captain'].includes(equipped.hat);
  }
  let angle=0,lastDistance=0,blend=0;root.userData.rig={pelvis,torso,head,hatSocket,garment,limbs};
  function animate({x,y,vx=0,vy=0,dir=0,stride=0},dt,time){
@@ -160,5 +183,5 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
  function dispose(){
   root.traverse(o=>{if(o.geometry&&!Object.values(sharedGeometries).includes(o.geometry)&&!capsuleCacheHas(o.geometry))o.geometry.dispose()});
  }
- equip(coat,hat);return {root,equip,animate,dispose,equipped,rig:root.userData.rig};
+ equip(coat,hat);return {root,equip,setFashion,animate,dispose,equipped,rig:root.userData.rig};
 }
