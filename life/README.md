@@ -1,3 +1,24 @@
+# JUNJA VILLAGE LIFE v16 — 3D character / touch preview (2026-10-17)
+
+> This is an experimental **branch preview**, not the live JUNJA LAND or Adventure build.
+
+[Open v16 preview](https://raw.githack.com/skomet84-code/junja-world/junja-village-life-v16/life/index.html)
+
+## What changed since v15
+
+- Tap to navigate to a fixed world-space target; finger drag now replans only when the finger actually moves. Standing still while the camera follows no longer shifts the destination.
+- Improved the 3D character's wearable torso and joined shoulder/elbow sleeve geometry with shared-joint gait, including softly flared dresses. The same rig drives walking, wardrobe preview and villagers.
+- On mobile WebGL initialization/context loss, the screen now surfaces a useful error instead of only blank output.
+- Added 110 outfit/hat regression combinations and exact-arrival/zero-inertia movement tests.
+
+## Check before promoting
+
+Run `cd life && npm test` on Node.js 22+. Static syntax and navigation logic have been checked. **Actual Safari/WebGL visual QA has not yet been run in this session.** On device, check: map entry, tap destination stop, stationary finger drag while camera follows, obstacle detours, wardrobe rotation/walk preview, linen crafted shirt, dress hems, relaunch with saved progress, and phone overheating/frame rate.
+
+The original v1 notes are retained below for background; they do not describe the complete v16 prototype.
+
+---
+
 # JUNJA VILLAGE LIFE v1.0 — playable integrated prototype
 
 독창적인 2.5D 일러스트 스타일의 낚시·농사·생활형 온라인 마을 게임 **플레이 가능한 통합 테스트 버전**입니다.
