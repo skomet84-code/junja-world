@@ -12,6 +12,8 @@ const A={};
 const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
 let saved={};try{saved=JSON.parse(localStorage.getItem('junja-harbor-v1')||'{}')}catch{}
 const state={...seedData,...saved};state.x=Math.max(180,Math.min(W-85,state.x||1050));state.y=Math.max(180,Math.min(H-85,state.y||955));if(!Array.isArray(state.collection))state.collection=[];
+state.fishRecords=state.fishRecords&&typeof state.fishRecords==='object'&&!Array.isArray(state.fishRecords)?state.fishRecords:{};
+state.seasonBadges=Array.isArray(state.seasonBadges)?state.seasonBadges:[];
 if(!['spring','summer','autumn','winter'].includes(state.season))state.season='spring';
 const seasonLabels={spring:'🌸 봄',summer:'🌿 여름',autumn:'🍂 가을',winter:'❄️ 겨울'};
 const nowDay=()=>new Date().toLocaleDateString('en-CA');
@@ -778,6 +780,23 @@ function openFishingGear(){
  });
  document.getElementById('openAquariumFromGear').onclick=openAquarium;
 }
+function openFishProfile(name){
+ const fish=FISH_BY_NAME[name];if(!fish)return;
+ const caught=state.collection.includes(name),record=state.fishRecords[name];
+ if(!caught){toast('아직 발견하지 못한 물고기예요');return}
+ const knownSeasons=[...new Set([realSeason(),...[]])].filter(Boolean);
+ const rank=FISH.findIndex(f=>f.name===name)+1;
+ const gradeColor={common:'#79a58c',fine:'#6d9cc5',rare:'#986dcb',hero:'#c68c3d',legend:'#d5ac4c',mythic:'#976bca'}[fish.tier]||'#79a58c';
+ openModal('<span class="titlebadge">SEA MUSEUM · SPECIMEN NO. '+String(rank).padStart(3,'0')+'</span>'+
+  '<h2>🐠 '+fish.name+'</h2><div class="specimen-portrait" style="--rarity:'+gradeColor+'">'+fishArt(name,260)+
+  '<div class="specimen-shine">✦ '+fish.rarity+' ✦</div></div>'+
+  '<div class="mini-card"><strong>📖 도감 표본 기록</strong><p>분류 '+fish.rarity+' · 등장 권장 레벨 '+fish.minLevel+' · 기본 가치 '+fish.base.toLocaleString('ko-KR')+'G</p>'+
+  '<p>포획 누적 '+state.collection.filter(n=>n===name).length+'마리 · 최고 길이 '+(record?.bestCm?record.bestCm+'cm':'이전 버전 포획 기록')+
+  '</p><p>최근 크기 '+(record?.lastCm?record.lastCm+'cm':'기록 없음')+' · 첫 등록 '+(record?.firstAt||'업데이트 이전')+'</p>'+
+  '<p>서식 환경: '+(fish.tier==='mythic'?'심해 특별 해역':fish.tier==='legend'?'먼바다 전설 수역':fish.size>1.7?'깊은 바다':'연안·내해')+'</p></div>'+
+  '<button class="pill-btn" id="fishProfileBack">🐠 전시관으로 돌아가기</button>');
+ document.getElementById('fishProfileBack').onclick=openAquarium;
+}
 let aquariumFilter='all',aquariumPage=0;
 function openAquarium(){
  const available=new Set(state.collection.filter(n=>FISH_BY_NAME[n]));
@@ -789,9 +808,13 @@ function openAquarium(){
  }
  const display=state.aquarium.display;
  const tank=`<div class="aquarium-stage">
-  <div class="aquarium-bubbles">◌　◦　◌　◦</div>
-  ${display.map((name,i)=>`<div class="aquarium-fish" style="top:${22+(i%3)*23}%;left:${7+(i%4)*18}%;animation-delay:-${i*.8}s">${fishArt(name,120)}</div>`).join('')}
-  <div class="aquarium-ground">✧　🪸　☘　🪨　🐚　✧</div>
+  <div class="aquarium-water-rays"></div><div class="aquarium-bubbles">◌　◦　◌　◦　○</div>
+  <div class="aquarium-backdrop">⌇　　🌿　　⌇　　🪸　⌇</div>
+  ${display.map((name,i)=>{const f=FISH_BY_NAME[name],size=Math.min(115,65+(f.size||1)*24);
+   return `<div class="aquarium-fish" style="top:${10+(i%3)*25}%;left:${2+(i%4)*24}%;--float-delay:-${i*.74}s;--float-seconds:${4+(i%5)*1.1}s;--fish-size:${size}px" title="${name}">${fishArt(name,Math.round(size*1.5))}</div>`;
+  }).join('')}
+  <div class="aquarium-stones">🪸　　　🌱　　　🪨　　　🐚　　🌿</div>
+  <div class="aquarium-ground"><span>JUNJA OCEAN MUSEUM</span><span>${display.length} SPECIMENS · ${state.season.toUpperCase()}</span></div>
  </div>`;
  openModal(`<span class="titlebadge">MY AQUARIUM</span><h2>🐠 나만의 어항 컬렉션</h2>
   <p>발견한 물고기를 수족관에 배치해요. 전시해도 보유 기록은 없어지지 않아요.</p>
@@ -804,6 +827,7 @@ function openAquarium(){
    const caught=available.has(f.name),placed=display.includes(f.name);
    return `<div class="aquarium-item ${caught?'':'locked'}">${fishArt(f.name,100)}
     <strong>${caught?f.name:'미발견 물고기'}</strong><small>${f.rarity} · Lv.${f.minLevel} 해금 · ${f.size>=1.7?'🐋 대형 · ':''}${state.collection.filter(x=>x===f.name).length}마리 기록</small>
+    ${caught?`<small>🏆 최고 ${state.fishRecords[f.name]?.bestCm||'—'}cm</small><button data-fishprofile="${f.name}" class="specimen-info">🔍 도감 상세</button>`:''}
     <button data-fish="${f.name}" ${!caught?'disabled':''}>${placed?'전시 해제':'어항에 전시'}</button></div>`;
   }).join('')}</div>
   <div class="pill-row"><button id="aquariumPrev" class="pill-btn ghost" ${aquariumPage<=0?'disabled':''}>← 이전</button>
@@ -813,6 +837,7 @@ function openAquarium(){
  els.panelBody.querySelectorAll('[data-fishfilter]').forEach(btn=>btn.onclick=()=>{aquariumFilter=btn.dataset.fishfilter;aquariumPage=0;openAquarium()});
  document.getElementById('aquariumPrev').onclick=()=>{aquariumPage=Math.max(0,aquariumPage-1);openAquarium()};
  document.getElementById('aquariumNext').onclick=()=>{aquariumPage++;openAquarium()};
+ els.panelBody.querySelectorAll('[data-fishprofile]').forEach(btn=>btn.onclick=()=>openFishProfile(btn.dataset.fishprofile));
  els.panelBody.querySelectorAll('[data-fish]').forEach(btn=>btn.onclick=()=>{
   const name=btn.dataset.fish;if(!available.has(name))return;
   const index=state.aquarium.display.indexOf(name);
@@ -858,6 +883,15 @@ function fishingAction(){
    const f=hookedFish,money=rewardForFish(f,state.fishingGear.equipped,lifeBonus('fish'));
    const isFirst=!state.collection.includes(f.name);
    state.fish++;state.dailyFish++;state.collection.push(f.name);
+   const fishLength=Math.round((18+(f.size||1)*37)*(0.78+Math.random()*.72)*10)/10;
+   const previous=state.fishRecords[f.name]||{};
+   state.fishRecords[f.name]={
+    count:(previous.count||0)+1,
+    bestCm:Math.max(Number(previous.bestCm)||0,fishLength),
+    lastCm:fishLength,
+    firstAt:previous.firstAt||nowDay(),
+    recordWeightKg:Math.round(Math.pow(fishLength/51,2.65)*10)/10
+   };
    if(!state.dailyFishNames.includes(f.name))state.dailyFishNames.push(f.name);
    state.xp+=32+reelProfile.tier*17+(isFirst?30:0);
    state.coins+=money;hud();save();completeDaily();checkAchievements();
