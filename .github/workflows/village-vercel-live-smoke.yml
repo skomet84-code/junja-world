@@ -1,0 +1,69 @@
+name: Junja Village Public URL Smoke
+on:
+  push:
+    branches: [junja-village-vercel-online-v1]
+  workflow_dispatch:
+
+jobs:
+  test-public-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check public HTML, WebGL scripts and real WebSocket connections
+        env:
+          SITE: https://junja-village-friends.vercel.app
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const base=process.env.SITE;
+          const abort=(ms=15000)=>AbortSignal.timeout(ms);
+          const html=await fetch(base+'/',{signal:abort()});
+          const text=await html.text();
+          console.log('HTML',html.status,html.url,'bytes',text.length,'head',text.slice(0,150));
+          assert.equal(html.status,200,'public homepage should not be a 404, 401 or Vercel protection page');
+          assert(text.includes('fittingHost')||text.includes('준자마을'),'homepage should contain the village');
+          for(const path of ['/game.js','/world3d.js','/vendor/three.module.js']){
+            const response=await fetch(base+path,{signal:abort()});
+            console.log('SCRIPT',path,response.status,response.headers.get('content-type'));
+            assert.equal(response.status,200,'static asset is missing: '+path);
+          }
+          function makeConnection(name){
+            const ws=new WebSocket(base.replace(/^http/,'ws')+'/api/ws');
+            const inbox=[],waiting=[];
+            const receive=(type)=>new Promise((resolve,reject)=>{
+              const old=inbox.findIndex(x=>x.type===type);
+              if(old>=0){resolve(inbox.splice(old,1)[0]);return;}
+              let timer;const entry={type,resolve:(v)=>{clearTimeout(timer);resolve(v)}};
+              waiting.push(entry);
+              timer=setTimeout(()=>{waiting.splice(waiting.indexOf(entry),1);reject(new Error('Timed out waiting for '+type+' for '+name))},12000)
+            });
+            ws.addEventListener('message',e=>{
+              const msg=JSON.parse(e.data),index=waiting.findIndex(x=>x.type===msg.type);
+              if(index>=0)waiting.splice(index,1)[0].resolve(msg);else inbox.push(msg);
+            });
+            const opened=new Promise((resolve,reject)=>{
+              const timer=setTimeout(()=>reject(new Error(name+' public WebSocket open timeout')),15000);
+              ws.addEventListener('open',()=>{clearTimeout(timer);resolve()},{once:true});
+              ws.addEventListener('error',()=>{clearTimeout(timer);reject(new Error(name+' public WebSocket connection error'))},{once:true})
+            });
+            return {ws,opened,receive}
+          }
+          const a=makeConnection('first player');
+          await a.opened;
+          a.ws.send(JSON.stringify({type:'join',room:'SMOKEQA',nick:'첫번째',x:1050,y:955,coat:'mint',hat:'none',dir:0,fashion:{}}));
+          const wa=await a.receive('welcome');
+          assert(wa.id);
+          const b=makeConnection('second player');
+          await b.opened;
+          b.ws.send(JSON.stringify({type:'join',room:'SMOKEQA',nick:'두번째',x:1050,y:955,coat:'mint',hat:'none',dir:0,fashion:{hair:'fashion_hair_01'}}));
+          const wb=await b.receive('welcome');
+          const arrival=await a.receive('join');
+          assert.equal(arrival.player.nick,'두번째');
+          assert.equal(arrival.player.fashion.hair,'fashion_hair_01');
+          assert.equal(wb.players.length,1,'two connections must land in the same room');
+          a.ws.close();b.ws.close();
+          console.log('PASS public village with shared same-room multiplayer');
+          NODE
