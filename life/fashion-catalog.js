@@ -1206,7 +1206,7 @@ export const CATALOG=Object.freeze([
   "bonus": 12,
   "index": 19
  }
-].map(item=>Object.freeze(item)));
+].map(item=>Object.freeze({...item,price:Math.round(item.price*({common:8,fine:7,rare:6,hero:5,legend:4,mythic:3}[item.grade]||5))})));
 export const CATALOG_BY_ID=Object.freeze(Object.fromEntries(CATALOG.map(item=>[item.id,item])));
 export const CATEGORIES=Object.freeze([
  {id:'hair',label:'헤어',icon:'💇'}, {id:'outfit',label:'의상',icon:'👗'},
