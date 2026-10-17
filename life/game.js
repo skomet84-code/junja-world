@@ -323,7 +323,7 @@ function updateJourney(force=false){
 }
 function openJourney(){
  const q=chapters[state.chapter];
- openModal(`<span class="titlebadge">MY LIFE · ${Math.min(CHAPTER_COUNT,state.chapter+1)} / ${CHAPTER_COUNT}</span><h2>나의 마을 생활</h2><p>생활 · 낚시 · 사냥 · 꾸미기 · 주민 교류 · 장기 성장</p>${q?`<div class="mini-card"><strong>${q.title}</strong><p>${q.desc}</p><div class="mini-progress"><i style="width:${q.done()/q.total*100}%"></i></div><p>${q.done()} / ${q.total} · 보상 ${q.reward}G + 경험치 ${q.xp||60}</p><button id="journeyGo">${(stations.find(s=>s.id===q.station)?.icon||'🌿')} 목적지까지 걷기</button><button id="journeyClaim" ${q.done()<q.total?'disabled':''}>보상 받고 다음 목표</button></div>`:'<div class="mini-card"><strong>🎉 생활 장인 달성!</strong><p>자유롭게 채집·제작·꾸미기를 즐기고 일일 의뢰도 도전해요.</p></div>'}<h3>나의 성장 혜택 · Lv.${lifeLevel()}</h3>${lifePerkGuide()}<h3>걸어온 길</h3>${chapters.map((c,i)=>`<p>${i<state.chapter?'✅':i===state.chapter?'▶':'▫️'} ${i+1}. ${c.title}</p>`).join('')}<div class="pill-row"><button class="pill-btn" id="journeyMap">마을 지도</button><button class="pill-btn ghost" id="journeyDaily">일일 의뢰 / 업적</button><button class="pill-btn ghost" id="journeyHelp">조작법</button></div>`);
+ openModal(`<span class="titlebadge">MY LIFE · ${Math.min(CHAPTER_COUNT,state.chapter+1)} / ${CHAPTER_COUNT}</span><h2>나의 마을 생활</h2><p>생활 · 낚시 · 사냥 · 꾸미기 · 주민 교류 · 장기 성장</p>${q?`<div class="mini-card"><strong>${q.title}</strong><p>${q.desc}</p><div class="mini-progress"><i style="width:${q.done()/q.total*100}%"></i></div><p>${q.done()} / ${q.total} · 보상 ${q.reward}G + 경험치 ${q.xp||60}</p><button id="journeyGo">${(stations.find(s=>s.id===q.station)?.icon||'🌿')} 목적지까지 걷기</button><button id="journeyClaim" ${q.done()<q.total?'disabled':''}>보상 받고 다음 목표</button></div>`:'<div class="mini-card"><strong>🎉 생활 장인 달성!</strong><p>자유롭게 채집·제작·꾸미기를 즐기고 일일 의뢰도 도전해요.</p></div>'}<h3>나의 성장 혜택 · Lv.${lifeLevel()}</h3>${lifePerkGuide()}<h3>🏅 나의 칭호 · ${villageTitle(state.chapter)}</h3><p>50장 이후에도 월간 기록과 마을 평판은 계속 성장해요.</p><h3>걸어온 길</h3>${chapters.map((c,i)=>`<p>${i<state.chapter?'✅':i===state.chapter?'▶':'▫️'} ${i+1}. ${c.title}</p>`).join('')}<div class="pill-row"><button class="pill-btn" id="journeyMap">마을 지도</button><button class="pill-btn ghost" id="journeyDaily">일일 의뢰 / 업적</button><button class="pill-btn ghost" id="journeyHelp">조작법</button></div>`);
  if(q){document.getElementById('journeyGo').onclick=()=>goStation(q.station);document.getElementById('journeyClaim').onclick=()=>{if(chapters[state.chapter]!==q||q.done()<q.total)return;state.chapter++;state.coins+=q.reward;state.xp+=(q.xp||60);save();hud();updateJourney(true);toast('생활 목표 완료! +'+q.reward+'G');openJourney()}}
  document.getElementById('journeyMap').onclick=openWorldMap;document.getElementById('journeyDaily').onclick=openJournal;document.getElementById('journeyHelp').onclick=guide;
 }
@@ -669,12 +669,53 @@ function openSaveVault(){
   try{restore({format:'junja-village-backup',version:1,nickname,owned:previous.owned||[],state:backup})}catch(err){toast('⚠️ '+err.message)}
  };
 }
-function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button><button class="pill-btn" id="journalVault">🗂️ 저장 백업</button><button class="pill-btn" id="journalCalendar">📅 월간 목표</button></div><p class="item-note">접속 기기 브라우저에 자동 저장됩니다. 온라인 계정 연동은 추후 서버 배포가 필요합니다.</p>`);
+const REPUTATION_REWARDS=[
+ {stars:2,score:120,coins:1000},
+ {stars:3,score:300,coins:3000},
+ {stars:4,score:540,coins:8000},
+ {stars:5,score:840,coins:20000}
+];
+function villageReputation(){
+ const fishUnique=new Set(state.collection).size;
+ const neighbors=Object.values(state.friends||{}).reduce((a,n)=>a+(Number(n)||0),0)+Object.values(state.animalBonds||{}).reduce((a,o)=>a+(Number(o?.love)||0),0);
+ const score=Math.round(
+  Math.min(170,fishUnique*6)+Math.min(180,state.chapter*5)+
+  Math.min(170,state.decorations.length*12)+Math.min(120,neighbors*3)+
+  Math.min(160,(state.hunt?.kills||0)*2)+Math.min(90,state.home.level*23)+
+  Math.min(100,(state.attendance?.total||0)*3));
+ const stars=1+REPUTATION_REWARDS.filter(r=>score>=r.score).length;
+ return {score,stars,fishUnique,neighbors};
+}
+function openReputation(){
+ const rank=villageReputation();
+ state.reputationRewards=Array.isArray(state.reputationRewards)?state.reputationRewards:[];
+ openModal('<span class="titlebadge">JUNJA VILLAGE REPUTATION</span><h2>⭐ 마을 평판</h2>'+
+ '<div class="mini-card"><strong>'+ '⭐'.repeat(rank.stars)+ ' · '+rank.score+'점</strong>'+
+ '<p>도감 '+rank.fishUnique+'종 · 메인 '+Math.min(state.chapter,50)+'/50장 · 장식 '+state.decorations.length+'개 · 주민 우정 '+rank.neighbors+' · 사냥 '+(state.hunt?.kills||0)+'회</p>'+
+ '<p>작은 마을을 꾸미고 주민들과 친해지면 평판이 올라가요. 장기간 축적되는 영구 기록이에요.</p></div>'+
+ '<div class="card-grid">'+REPUTATION_REWARDS.map(r=>{
+  const completed=state.reputationRewards.includes(r.stars),locked=rank.stars<r.stars;
+  return '<div class="mini-card"><strong>'+ '⭐'.repeat(r.stars) +' 등급 · '+r.score+'점</strong>'+
+   '<p>완성 보상 '+r.coins.toLocaleString('ko-KR')+'G'+(r.stars===5?' + 특별 왕실 장신구':'')+'</p>'+
+   '<button data-rank="'+r.stars+'" '+(locked||completed?'disabled':'')+'>'+(completed?'✅ 수령 완료':locked?'평판 성장 중':'보상 수령')+'</button></div>';
+ }).join('')+'</div><div class="pill-row"><button id="rankJourney" class="pill-btn">📖 메인 생활 목표</button><button id="rankMonthly" class="pill-btn ghost">📅 이번 달 도전</button></div>');
+ els.panelBody.querySelectorAll('[data-rank]').forEach(btn=>btn.onclick=()=>{
+  const r=REPUTATION_REWARDS.find(r=>r.stars===Number(btn.dataset.rank));
+  if(!r||villageReputation().stars<r.stars||state.reputationRewards.includes(r.stars))return;
+  state.reputationRewards.push(r.stars);state.coins+=r.coins;
+  if(r.stars===5&&CATALOG_BY_ID['fashion_accessory_20']&&!state.fashion.owned.includes('fashion_accessory_20'))state.fashion.owned.push('fashion_accessory_20');
+  save();hud();toast('⭐ 마을 평판 '+r.stars+'성 보상!');openReputation();
+ });
+ document.getElementById('rankJourney').onclick=openJourney;
+ document.getElementById('rankMonthly').onclick=openLivingCalendar;
+}
+function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button><button class="pill-btn" id="journalVault">🗂️ 저장 백업</button><button class="pill-btn" id="journalCalendar">📅 월간 목표</button><button class="pill-btn" id="journalReputation">⭐ 마을 평판</button></div><p class="item-note">접속 기기 브라우저에 자동 저장됩니다. 온라인 계정 연동은 추후 서버 배포가 필요합니다.</p>`);
  document.getElementById('journalGear').onclick=openFishingGear;
  document.getElementById('journalAquarium').onclick=openAquarium;
  document.getElementById('journalHome').onclick=openHome;
  document.getElementById('journalVault').onclick=openSaveVault;
  document.getElementById('journalCalendar').onclick=openLivingCalendar;
+ document.getElementById('journalReputation').onclick=openReputation;
 }
 function interaction(kind){if(kind==='seeds'){openFarmShop();return}if(kind.startsWith('farm:')){farmAt(Number(kind.split(':')[1]));return}if(kind==='shop'){openShop();return}if(kind==='fish'){beginFishing();return}if(kind==='market'){openMarket();return}if(kind==='fountain'){party(player.x,player.y-50,20);if(!state.fountainDate||state.fountainDate!==nowDay()){state.coins+=35;state.fountainDate=nowDay();toast('⛲ 오늘의 소원! +35G')}else toast('⛲ 반짝이는 행운의 분수');hud();save();return}if(kind==='home'){openHome();return}if(kind==='harvest'){farmAll();return}}
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
