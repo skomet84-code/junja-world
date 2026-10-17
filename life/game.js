@@ -274,8 +274,25 @@ function arrive(){const p=popup;popup=null;goal=null;player.vx=player.vy=0;if(!p
 }
 // Optional LAN / server-hosted friends. The static downloadable preview remains a real offline game.
 const peers={};
-let socialNickname='준자';
-try{socialNickname=(localStorage.getItem('junja-village-nickname')||('마을주민'+Math.floor(1000+Math.random()*9000))).slice(0,12);localStorage.setItem('junja-village-nickname',socialNickname)}catch{}
+// Remember player-entered nicknames, but migrate the previous "마을주민####" placeholders.
+// This browser-only owner entitlement is NOT authenticated identity; secure roles need a server.
+const PLAYER_NICK_KEY='junja-village-nickname',OPERATOR_NICK='갓준자';
+const isLegacyPlaceholder=nick=>/^마을\\s*주민(?:\\d{4})?$/.test(nick);
+const newVisitorNick=()=>('새싹'+Math.floor(1000+Math.random()*9000));
+let socialNickname='';
+try{
+ const oldName=String(localStorage.getItem(PLAYER_NICK_KEY)||'').replace(/[<>\\x00-\\x1f\\x7f]/g,'').trim().slice(0,12);
+ socialNickname=state.operatorGiftV21?OPERATOR_NICK:(oldName&&!isLegacyPlaceholder(oldName)?oldName:newVisitorNick());
+ localStorage.setItem(PLAYER_NICK_KEY,socialNickname);
+}catch{socialNickname=state.operatorGiftV21?OPERATOR_NICK:newVisitorNick()}
+function showOperatorNickname(){
+ socialNickname=OPERATOR_NICK;
+ try{localStorage.setItem(PLAYER_NICK_KEY,socialNickname)}catch{}
+ els.name.textContent=socialNickname;
+ world3D?.setNickname(socialNickname);
+ // The relay stores the nickname at join, so reconnect with the updated name.
+ if(socialSocket?.readyState===WebSocket.OPEN)socialSocket.close(1000,'operator name refresh');
+}
 let socialSocket=null,socialRoom='SPRING',socialId=null,lastPositionSent=0,retryCount=0;
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function socialSend(o){if(socialSocket?.readyState===1)socialSocket.send(JSON.stringify(o))}
@@ -286,8 +303,8 @@ function openSocial(){
  openModal(`<span class="titlebadge">VILLAGE FRIENDS · 8명/방</span><h2>👫 친구와 말풍선</h2>
   <p>${connected?'🟢 같은 마을 '+(Object.keys(peers).length+1)+'명':'⚪ 혼자 미리보기'} · 자유 채팅은 지원하지 않아요.</p>
   <div class="mini-card"><strong>내 이름</strong><div style="display:flex;gap:6px;margin-top:7px">
-  <input id="villageNickname" maxlength="12" value="${esc(socialNickname)}" aria-label="캐릭터 이름" style="min-width:0;flex:1;border-radius:12px;padding:10px;border:1px solid #d8c7a7">
-  <button id="saveVillageNickname">저장</button></div></div>
+  <input id="villageNickname" maxlength="12" value="${esc(socialNickname)}" ${state.operatorGiftV21?'readonly':''} aria-label="캐릭터 이름" style="min-width:0;flex:1;border-radius:12px;padding:10px;border:1px solid #d8c7a7">
+  <button id="saveVillageNickname" ${state.operatorGiftV21?'disabled':''}>${state.operatorGiftV21?'👑 운영자':'저장'}</button></div></div>
   ${connected?`<div class="mini-card"><strong>초대 링크</strong><p style="overflow-wrap:anywhere">${esc(url)}</p><button id="copyInvite">복사</button></div>`:
   '<p>친구들과 함께하려면 실시간 멀티플레이 서버 주소로 접속해야 해요. 이 GitHACK 미리보기는 혼자 체험하는 버전이에요.</p>'}
   <h3>💬 말풍선 선택</h3><div class="speech-grid">${PHRASES.map((p,i)=>`<button type="button" data-phrase="${i}">${p}</button>`).join('')}</div>
@@ -296,9 +313,10 @@ function openSocial(){
  const saveNick=document.getElementById('saveVillageNickname');
  if(saveNick)saveNick.onclick=()=>{
   const field=document.getElementById('villageNickname');
+  if(state.operatorGiftV21){toast('👑 운영자 이름은 갓준자로 고정됩니다');return}
   const nick=String(field?.value||'').replace(/[<>\x00-\x1f\x7f]/g,'').trim().slice(0,12);
   if(!nick){toast('이름을 입력해주세요');return}
-  socialNickname=nick;try{localStorage.setItem('junja-village-nickname',nick)}catch{}
+  socialNickname=nick;try{localStorage.setItem(PLAYER_NICK_KEY,nick)}catch{}
   els.name.textContent=nick;world3D?.setNickname(nick);
   if(socialSocket?.readyState===1)socialSocket.close(1000,'nickname update');
   toast('🌸 캐릭터 이름을 저장했어요');
@@ -313,7 +331,7 @@ function openSocial(){
 }
 function connectSocial(){if(!document.querySelector('meta[name="junja-relay"][content="yes"]')){updateSocialBadge();return}
  socialRoom=(new URLSearchParams(location.search).get('room')||'SPRING').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,12)||'SPRING';
- try{socialSocket=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+(document.querySelector('meta[name="junja-socket-path"]')?.content||'/ws'));socialSocket.addEventListener('open',()=>{socialId=null;retryCount=0;socialSend({type:'join',room:socialRoom,nick:socialNickname,x:player.x,y:player.y,coat:state.coat,hat:state.hat,dir:player.dir,fashion:state.fashion.equipped});updateSocialBadge()});
+ try{socialSocket=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+(document.querySelector('meta[name="junja-socket-path"]')?.content||'/ws'));socialSocket.addEventListener('open',()=>{socialId=null;retryCount=0;socialSend({type:'join',room:socialRoom,nick:socialNickname,x:player.x,y:player.y,coat:state.coat,hat:state.hat,dir:player.dir,fashion:state.fashion.equipped});updateSocialBadge()});
  socialSocket.addEventListener('message',e=>{let msg;try{msg=JSON.parse(e.data)}catch{return}if(msg.type==='welcome'){socialId=msg.id;for(const id of Object.keys(peers))delete peers[id];for(const o of msg.players||[])peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('👫 '+socialRoom+' 마을에 접속했어요');updateSocialBadge()}else if(msg.type==='join'){const o=msg.player;if(o&&o.id!==socialId){peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('🌸 '+o.nick+'님이 놀러왔어요!');updateSocialBadge()}}else if(msg.type==='pos'&&peers[msg.id]){Object.assign(peers[msg.id],{targetX:msg.x,targetY:msg.y,dir:msg.dir,coat:msg.coat,hat:msg.hat,fashion:msg.fashion||{}})}else if(msg.type==='leave'){delete peers[msg.id];updateSocialBadge()}else if(msg.type==='speech'&&peers[msg.id]&&PHRASES.includes(msg.phrase)){
  peers[msg.id].phrase=msg.phrase;peers[msg.id].phraseUntil=Date.now()+3200;
 }else if(msg.type==='error'){toast('⚠️ '+msg.message)}});
@@ -629,13 +647,17 @@ function redeemOperatorPreviewGift(){
  if(!globalThis.crypto?.subtle)return;
  crypto.subtle.digest('SHA-256',new TextEncoder().encode(code)).then(buffer=>{
   const actual=Array.from(new Uint8Array(buffer),b=>b.toString(16).padStart(2,'0')).join('');
-  if(actual!=='4a08435d3ba8b56ec030b07c4ae6978ebfbe398174625e632cb792b656df09e2'||state.operatorGiftV21)return;
-  state.operatorGiftV21=true;
-  state.coins=Math.max(100000000,Number.isFinite(Number(state.coins))?Number(state.coins):800);
-  save();hud();toast('👑 운영자 미리보기 지원금 1억 G 지급 완료!');
+  if(actual!=='4a08435d3ba8b56ec030b07c4ae6978ebfbe398174625e632cb792b656df09e2')return;
+  const firstClaim=!state.operatorGiftV21;
+  if(firstClaim){
+   state.operatorGiftV21=true;
+   state.coins=Math.max(100000000,Number.isFinite(Number(state.coins))?Number(state.coins):800);
+   save();hud();toast('👑 운영자 미리보기 지원금 1억 G 지급 완료!');
+  }
+  showOperatorNickname();
  }).catch(()=>{});
 }
 redeemOperatorPreviewGift();
-setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getLifeSystems:()=>({rod:{...state.fishingGear},aquarium:{...state.aquarium},home:{...state.home},fish:FISH.length,missions:dailyTask()}),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
+setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getLifeSystems:()=>({rod:{...state.fishingGear},aquarium:{...state.aquarium},home:{...state.home},fish:FISH.length,missions:dailyTask()}),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({nickname:socialNickname,player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
 })();
 

@@ -48,7 +48,7 @@ function onMessage(p,msg){
   if(p.room)return;
   const roomCode=safeRoom(msg.room);const room=rooms.get(roomCode)||new Map();
   if(room.size>=8){send(p,{type:'error',message:'방이 가득 찼어요 (최대 8명)'});return}
-  p.room=roomCode;p.nick=clean(msg.nick,12)||'마을 주민';p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.coat=allowedCoats.has(msg.coat)?msg.coat:'mint';p.hat=allowedHats.has(msg.hat)?msg.hat:'none';p.dir=clamp(msg.dir,0,3);p.fashion=cleanFashion(msg.fashion);
+  p.room=roomCode;p.nick=clean(msg.nick,12)||'새싹 친구';p.x=clamp(msg.x,85,3515);p.y=clamp(msg.y,120,2300);p.coat=allowedCoats.has(msg.coat)?msg.coat:'mint';p.hat=allowedHats.has(msg.hat)?msg.hat:'none';p.dir=clamp(msg.dir,0,3);p.fashion=cleanFashion(msg.fashion);
   send(p,{type:'welcome',id:p.id,room:roomCode,players:[...room.values()].map(q=>({id:q.id,nick:q.nick,x:q.x,y:q.y,coat:q.coat,hat:q.hat,dir:q.dir,fashion:q.fashion}))});
   rooms.set(roomCode,room);room.set(p.id,p);
   broadcast(room,{type:'join',player:{id:p.id,nick:p.nick,x:p.x,y:p.y,coat:p.coat,hat:p.hat,dir:p.dir,fashion:p.fashion}},p);

@@ -23,7 +23,7 @@ try{
  assert.equal(before.coins,800);
  const catalog=await page.evaluate(()=>window.__JUNJA_TEST__.getCatalog());
  assert.equal(catalog.length,100);
- assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getRenderer())).faceCameraElevation,36);
+ assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getRenderer())).faceCameraElevation,32);
  // v18 movement is a locked invariant after the camera changes.
  const from=before.player,target={x:from.x+70,y:from.y+25};
  assert.equal(await page.evaluate(p=>window.__JUNJA_TEST__.moveTo(p.x,p.y),target),true);
