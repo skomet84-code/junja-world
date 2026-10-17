@@ -1080,9 +1080,44 @@ function openAquarium(){
  });
  document.getElementById('aquariumRodShop').onclick=openFishingGear;
 }
-function openBag(){const fishIcons={'송사리':'🐟','붕어':'🐠','금붕어':'🐡','황금 잉어':'✨','비단 송어':'🐟','은빛 농어':'🐠'};const list=state.collection.slice(-12).reverse();openModal(`<span class="titlebadge">COLLECTION BOOK</span><h2>🎒 나의 수집 가방</h2><h3>채집 재료</h3><p>${Object.entries(state.materials).map(([k,v])=>materialNames[k]+' '+v+'개').join(' · ')}</p><h3>제작품</h3><p>${recipes.map(r=>r.name+' '+(state.crafted[r.id]||0)+'개').join(' · ')}</p><p>낚은 물고기와 꾸미기 아이템을 모아보세요. (${state.collection.length}마리)</p><div class="inventory">${list.map(n=>`<div class="slot"><b>${fishIcons[n]||({'hero':'💎','legend':'👑','mythic':'🌌'}[FISH_BY_NAME[n]?.tier]||'🐟')}</b>${n}</div>`).join('')||'<div class="slot"><b>🎣</b>첫 물고기를 낚아보세요</div>'}</div><div class="pill-row"><button class="pill-btn" id="aquariumInBag">🐠 내 어항 컬렉션</button><button class="pill-btn ghost" id="rodInBag">🎣 낚싯대 상점</button></div><p style="margin-top:20px">🌸 옷: ${CATALOG_BY_ID[state.fashion.equipped.outfit]?.name||outfits.find(o=>o.id===state.coat)?.name||'기본 옷'} · 모자: ${outfits.find(o=>o.id===state.hat)?.name||'없음'} · 펫: ${CATALOG_BY_ID[state.fashion.equipped.pet]?.name||'없음'}</p>`);
- document.getElementById('aquariumInBag').onclick=openAquarium;
- document.getElementById('rodInBag').onclick=openFishingGear;
+function openBag(){
+ const bag=initBag(state),used=bagUsed(state),capacity=bagCapacity(state),next=BAG_TIERS[bag.level];
+ const stocks=Object.entries(state.fishStock||{}).filter(([name,n])=>n>0&&FISH_BY_NAME[name]).sort((a,b)=>b[1]-a[1]);
+ const fishTotal=stocks.reduce((sum,[,n])=>sum+n,0);
+ const storageBar=Math.min(100,Math.round(used/capacity*100));
+ const inventory=stocks.slice(0,12).map(([name,n])=>'<div class="slot"><b>🐟</b>'+name+' × '+n+'</div>').join('');
+ const resources=Object.entries(state.materials||{}).filter(([,n])=>n>0).map(([id,n])=>(materialNames[id]||id)+' × '+n).join(' · ')||'보유 없음';
+ const huntLoot=Object.entries(state.hunt?.materials||{}).filter(([,n])=>n>0).map(([id,n])=>id+' × '+n).join(' · ')||'보유 없음';
+ const crafted=Object.entries(state.crafted||{}).filter(([,n])=>n>0).map(([id,n])=>id+' × '+n).join(' · ')||'보유 없음';
+ openModal('<span class="titlebadge">STORAGE · LV.'+bag.level+'</span><h2>🎒 나의 가방</h2>'+
+ '<div class="mini-card"><strong>'+BAG_TIERS[bag.level-1].name+' · '+used+'/'+capacity+'칸</strong>'+
+ '<div class="mini-progress"><i style="width:'+storageBar+'%"></i></div>'+
+ '<p>물고기·채집 재료·사냥 전리품·제작품을 합산해요. 기존 소지품은 절대 삭제되지 않아요.</p>'+
+ (next?'<button id="upgradeBag">🧰 '+next.name+' · '+next.slots+'칸 · '+next.price.toLocaleString('ko-KR')+'G</button>':'<p>👑 최고 단계 가방!</p>')+'</div>'+
+ '<div class="mini-card"><strong>🎟️ 물고기 자동 판매권 '+bag.autoSellTickets+'장</strong>'+
+ '<p>보유한 판매용 물고기만 오늘 시세로 한 번에 판매합니다. 도감·사냥 재료·의상은 그대로 유지돼요.</p>'+
+ '<button id="autoSellBag" '+(bag.autoSellTickets&&fishTotal?'':'disabled')+'>🎟️ 자동 비우기권 사용</button>'+
+ '<p>매달 모든 월간 목표를 완수하면 한 장씩 받을 수 있어요.</p></div>'+
+ '<div class="pill-row"><button class="pill-btn" id="bagGoMarket">⚓ 판매하러 가기</button>'+
+ '<button class="pill-btn ghost" id="bagGoAquarium">🐠 물고기 도감</button>'+
+ '<button class="pill-btn ghost" id="bagGoRods">🎣 낚싯대 성장</button></div>'+
+ '<h3>🐟 판매용 물고기 · '+fishTotal+'마리</h3><div class="inventory">'+(inventory||'<div class="slot">아직 판매할 물고기가 없어요</div>')+'</div>'+
+ '<h3>🌲 채집 재료</h3><p>'+resources+'</p><h3>⚔️ 사냥 전리품</h3><p>'+huntLoot+'</p>'+
+ '<h3>🪵 제작품</h3><p>'+crafted+'</p>');
+ document.getElementById('bagGoMarket').onclick=openMarket;
+ document.getElementById('bagGoAquarium').onclick=openAquarium;
+ document.getElementById('bagGoRods').onclick=openFishingGear;
+ const upgrade=document.getElementById('upgradeBag');
+ if(upgrade)upgrade.onclick=()=>{
+  const result=bagUpgrade(state);if(!result.ok){toast(result.error);return}
+  save();hud();toast('🎒 가방 '+result.capacity+'칸으로 확장!');openBag();
+ };
+ document.getElementById('autoSellBag').onclick=()=>{
+  if(!fishTotal||!confirm('판매용 물고기 '+fishTotal+'마리를 오늘 시세로 모두 판매하고 자동 판매권 1장을 사용할까요?'))return;
+  const result=useAutoSellTicket(state,FISH_BY_NAME,new Date(),lifeLevel());
+  if(!result.ok){toast(result.error);return}
+  save();hud();toast('🎟️ '+result.sold+'마리 판매 · +'+result.earnings.toLocaleString('ko-KR')+'G');openBag();
+ };
 }
 function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 준자마을 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
 function beginFishing(){
