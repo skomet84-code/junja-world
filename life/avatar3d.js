@@ -66,12 +66,23 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
    const dress=['lavender','pink'].includes(nextCoat);
    // One shell replaces the visible torso; sleeves share the exact shoulder/elbow hierarchy.
    body.visible=false;
-   const shell=ball(garment,cloth.main,0,12,0,15.8,19,12);shell.name='coat-shell';
-   if(dress){const skirt=new T.Mesh(new T.CylinderGeometry(13,22,22,24),cloth.main);skirt.position.set(0,-1,0);skirt.castShadow=true;skirt.receiveShadow=true;garment.add(skirt);disc(garment,cloth.light,0,-11,0,22.2,2)}
-   else {disc(garment,cloth.dark,0,-4,0,14.6,3);for(const x of [-8,8]){const pocket=ball(garment,cloth.light,x,5,9.8,5,5,1.5);pocket.name='pocket'}}
+   // Tailored one-piece torso mesh: soft continuous shoulders, waist and hem instead of a pasted-on sphere.
+   const torsoProfile=[new T.Vector2(0,-6),new T.Vector2(11.8,-6),new T.Vector2(14.6,-2),new T.Vector2(16,5),new T.Vector2(16.8,14),new T.Vector2(16.2,21),new T.Vector2(12.2,29),new T.Vector2(6,32),new T.Vector2(0,32)];
+   const shell=new T.Mesh(new T.LatheGeometry(torsoProfile,32),cloth.main);shell.name='coat-shell';shell.castShadow=true;shell.receiveShadow=true;garment.add(shell);
+   if(dress){const skirtProfile=[new T.Vector2(13,4),new T.Vector2(15,0),new T.Vector2(17,-5),new T.Vector2(20,-12),new T.Vector2(22,-16.5),new T.Vector2(22.1,-18)];
+    const skirt=new T.Mesh(new T.LatheGeometry(skirtProfile,32),cloth.main);skirt.castShadow=true;skirt.receiveShadow=true;garment.add(skirt);
+    const hem=new T.Mesh(new T.TorusGeometry(22.1,.95,7,40),cloth.light);hem.rotation.x=Math.PI/2;hem.position.y=-18;garment.add(hem);
+   }else {disc(garment,cloth.dark,0,-5.5,0,12.8,1.5);for(const x of [-8,8]){const pocket=ball(garment,cloth.light,x,5,13.1,3.4,3.7,.9);pocket.name='pocket'}}
    for(const side of [-1,1]){const collar=tube(garment,white,2.5,12,side*4.7,25,10);collar.rotation.z=side*.44}
    for(const y of [18,11,4])ball(garment,gold,0,y,12.2,1.4,1.4,.8);
-   for(const limb of limbs){clear(limb.armCloth);clear(limb.foreCloth);tube(limb.armCloth,cloth.main,5.5,18,0,-7,0);tube(limb.foreCloth,cloth.main,4.7,12,0,-4.5,0);disc(limb.foreCloth,cloth.light,0,-10,0,4.9,3)}
+   for(const limb of limbs){clear(limb.armCloth);clear(limb.foreCloth);
+    ball(limb.armCloth,cloth.main,0,-2.5,0,7.2,7.2,7.2); // joined shoulder cap
+    tube(limb.armCloth,cloth.main,5.9,19,0,-7.5,0);
+    ball(limb.armCloth,cloth.main,0,-14,0,5.6,5.6,5.6);
+    tube(limb.foreCloth,cloth.main,5,14,0,-5,0);
+    ball(limb.foreCloth,cloth.main,0,-1,0,5.2,5,5.2);
+    disc(limb.foreCloth,cloth.light,0,-10,0,5,2.2);
+   }
   }
   if(equipped.hat!==nextHat){
    equipped.hat=nextHat;clear(hatSocket);hair.visible=nextHat==='none'||['crown','cat','ribbon'].includes(nextHat);
@@ -90,12 +101,21 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   root.position.set(x,0,y);const moving=Math.hypot(vx,vy)>1;
   const desired=moving?Math.atan2(vx,vy):[0,Math.PI/2,Math.PI,-Math.PI/2][dir];
   let delta=T.MathUtils.euclideanModulo(desired-angle+Math.PI,Math.PI*2)-Math.PI;angle+=delta*Math.min(1,dt*17);root.rotation.y=angle;
-  blend=T.MathUtils.damp(blend,moving?1:0,20,dt);
-  const swing=Math.sin(stride)*blend,opposite=Math.sin(stride+Math.PI)*blend;
-  pelvis.position.y=34+Math.abs(Math.sin(stride*2))*.6*blend;
-  torso.rotation.z=swing*.025;torso.rotation.y=swing*.025;
-  head.rotation.z=-swing*.018;head.rotation.x=moving?-.025:Math.sin(time*1.6)*.012;
-  for(const l of limbs){const a=l.side<0?swing:opposite;l.hip.rotation.x=a*.48;l.knee.rotation.x=Math.max(0,-a)*.55;l.ankle.rotation.x=-Math.max(0,-a)*.2;l.arm.rotation.x=-a*.38;l.elbow.rotation.x=-.12-Math.max(0,a)*.18;}
+  blend=T.MathUtils.damp(blend,moving?1:0,12,dt);
+  const phase=stride, step=Math.sin(phase)*blend, idle=(1-blend)*Math.sin(time*1.25);
+  // Each limb pivots from its own joint. The planted foot bends at the knee as weight moves forward.
+  pelvis.position.y=34+Math.max(0,Math.sin(phase*2))*.35*blend;
+  pelvis.rotation.z=Math.sin(phase)*.016*blend;
+  torso.rotation.z=-step*.024+idle*.008;torso.rotation.y=step*.038;
+  head.rotation.z=step*.014;head.rotation.x=-blend*.025+idle*.014;
+  for(const l of limbs){
+   const cycle=phase+(l.side>0?Math.PI:0),swing=Math.sin(cycle)*blend,feetUp=Math.max(0,Math.cos(cycle))*blend;
+   l.hip.rotation.x=swing*.57;
+   l.knee.rotation.x=feetUp*.48+Math.max(0,-swing)*.1;
+   l.ankle.rotation.x=-l.knee.rotation.x*.52-swing*.12;
+   l.arm.rotation.x=-swing*.38;
+   l.elbow.rotation.x=-.12-Math.max(0,-swing)*.17;
+  }
   const blink=(time%4.7)>4.58;for(const e of eyes)e.scale.y=blink?.55:4.4;
  }
  equip(coat,hat);return {root,equip,animate,equipped,rig:root.userData.rig};
