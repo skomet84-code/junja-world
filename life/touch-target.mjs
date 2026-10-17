@@ -1,4 +1,4 @@
-// Screen-space forgiveness for touch targets.
+// Screen-space forgiveness for touch targets. Unit: CSS pixels.
 export function nearestTapTarget(x,y,candidates,{width,height}={}){
  if(!Number.isFinite(x)||!Number.isFinite(y))return null;
  let best=null,score=Infinity;
