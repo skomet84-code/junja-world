@@ -1,7 +1,7 @@
 name: Junja Village Public URL Smoke
 on:
   push:
-    branches: [junja-village-vercel-online-v1, village-friends-balance-v23]
+    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24]
   workflow_dispatch:
 
 jobs:
@@ -33,6 +33,9 @@ jobs:
             if(path==='/game.js'){
               assert(body.includes("isLegacyPlaceholder"),'nickname migration code not in production');
               assert(body.includes("STYLE_SETS"),'five complete premium cosmetic sets missing');
+              assert(body.includes("reelChallenge("),'fish rarity difficulty not in production');
+              assert(body.includes("STARTER_FISH_NAMES"),'collection compatibility not deployed');
+              assert(body.includes("aquariumFilter"),'70-fish aquarium filters not deployed');
               assert(body.includes("coins:1000"),'1000G new player balance missing');
               assert(body.includes("FESTIVAL_TASKS"),'weekly festival content missing');
               assert(body.includes("villageClientId"),'duplicate-identity session feature missing');
@@ -40,6 +43,12 @@ jobs:
             }
             if(path==='/world3d.js')assert(body.includes("Math.atan2(595-46,880)"),'camera angle update not in production');
           }
+          const fishLib=await fetch(base+'/life-systems-v20.js',{signal:abort()});
+          assert.equal(fishLib.status,200,'fishing data not accessible');
+          const fishingData=await fishLib.text();
+          assert(fishingData.includes('용의 수염 잉어'),'mythic fish entries not deployed');
+          assert(fishingData.includes('eligibleFish('),'fishing level gates not deployed');
+          assert(fishingData.includes('reelChallenge('),'rarity-based reel challenge not deployed');
           function makeConnection(name){
             const ws=new WebSocket(base.replace(/^http/,'ws')+'/api/ws');
             const inbox=[],waiting=[];
