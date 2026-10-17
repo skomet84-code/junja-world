@@ -1,4 +1,5 @@
 import {createWorld} from './world3d.js';
+import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -78,6 +79,11 @@ outfits.push(...[{id:'lavender',name:'라벤더 원피스',cost:380,emoji:'💜'
 
 outfits.push({id:'linen',name:'공방 린넨 셔츠',cost:0,emoji:'🧵',col:'#d8c7a6',type:'coat',craftOnly:true});
 let owned=['mint','none'];try{const o=JSON.parse(localStorage.getItem('junja-harbor-owned')||'[]');if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
+// Migrate in place; never discard existing coins, fish, legacy costumes or quests.
+const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashion:{};
+const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
+state.fashion={owned:[...fashionOwned],equipped:validFashion(originalFashion.equipped)};
+for(const type of ['hair','outfit','accessory','pet'])if(state.fashion.equipped[type]&&!fashionOwned.has(state.fashion.equipped[type]))state.fashion.equipped[type]=null;
 function save(){state.x=player.x;state.y=player.y;state.dir=player.dir;state.savedAt=Date.now();try{localStorage.setItem('junja-harbor-v1',JSON.stringify(state));localStorage.setItem('junja-harbor-owned',JSON.stringify(owned))}catch(e){/* storage denied inside some preview browsers: keep playing */}}window.addEventListener('beforeunload',save);
 // LIFE 1.5: an explorable east district and persistent, finite progression.
 const expansionProps=[{type:'workshop',asset:'shop',x:2500,y:640,w:320,h:320},{type:'boutique',asset:'market',x:3100,y:740,w:320,h:335},{type:'lodge',asset:'home',x:2910,y:1740,w:340,h:347}];
@@ -122,7 +128,8 @@ let lastJourneyUpdate=-1;
 function lifeLevel(){return 1+Math.floor(state.xp/160)}
 function lifeBonus(kind){
  const lv=lifeLevel();
- return kind==='gather'&&lv>=3?1:kind==='harvest'&&lv>=4?12:kind==='delivery'&&lv>=6?25:kind==='fish'&&lv>=8?15:0;
+ const levelBonus=kind==='gather'&&lv>=3?1:kind==='harvest'&&lv>=4?12:kind==='delivery'&&lv>=6?25:kind==='fish'&&lv>=8?15:0;
+ return levelBonus+petBonus(state.fashion?.equipped.pet,kind);
 }
 function lifePerkGuide(){
  const lv=lifeLevel();
@@ -360,23 +367,83 @@ function drawMini(){const w=mini.width,h=mini.height,sx=w/W,sy=h/H;
 function closeModal(){els.modal.classList.remove('open');}
 function openModal(html){stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
 document.getElementById('close').onclick=closeModal;els.modal.addEventListener('click',e=>{if(e.target===els.modal)closeModal()});
-let fittingLook=null;
-function openShop(){
- if(!fittingLook)fittingLook={coat:state.coat,hat:state.hat};
- const cells=outfits.map(o=>{const cur=fittingLook[o.type]===o.id,have=owned.includes(o.id);return `<div class="item"><div class="cloth-swatch" style="background:${o.col||'#dfc9a1'}">${o.emoji}</div><strong>${o.name}</strong><span>${have?'보유 중':o.craftOnly?'공방에서 제작':o.cost.toLocaleString()+' G'}</span><button data-try="${o.id}" class="${cur?'equipped':''}">${cur?'✓ 미리보기 중':'입어보기'}</button><button data-outfit="${o.id}">${state[o.type]===o.id?'착용 중':have?'착용하기':o.craftOnly?'공방으로 가기':'구매 · 착용'}</button></div>`}).join('');
- openModal(`<span class="titlebadge">JUNJA ATELIER · 3D</span><h2>나의 작은 옷장</h2><p>같은 몸, 같은 관절. 입어보고 돌아보고 골라요.</p><div id="fittingHost"></div><div class="pill-row fitting-controls"><button class="pill-btn ghost" id="turnFitting">↻ 45° 돌려보기</button><button class="pill-btn ghost" id="walkFitting">걷기 / 멈추기</button><button class="pill-btn ghost" id="resetFitting">현재 착용으로</button></div><div class="goods">${cells}</div>`);
- world3D?.fitting(document.getElementById('fittingHost'),fittingLook.coat,fittingLook.hat);
- els.panelBody.querySelectorAll('[data-try]').forEach(b=>b.onclick=()=>{const o=outfits.find(x=>x.id===b.dataset.try);fittingLook[o.type]=o.id;openShop()});
- els.panelBody.querySelectorAll('[data-outfit]').forEach(b=>b.onclick=()=>{const o=outfits.find(x=>x.id===b.dataset.outfit);if(o.craftOnly&&!owned.includes(o.id)){goStation('workshop');return}if(!owned.includes(o.id)){if(state.coins<o.cost){toast('코인이 부족해요');return}state.coins-=o.cost;owned.push(o.id)}state[o.type]=o.id;fittingLook[o.type]=o.id;save();hud();updateJourney(true);toast(o.name+' 착용했어요');openShop()});
- document.getElementById('turnFitting').onclick=()=>world3D?.turnFitting();document.getElementById('walkFitting').onclick=()=>world3D?.walkFitting();document.getElementById('resetFitting').onclick=()=>{fittingLook={coat:state.coat,hat:state.hat};openShop()};
+let fittingLook=null,wardrobeTab='outfit';
+function fashionSnapshot(){return {coat:state.coat,hat:state.hat,fashion:{...state.fashion.equipped}}}
+function openShop(section=wardrobeTab){
+ if(typeof section!=='string')section=wardrobeTab;
+ if(!['classic',...CATEGORIES.map(x=>x.id)].includes(section))section='outfit';
+ wardrobeTab=section;
+ if(!fittingLook)fittingLook=fashionSnapshot();
+ const selected=section==='classic'?outfits:CATALOG.filter(o=>o.type===section);
+ const cards=selected.map(o=>{
+  const legacy=section==='classic',id=o.id,category=legacy?o.type:o.type,have=legacy?owned.includes(id):state.fashion.owned.includes(id);
+  const current=legacy?(fittingLook[category]===id):(fittingLook.fashion[category]===id);
+  const equipped=legacy?(state[category]===id&&!state.fashion.equipped.outfit):state.fashion.equipped[category]===id;
+  const price=legacy?o.cost:o.price;
+  const color=legacy?(o.col||'#e8dac2'):'#'+o.color.toString(16).padStart(6,'0');
+  const grade=legacy?null:GRADES[o.grade];
+  return `<div class="item fashion-item" data-catalog="${id}">
+    <div class="fashion-color" style="background:${color}">${legacy?o.emoji:(section==='hair'?'✂️':section==='outfit'?'✦':section==='pet'?'🐾':'◆')}</div>
+    <strong>${o.name}</strong>
+    <span class="fashion-grade" style="color:${grade?.color||'#7b8b79'}">${grade?.label||'클래식'}</span>
+    <span>${have?'보유 중':o.craftOnly?'제작 전용':price.toLocaleString('ko-KR')+' G'}</span>
+    <button type="button" data-try="${id}" class="${current?'equipped':''}">${current?'✓ 미리보기':'입어보기'}</button>
+    <button type="button" data-outfit="${id}">${equipped?'착용 중':have?'장착하기':o.craftOnly?'공방으로 가기':'구매 · 착용'}</button>
+  </div>`;
+ }).join('');
+ const buttons=[{id:'classic',label:'기존 옷·모자',icon:'👒'},...CATEGORIES].map(x=>`<button type="button" id="tab-${x.id}" data-tab="${x.id}" aria-pressed="${section===x.id}" class="fashion-tab ${section===x.id?'selected':''}">${x.icon} ${x.label}</button>`).join('');
+ openModal(`<span class="titlebadge">JUNJA ATELIER · 3D / 100</span>
+  <h2>나만의 스타일 부티크</h2>
+  <p>헤어 20 · 의상 40 · 장신구 20 · 펫 20. 가격이 높을수록 디테일과 등급이 달라져요.</p>
+  <div id="fittingHost"></div>
+  <div class="pill-row fitting-controls"><button class="pill-btn ghost" id="turnFitting">↻ 돌려보기</button>
+   <button class="pill-btn ghost" id="walkFitting">걷는 모습</button><button class="pill-btn ghost" id="resetFitting">현재 착용</button></div>
+  <nav class="fashion-tabs" aria-label="꾸미기 상점 분류">${buttons}</nav>
+  ${section!=='classic'&&fittingLook.fashion[section]?`<button type="button" class="pill-btn ghost" id="unequipFashion">↩ ${CATEGORIES.find(c=>c.id===section).label} 해제</button>`:''}
+  <p class="fashion-total">${selected.length}종 · 보유 코인 ${Math.floor(state.coins).toLocaleString('ko-KR')}G</p>
+  <div class="goods">${cards}</div>`);
+ world3D?.fitting(document.getElementById('fittingHost'),fittingLook.coat,fittingLook.hat,fittingLook.fashion);
+ els.panelBody.querySelectorAll('[data-tab]').forEach(btn=>btn.onclick=()=>openShop(btn.dataset.tab));
+ els.panelBody.querySelectorAll('[data-try]').forEach(btn=>btn.onclick=()=>{
+  const id=btn.dataset.try,item=CATALOG_BY_ID[id],old=outfits.find(o=>o.id===id);
+  if(item)fittingLook.fashion[item.type]=id;
+  else if(old){fittingLook[old.type]=id;if(old.type==='coat')fittingLook.fashion.outfit=null}
+  openShop(section);
+ });
+ els.panelBody.querySelectorAll('[data-outfit]').forEach(btn=>btn.onclick=()=>{
+  const id=btn.dataset.outfit,item=CATALOG_BY_ID[id],old=outfits.find(o=>o.id===id);
+  if(item){
+   const type=item.type;
+   if(!state.fashion.owned.includes(id)){
+    if(state.coins<item.price){toast('코인이 부족해요 · '+item.price.toLocaleString('ko-KR')+'G 필요');return}
+    state.coins-=item.price;state.fashion.owned.push(id);
+   }
+   state.fashion.equipped[type]=id;fittingLook.fashion[type]=id;
+  }else if(old){
+   if(old.craftOnly&&!owned.includes(id)){goStation('workshop');return}
+   if(!owned.includes(id)){
+    if(state.coins<old.cost){toast('코인이 부족해요');return}
+    state.coins-=old.cost;owned.push(id);
+   }
+   state[old.type]=id;fittingLook[old.type]=id;
+   if(old.type==='coat'){state.fashion.equipped.outfit=null;fittingLook.fashion.outfit=null}
+  }else return;
+  save();hud();updateJourney(true);toast((item||old).name+' 장착 완료');openShop(section);
+ });
+ const unequip=document.getElementById('unequipFashion');if(unequip)unequip.onclick=()=>{
+  state.fashion.equipped[section]=null;fittingLook.fashion[section]=null;save();openShop(section);
+ };
+ document.getElementById('turnFitting').onclick=()=>world3D?.turnFitting();
+ document.getElementById('walkFitting').onclick=()=>world3D?.walkFitting();
+ document.getElementById('resetFitting').onclick=()=>{fittingLook=fashionSnapshot();openShop(section)};
 }
-function openBag(){const fishIcons={'송사리':'🐟','붕어':'🐠','금붕어':'🐡','황금 잉어':'✨','비단 송어':'🐟','은빛 농어':'🐠'};const list=state.collection.slice(-12).reverse();openModal(`<span class="titlebadge">COLLECTION BOOK</span><h2>🎒 나의 수집 가방</h2><h3>채집 재료</h3><p>${Object.entries(state.materials).map(([k,v])=>materialNames[k]+' '+v+'개').join(' · ')}</p><h3>제작품</h3><p>${recipes.map(r=>r.name+' '+(state.crafted[r.id]||0)+'개').join(' · ')}</p><p>낚은 물고기와 꾸미기 아이템을 모아보세요. (${state.collection.length}마리)</p><div class="inventory">${list.map(n=>`<div class="slot"><b>${fishIcons[n]||'🐟'}</b>${n}</div>`).join('')||'<div class="slot"><b>🎣</b>첫 물고기를 낚아보세요</div>'}</div><p style="margin-top:20px">🌸 옷: ${outfits.find(o=>o.id===state.coat)?.name||'기본 옷'} · 모자: ${outfits.find(o=>o.id===state.hat)?.name||'없음'}</p>`) }
+function openBag(){const fishIcons={'송사리':'🐟','붕어':'🐠','금붕어':'🐡','황금 잉어':'✨','비단 송어':'🐟','은빛 농어':'🐠'};const list=state.collection.slice(-12).reverse();openModal(`<span class="titlebadge">COLLECTION BOOK</span><h2>🎒 나의 수집 가방</h2><h3>채집 재료</h3><p>${Object.entries(state.materials).map(([k,v])=>materialNames[k]+' '+v+'개').join(' · ')}</p><h3>제작품</h3><p>${recipes.map(r=>r.name+' '+(state.crafted[r.id]||0)+'개').join(' · ')}</p><p>낚은 물고기와 꾸미기 아이템을 모아보세요. (${state.collection.length}마리)</p><div class="inventory">${list.map(n=>`<div class="slot"><b>${fishIcons[n]||'🐟'}</b>${n}</div>`).join('')||'<div class="slot"><b>🎣</b>첫 물고기를 낚아보세요</div>'}</div><p style="margin-top:20px">🌸 옷: ${CATALOG_BY_ID[state.fashion.equipped.outfit]?.name||outfits.find(o=>o.id===state.coat)?.name||'기본 옷'} · 모자: ${outfits.find(o=>o.id===state.hat)?.name||'없음'} · 펫: ${CATALOG_BY_ID[state.fashion.equipped.pet]?.name||'없음'}</p>`) }
 function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 준자마을 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
 function beginFishing(){closeModal();stopWalking();if(distance(player,{x:1465,y:1177})>190){moveTo(1464,1168,{type:'action',kind:'fish'});toast('🎣 부두로 이동하고 있어요');return}
  fishPhase='wait';fishAttempts=0;castMode=true;castUntil=performance.now()+1300+Math.random()*1700;els.fishTitle.textContent='🎣 낚싯대를 던졌어요';els.fishDesc.textContent='물고기가 입질할 때까지 기다려요…';els.fishAction.textContent='찌를 바라보는 중…';els.gauge.style.display='none';els.fishing.classList.add('open');}
 function fishFailure(s){els.fishing.classList.remove('open');fishPhase='idle';castMode=false;toast('💨 '+s)}
 function fishingAction(){if(fishPhase==='bite'){fishPhase='reel';fishAttempts=0;gaugePos=0;gaugeDir=1;els.fishTitle.textContent='🐟 릴을 감아 올려요!';els.fishDesc.textContent='초록 영역에서 두 번 터치해서 성공하세요';els.fishAction.textContent='✨ 지금 릴 감기';els.gauge.style.display='block';return}if(fishPhase==='reel'){if(gaugePos>.30&&gaugePos<.70){fishAttempts++;party(player.x,player.y-30,9);if(fishAttempts>=2){const names=['송사리','붕어','금붕어','비단 송어','은빛 농어','황금 잉어'];let roll=Math.random();let idx=roll>.982?5:roll>.84?4:roll>.66?3:Math.floor(roll*3);let fish=names[idx],money=[36,55,88,120,185,600][idx]+lifeBonus('fish');state.fish++;state.dailyFish++;state.collection.push(fish);state.xp+=36;state.coins+=money;hud();save();completeDaily();checkAchievements();fishPhase='idle';castMode=false;els.fishing.classList.remove('open');toast(`🐟 ${fish} 획득! +${money}G`);party(player.x,player.y-75,26);return}els.fishDesc.textContent='좋아요! 한 번 더 맞춰보세요 ('+fishAttempts+'/2)'}else{fishAttempts=Math.max(0,fishAttempts-1);els.fishDesc.textContent='앗! 초록 영역에서 눌러주세요'}}}
-els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=openShop;document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing;document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 준자마을 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
+els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing;document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 준자마을 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
 function showRenderError(error){
  const panel=document.getElementById('renderError');panel.hidden=false;
  const reason=document.getElementById('renderErrorReason');
@@ -385,6 +452,6 @@ function showRenderError(error){
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();save();showRenderError('그래픽 컨텍스트가 중단됐습니다. 다시 열기를 눌러 복구하세요.');});
 cv.addEventListener('webglcontextrestored',()=>location.reload());
 try{world3D=createWorld({canvas:cv,width:W,height:H,stations,resources:resourceNodes,beds:bedCenters,npcs,animals:animalFriends,walkable,nickname:socialNickname})}catch(error){console.error(error);showRenderError(error);}
-initJourney();connectSocial();setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getState:()=>({player:{...player},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
+initJourney();connectSocial();setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
 })();
 
