@@ -1,6 +1,7 @@
 import {createWorld} from './world3d.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
 import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
+import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -217,7 +218,7 @@ const resourceNodes=[
  ...Array.from({length:8},(_,i)=>({id:'petal'+i,kind:'petal',x:2220+(i%4)*130,y:1870+Math.floor(i/4)*180}))
 ];
 state.materials={wood:0,stone:0,petal:0,...state.materials};state.nodeReady=state.nodeReady||{};state.crafted=state.crafted||{};
-state.chapter=Math.max(0,Math.min(8,Number(state.chapter)||0));state.gathered=state.gathered||0;state.craftCount=state.craftCount||0;state.deliveries=state.deliveries||0;state.visits=state.visits||{};
+state.chapter=Math.max(0,Math.min(50,Math.floor(Number(state.chapter)||0)));state.gathered=state.gathered||0;state.craftCount=state.craftCount||0;state.deliveries=state.deliveries||0;state.visits=state.visits||{};
 const recipes=[
  {id:'linen',name:'공방 린넨 셔츠',icon:'🧵',needs:{petal:12,wood:4},desc:'옷장에 추가되는 직접 만든 의상',xp:65,outfit:'linen'},
  {id:'parcel',name:'숲의 선물 상자',icon:'📦',needs:{wood:3,petal:2},desc:'교역소 납품 시 180G',xp:20},
@@ -235,7 +236,9 @@ const chapters=[
  {title:'머물고 싶은 마을',desc:'제작하거나 구매한 장식을 마을에 3개 배치해요.',done:()=>Math.min(3,state.decorations.length),total:3,station:'garden',reward:300},
  {title:'바다의 수집가',desc:'부두에서 서로 다른 물고기를 3종 발견해요.',done:()=>Math.min(3,new Set(state.collection).size),total:3,station:'pier',reward:350},
  {title:'마을의 생활 장인',desc:'누적 5개 상자를 납품하고 집에 가구 3개를 모아봐요.',done:()=>Math.min(5,state.deliveries)+Math.min(3,state.home.furniture.length),total:8,station:'lodge',reward:600}
-];
+]; 
+chapters.push(...makeLivingChapters(state,FISH_BY_NAME));
+const CHAPTER_COUNT=chapters.length;
 let lastJourneyUpdate=-1;
 function lifeLevel(){return 1+Math.floor(state.xp/160)}
 function lifeBonus(kind){
@@ -268,7 +271,7 @@ function updateJourney(force=false){
  if(!force&&t-lastJourneyUpdate<.25)return;lastJourneyUpdate=t;
  const q=chapters[state.chapter];els.questText.textContent=q?(q.done()>=q.total?'🎁 보상 받기 · '+q.title:q.title):'마을 생활 장인 · 자유롭게 꾸며봐요';
  const next=document.getElementById('questNext');if(next)next.textContent=q?(q.done()>=q.total?'수첩에서 '+q.reward+'G 보상을 받아요':q.desc):'낚시·제작·꾸미기로 나만의 마을을 만들어요';
- els.questCount.textContent=q?`${q.done()} / ${q.total} · 눌러서 안내`:'8장 완료 · 일일 의뢰 도전';els.questProgress.style.width=q?`${q.done()/q.total*100}%`:'100%';
+ els.questCount.textContent=q?`${q.done()} / ${q.total} · 눌러서 안내`:CHAPTER_COUNT+'장 완주 · 월간 목표 도전';els.questProgress.style.width=q?`${q.done()/q.total*100}%`:'100%';
  for(const s of stations)if(distance(player,s)<140){
   state.visits[s.id]=true;
   if(!state.dailyVisits.includes(s.id)){state.dailyVisits.push(s.id);completeDaily()}
@@ -276,8 +279,8 @@ function updateJourney(force=false){
 }
 function openJourney(){
  const q=chapters[state.chapter];
- openModal(`<span class="titlebadge">MY LIFE · ${Math.min(8,state.chapter+1)} / 8</span><h2>나의 마을 생활</h2><p>수확과 채집 → 제작과 납품 → 의상과 집 꾸미기</p>${q?`<div class="mini-card"><strong>${q.title}</strong><p>${q.desc}</p><div class="mini-progress"><i style="width:${q.done()/q.total*100}%"></i></div><p>${q.done()} / ${q.total} · 보상 ${q.reward}G + 경험치 60</p><button id="journeyGo">${stations.find(s=>s.id===q.station).icon} 목적지까지 걷기</button><button id="journeyClaim" ${q.done()<q.total?'disabled':''}>보상 받고 다음 목표</button></div>`:'<div class="mini-card"><strong>🎉 생활 장인 달성!</strong><p>자유롭게 채집·제작·꾸미기를 즐기고 일일 의뢰도 도전해요.</p></div>'}<h3>나의 성장 혜택 · Lv.${lifeLevel()}</h3>${lifePerkGuide()}<h3>걸어온 길</h3>${chapters.map((c,i)=>`<p>${i<state.chapter?'✅':i===state.chapter?'▶':'▫️'} ${i+1}. ${c.title}</p>`).join('')}<div class="pill-row"><button class="pill-btn" id="journeyMap">마을 지도</button><button class="pill-btn ghost" id="journeyDaily">일일 의뢰 / 업적</button><button class="pill-btn ghost" id="journeyHelp">조작법</button></div>`);
- if(q){document.getElementById('journeyGo').onclick=()=>goStation(q.station);document.getElementById('journeyClaim').onclick=()=>{if(chapters[state.chapter]!==q||q.done()<q.total)return;state.chapter++;state.coins+=q.reward;state.xp+=60;save();hud();updateJourney(true);toast('생활 목표 완료! +'+q.reward+'G');openJourney()}}
+ openModal(`<span class="titlebadge">MY LIFE · ${Math.min(CHAPTER_COUNT,state.chapter+1)} / ${CHAPTER_COUNT}</span><h2>나의 마을 생활</h2><p>생활 · 낚시 · 사냥 · 꾸미기 · 주민 교류 · 장기 성장</p>${q?`<div class="mini-card"><strong>${q.title}</strong><p>${q.desc}</p><div class="mini-progress"><i style="width:${q.done()/q.total*100}%"></i></div><p>${q.done()} / ${q.total} · 보상 ${q.reward}G + 경험치 ${q.xp||60}</p><button id="journeyGo">${(stations.find(s=>s.id===q.station)?.icon||'🌿')} 목적지까지 걷기</button><button id="journeyClaim" ${q.done()<q.total?'disabled':''}>보상 받고 다음 목표</button></div>`:'<div class="mini-card"><strong>🎉 생활 장인 달성!</strong><p>자유롭게 채집·제작·꾸미기를 즐기고 일일 의뢰도 도전해요.</p></div>'}<h3>나의 성장 혜택 · Lv.${lifeLevel()}</h3>${lifePerkGuide()}<h3>걸어온 길</h3>${chapters.map((c,i)=>`<p>${i<state.chapter?'✅':i===state.chapter?'▶':'▫️'} ${i+1}. ${c.title}</p>`).join('')}<div class="pill-row"><button class="pill-btn" id="journeyMap">마을 지도</button><button class="pill-btn ghost" id="journeyDaily">일일 의뢰 / 업적</button><button class="pill-btn ghost" id="journeyHelp">조작법</button></div>`);
+ if(q){document.getElementById('journeyGo').onclick=()=>goStation(q.station);document.getElementById('journeyClaim').onclick=()=>{if(chapters[state.chapter]!==q||q.done()<q.total)return;state.chapter++;state.coins+=q.reward;state.xp+=(q.xp||60);save();hud();updateJourney(true);toast('생활 목표 완료! +'+q.reward+'G');openJourney()}}
  document.getElementById('journeyMap').onclick=openWorldMap;document.getElementById('journeyDaily').onclick=openJournal;document.getElementById('journeyHelp').onclick=guide;
 }
 function goToHunting(){
