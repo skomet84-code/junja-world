@@ -55,14 +55,20 @@ try{
  assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getState())).coins,state.coins);
  assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getState())).fashion.equipped.outfit,first);
  await page.locator('#close').click();
- // Give this QA-only save ample coins for testing every category; real players earn theirs.
- await page.evaluate(()=>{
+ // QA-only funds are injected *at next document startup*, after the previous
+ // document's beforeunload auto-save. This cannot affect normal game code.
+ await page.addInitScript(()=>{
+  if(sessionStorage.getItem('qa-fashion-boost')!=='yes')return;
   const s=JSON.parse(localStorage.getItem('junja-harbor-v1')||'{}');
-  s.coins=50000;localStorage.setItem('junja-harbor-v1',JSON.stringify(s));
+  s.coins=50000;
+  localStorage.setItem('junja-harbor-v1',JSON.stringify(s));
+  sessionStorage.removeItem('qa-fashion-boost');
  });
+ await page.evaluate(()=>sessionStorage.setItem('qa-fashion-boost','yes'));
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__JUNJA_TEST__?.getRenderer()?.frames>5,null,{timeout:60000});
  assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getState())).fashion.equipped.outfit,first,'save/load outfit');
+ assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getState())).coins,50000,'QA coin setup persisted after reload');
  await page.locator('#shopBtn').click();
  for(const [category,id] of [['hair','fashion_hair_01'],['accessory','fashion_accessory_01'],['pet','fashion_pet_01']]){
   await page.locator('#tab-'+category).click();
