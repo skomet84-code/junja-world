@@ -227,6 +227,41 @@ function zoneMenu(){
  document.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>startZone(+b.dataset.zone));
  $('viewHuntLoot').onclick=craftMenu;$('returnVillage').onclick=goHome;
 }
+function potionShop(){
+ const bag=state.hunt.potions||{},capacity=bagCapacity(state),used=bagUsed(state);
+ openModal('<h2>🧪 모험가 물약 상점</h2><p>HP·MP 회복 물약은 소비 아이템이며, 7~9초 재사용 대기가 있어요.</p>'+
+ '<div class="hero"><strong>🎒 가방 '+used+'/'+capacity+'칸</strong><p>마을 가방에서 용량을 확장할 수 있어요.</p></div>'+
+ '<div class="grid">'+POTIONS.map(p=>'<article class="craft-card"><strong>'+p.icon+' '+p.name+'</strong><p>회복 '+p.heal+' · 3개 '+p.price+'G</p>'+
+ '<p>보유 '+(bag[p.id]||0)+'개</p><button data-potion-buy="'+p.id+'" '+(state.coins<p.price||!canStore(state,3)?'disabled':'')+'>3개 구매</button></article>').join('')+'</div>'+
+ '<button class="wide" id="potionsBack">🎁 전리품 공방</button><button class="wide" id="potionsMap">🗺️ 사냥터 지도</button>');
+ document.querySelectorAll('[data-potion-buy]').forEach(b=>b.onclick=()=>{
+  const p=POTIONS.find(p=>p.id===b.dataset.potionBuy),res=purchasePotion(state,b.dataset.potionBuy);
+  if(!res.ok){toast(res.error);return}
+  save();updateHud();toast('🧪 '+p.name+' 3개 구입');potionShop();
+ });
+ $('potionsBack').onclick=craftMenu;$('potionsMap').onclick=zoneMenu;
+}
+function useQuickPotion(id){
+ if(!active)return;
+ const now=Date.now(),s=stats(),current=id==='hp'?hero.hp:hero.mp,max=id==='hp'?s.maxHp:s.maxMp;
+ const res=consumePotion(state,id,current,max,now,state.hunt.potionCooldowns[id]||0);
+ if(!res.ok){toast('🧪 '+res.error);return}
+ if(id==='hp')hero.hp=res.value;else hero.mp=res.value;
+ state.hunt.potionCooldowns[id]=res.nextAt;save();updateHud();
+ floatNumber(hero.x,hero.z,(id==='hp'?'❤️ +':'💧 +')+res.amount,id==='hp'?'#c2f9c9':'#b7dcff');
+ toast((id==='hp'?'❤️ HP':'💧 MP')+' '+res.amount+' 회복');
+}
+function claimOverflow(){
+ const table=state.hunt.overflow||{},stored=Object.entries(table).filter(([,n])=>n>0);
+ if(!stored.length){toast('보관된 전리품이 없어요');return}
+ let moved=0;
+ for(const [name,n] of stored){const qty=Math.min(n,Math.max(0,bagFreeSafe()));
+  if(qty&&addBagItems(state,'hunt',name,qty)){table[name]-=qty;moved+=qty}
+ }
+ if(moved){save();toast('📦 전리품 '+moved+'개 가방으로 이동');craftMenu()}
+ else toast('가방 공간을 더 확보해야 해요');
+}
+function bagFreeSafe(){return Math.max(0,bagCapacity(state)-bagUsed(state))}
 function craftMenu(){
  const bag=state.hunt.materials||{},owned=state.fashion.owned||[];
  const recipes=HUNT_CRAFTS.map(r=>{
@@ -236,7 +271,7 @@ function craftMenu(){
   return '<article class="craft-card"><strong>'+r.icon+' '+r.name+'</strong><p>완성 아이템: '+displayName+'</p><p>'+cost+'</p><p>제작비 '+r.coins.toLocaleString()+'G</p><button data-craft="'+r.id+'" '+(got||!possible?'disabled':'')+'>'+(got?'✅ 소장 중':possible?'제작하고 옷장에 보관':'재료 부족')+'</button></article>';
  }).join('');
  const supplies=Object.entries(bag).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(([id,n])=>'<span class="item-pill">'+id+' × '+n+'</span>').join('');
- openModal('<h2>🎁 사냥 전리품 공방</h2><p>사냥 재료를 모아 기존 준자마을 의상을 제작해 보세요. 제작한 의상은 마을 옷장에서도 바로 착용할 수 있어요.</p><h3>🎒 전리품 보관함</h3><div>'+(supplies||'<p>아직 모은 재료가 없어요.</p>')+'</div><h3>👑 테마 코스튬 제작</h3><div class="grid">'+recipes+'</div><button id="backHuntMap" class="wide">🗺️ 사냥터 선택</button>');
+ openModal('<h2>🎁 사냥 전리품 공방</h2><p>사냥 재료를 모아 기존 준자마을 의상을 제작해 보세요. 제작한 의상은 마을 옷장에서도 바로 착용할 수 있어요.</p><h3>🎒 전리품 보관함</h3><div>'+(supplies||'<p>아직 모은 재료가 없어요.</p>')+'</div><h3>👑 테마 코스튬 제작</h3><div class="grid">'+recipes+'</div><button id="potionShopLink" class="wide">🧪 HP/MP 물약 상점</button><button id="collectHuntOverflow" class="wide">📦 임시 보관함 회수</button><button id="backHuntMap" class="wide">🗺️ 사냥터 선택</button>');
  document.querySelectorAll('[data-craft]').forEach(b=>b.onclick=()=>{
   const r=HUNT_CRAFTS.find(x=>x.id===b.dataset.craft);
   if(!r||!canCraft(r,state.hunt.materials,state.fashion.owned,state.coins))return;
@@ -245,6 +280,8 @@ function craftMenu(){
   state.fashion.owned.push(r.gives);save();toast('✨ '+r.name+' 제작 완료!');craftMenu();
  });
  $('backHuntMap').onclick=zoneMenu;
+ $('potionShopLink').onclick=potionShop;
+ $('collectHuntOverflow').onclick=claimOverflow;
 }
 function goHome(){save();location.assign('/?room='+encodeURIComponent(room))}
 function floatNumber(x,z,label,color='#ffeaa5'){
@@ -433,6 +470,7 @@ function init(){
  canvas.addEventListener('pointerdown',pointer,{passive:false});
  $('resetView').onclick=resetView;
  $('map').onclick=zoneMenu;$('craft').onclick=craftMenu;$('home').onclick=goHome;
+ $('hpPotion').onclick=()=>useQuickPotion('hp');$('mpPotion').onclick=()=>useQuickPotion('mp');
  $('close').onclick=()=>{if(currentZone){$('modal').classList.remove('open');active=true}else zoneMenu()};
  document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>skillUse(b.dataset.skill));
  window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
