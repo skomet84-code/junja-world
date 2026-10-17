@@ -27,6 +27,18 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 .quest[role="button"]{cursor:pointer;touch-action:manipulation}
 .quest[role="button"]:focus-visible{outline:3px solid #d6bd81;outline-offset:4px}
 #fittingHost{height:280px;display:flex;justify-content:center;align-items:center;background:radial-gradient(ellipse at 50% 70%,#dfe7cf,#f4f1e5 70%);border-radius:22px;margin-top:12px}#fitting3D{width:300px;height:280px;max-width:100%;touch-action:none}.fitting-controls{justify-content:center;position:sticky;top:-18px;background:#fffaf0f5;padding:8px 0;z-index:1}.cloth-swatch{height:46px;width:46px;border-radius:16px;display:grid;place-items:center;font-size:23px;border:3px solid #ffffff7a}.item button{margin-top:2px}
+/* Luxury wardrobe: compact mobile tabs with real 3D fitting preview. */
+.fashion-tabs{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;padding:8px 0 11px;margin:0 0 8px;scrollbar-width:thin}
+.fashion-tab{flex:0 0 auto;background:#ebe9dd;border:1px solid #d6d3c3;color:#566953;border-radius:18px;padding:9px 12px;font-size:12px;font-weight:800}
+.fashion-tab.selected{background:#406f60;color:#fff;border-color:#406f60}
+.fashion-item{min-width:0;padding:9px 7px;gap:5px;box-shadow:0 4px 12px #203f2a10}
+.fashion-item strong{font-size:12px;text-align:center;min-height:32px;line-height:1.35}
+.fashion-item span{font-size:11px}
+.fashion-item .fashion-grade{font-size:11px;font-weight:900}
+.fashion-color{width:66px;height:60px;border:2px solid #ffffffc0;border-radius:22px;display:grid;place-items:center;color:#fffaf3;font-weight:900;font-size:25px;text-shadow:0 2px 6px #1c31374f;box-shadow:0 4px 10px #29483122}
+.fashion-total{color:#72836e;font-size:11px;font-weight:800;margin:9px 0}
+.fashion-item button{font-size:11px;min-height:35px;padding:7px 4px}
+@media(max-width:550px){.fashion-tab{padding:8px 10px;font-size:11px}.fashion-item .fashion-color{width:58px;height:54px}.fitting-controls{gap:5px}.fitting-controls .pill-btn{font-size:11px;padding:7px!important}}
 #renderError{position:fixed;inset:20%;z-index:99;padding:24px;border-radius:24px;background:#fff9e9;box-shadow:0 12px 40px #31433355;text-align:center}#renderError[hidden]{display:none}
 @media(max-width:550px){.quest{max-width:154px}.act .em{font-size:20px}.act small{font-size:9px}.top{top:calc(10px + env(safe-area-inset-top))}.left{top:calc(102px + env(safe-area-inset-top))}.minimap{top:calc(102px + env(safe-area-inset-top))}.social-status{bottom:calc(84px + env(safe-area-inset-bottom))}.goods{gap:7px}}
 </style></head><body><canvas id="game" aria-label="준자마을 입체 게임 필드"></canvas><div id="shade"></div>
