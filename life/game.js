@@ -277,11 +277,11 @@ const peers={};
 // Remember player-entered nicknames, but migrate the previous "마을주민####" placeholders.
 // This browser-only owner entitlement is NOT authenticated identity; secure roles need a server.
 const PLAYER_NICK_KEY='junja-village-nickname',OPERATOR_NICK='갓준자';
-const isLegacyPlaceholder=nick=>/^마을\\s*주민(?:\\d{4})?$/.test(nick);
+const isLegacyPlaceholder=nick=>/^마을\s*주민(?:\d{4})?$/.test(nick);
 const newVisitorNick=()=>('새싹'+Math.floor(1000+Math.random()*9000));
 let socialNickname='';
 try{
- const oldName=String(localStorage.getItem(PLAYER_NICK_KEY)||'').replace(/[<>\\x00-\\x1f\\x7f]/g,'').trim().slice(0,12);
+ const oldName=String(localStorage.getItem(PLAYER_NICK_KEY)||'').replace(/[<>\x00-\x1f\x7f]/g,'').trim().slice(0,12);
  socialNickname=state.operatorGiftV21?OPERATOR_NICK:(oldName&&!isLegacyPlaceholder(oldName)?oldName:newVisitorNick());
  localStorage.setItem(PLAYER_NICK_KEY,socialNickname);
 }catch{socialNickname=state.operatorGiftV21?OPERATOR_NICK:newVisitorNick()}
