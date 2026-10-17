@@ -22,7 +22,7 @@ if(!Array.isArray(state.decorations))state.decorations=[];
 if(!state.home)state.home={wall:'cream',floor:'oak',furniture:['sofa']};
 state.home.level=Math.max(1,Math.min(4,Math.floor(Number(state.home.level)||1)));
 state.fishingGear=validRodSave(state.fishingGear);
-state.aquarium={display:Array.isArray(state.aquarium?.display)?state.aquarium.display.filter(n=>FISH_BY_NAME[n]):[]};
+state.aquarium={display:Array.isArray(state.aquarium?.display)?state.aquarium.display.filter(n=>FISH_BY_NAME[n]):[],initialized:Boolean(state.aquarium?.initialized)};
 state.dailyGather=Number(state.dailyGather)||0;state.dailyCraft=Number(state.dailyCraft)||0;
 state.dailyDeliver=Number(state.dailyDeliver)||0;
 state.dailyFishNames=Array.isArray(state.dailyFishNames)?state.dailyFishNames.filter(n=>FISH_BY_NAME[n]):[];
@@ -565,7 +565,10 @@ function openAquarium(){
  const available=new Set(state.collection.filter(n=>FISH_BY_NAME[n]));
  const cap=aquariumSlots(lifeLevel());
  state.aquarium.display=state.aquarium.display.filter(n=>available.has(n)).slice(0,cap);
- if(!state.aquarium.display.length&&available.size)state.aquarium.display=[...available].slice(0,Math.min(3,cap));
+ if(!state.aquarium.initialized){
+  if(!state.aquarium.display.length&&available.size)state.aquarium.display=[...available].slice(0,Math.min(3,cap));
+  state.aquarium.initialized=true;
+ }
  const display=state.aquarium.display;
  const tank=`<div class="aquarium-stage">
   <div class="aquarium-bubbles">◌　◦　◌　◦</div>
