@@ -24,6 +24,7 @@ jobs:
       - name: Verify actual mobile 3D render, navigation and wardrobe
         working-directory: life
         run: |
+          node test_economy_browser_v28.mjs
           node test_living_browser_v27.mjs
           node test_hunt_browser_v25.mjs
           node test_nickname_browser_v22.mjs
