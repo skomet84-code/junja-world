@@ -12,6 +12,8 @@ try{
  const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{
+   if(sessionStorage.getItem('hunt-qa-seeded'))return;
+   sessionStorage.setItem('hunt-qa-seeded','yes');
    const data={coins:5000,xp:320,coat:'mint',hat:'none',x:1050,y:955,
     fashion:{owned:[],equipped:{}},
     hunt:{kills:0,materials:{'젤리 조각':12,'숲의 조각':9,'왕의 도토리':1},bossDates:{}}};
