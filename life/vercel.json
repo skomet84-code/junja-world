@@ -1,11 +1,34 @@
 {
   "version": 2,
-  "fluid": true,
-  "outputDirectory": "public",
-  "functions": {
-    "api/ws.js": {
-      "maxDuration": 300,
-      "memory": 1024
+  "builds": [
+    {
+      "src": "api/ws.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "vendor/*",
+      "use": "@vercel/static"
     }
-  }
+  ],
+  "routes": [
+    {
+      "src": "/api/ws",
+      "dest": "/api/ws.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
+    }
+  ]
 }
