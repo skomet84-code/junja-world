@@ -1,3 +1,30 @@
+# JUNJA VILLAGE LIFE v20 — Personal Village / Fishing Collection
+
+[▶ Open v20 single-player preview](https://raw.githack.com/skomet84-code/junja-world/junja-village-life-v20/life/index.html)
+
+### Limits and multiplayer model
+- One relay room supports **8 simultaneous people**; this is a per-room limit, not a measured total site capacity. The GitHACK version is a static preview and has **no connected friends**. Run the Node server from `life/` to try room multiplayer.
+- Each user keeps **their own wood, stone, flowers, crops and fish** in their browser storage. Another player does not consume your private harvest node or resources. This is not yet synchronized server-side shared harvesting or anti-cheat-safe multiplayer inventory.
+- Unrestricted free text chat is removed. Only **six server-validated prefab speech bubbles** can be sent to other users. Local speech also works in the static preview.
+
+### Visual polish
+- Existing v18 movement logic, avatar scale, and camera angle preserved from v19; larger/high-contrast labels hover over your player, NPCs, and friends.
+- Background, leaf greens, and scene lighting get a *small* saturation/exposure increase, not a vivid neon redesign.
+
+### Game progression and activities
+- 6 persistent fishing rods: higher tiers shorten bites, increase timing margin, and improve odds of rare catches. Unlock by life level and pay in earned in-game coins.
+- Aquarium: six visually illustrated fish types with animated 2D vector display, rare-fish discovery and collectible history. Tank grows from 3 to 6/9/12 exhibit slots at levels 5/8/12.
+- Five daily missions: three core tasks plus two rotating variety missions selected by the local date. Progress includes gathering, crafting, visiting, different catches, and deliveries.
+- Four home stages: from a small cottage to royal residence, tiered coin/level unlocks, expanded furniture limit and once-per-day home-care rewards.
+- Lifelong goals include rod milestones, wardrobe, fish collection, town friendships, crafting and upgrading a personal space.
+
+### Quality and known limitations
+- Run `cd life && npm test` for deterministic movement, rig, fashion, rod, aquarium, 8-person room, and preset-phrase safety checks.
+- GitHub Actions runs real 390×844 phone-sized Chromium/WebGL smoke tests including finger touch and old saved-position recovery.
+- Needs **real iPhone Safari** validation before promotion; no persistent cloud accounts or production economy yet. Only this preview branch is changed; JUNJA LAND and Adventure deployments are untouched.
+
+---
+
 # JUNJA VILLAGE LIFE v19 — Luxury Avatar Atelier (experimental preview)
 
 [▶ Open v19 village preview](https://raw.githack.com/skomet84-code/junja-world/junja-village-life-v19/life/index.html)
