@@ -47,10 +47,10 @@ function onMessage(p,msg){
  if(msg.type==='join'){
   if(p.room)return;
   const roomCode=safeRoom(msg.room);const room=rooms.get(roomCode)||new Map();
-  if(room.size>=8){send(p,{type:'error',message:'방이 가득 찼어요 (최대 8명)'});return}
   // One active avatar per browser installation. This is session de-duplication, not account authentication.
   const clientId=typeof msg.clientId==='string'&&/^[a-zA-Z0-9-]{18,64}$/.test(msg.clientId)?msg.clientId:null;
   if(clientId)for(const other of [...room.values()])if(other.clientId===clientId){send(other,{type:'replaced',message:'다른 탭에서 마을에 접속해 기존 연결을 종료했어요'});removePeer(other)}
+  if(room.size>=8){send(p,{type:'error',message:'방이 가득 찼어요 (최대 8명)'});return}
   const originalNick=clean(msg.nick,12)||'새싹 친구';
   const used=new Set([...room.values()].map(x=>x.nick));
   let chosenNick=originalNick;
