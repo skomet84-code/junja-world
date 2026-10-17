@@ -17,10 +17,11 @@ try{
  browser=await chromium.launch({headless:true,args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader']});
  const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
  page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>localStorage.setItem('junja-harbor-v1',JSON.stringify({coins:15000})));
  await page.goto(url,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__JUNJA_TEST__?.getRenderer()?.frames>5,null,{timeout:60000});
  const before=await page.evaluate(()=>window.__JUNJA_TEST__.getState());
- assert.equal(before.coins,800);
+ assert.equal(before.coins,15000,'QA purchase wallet is independent of fresh guest balance');
  const catalog=await page.evaluate(()=>window.__JUNJA_TEST__.getCatalog());
  assert.equal(catalog.length,100);
  assert.equal((await page.evaluate(()=>window.__JUNJA_TEST__.getRenderer())).faceCameraElevation,32);
