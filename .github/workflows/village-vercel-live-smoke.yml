@@ -1,7 +1,7 @@
 name: Junja Village Public URL Smoke
 on:
   push:
-    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25]
+    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25, village-hunt-polish-v26]
   workflow_dispatch:
 
 jobs:
@@ -52,12 +52,19 @@ jobs:
           assert(fishingData.includes('reelChallenge('),'rarity-based reel challenge not deployed');
           const huntHtml=await fetch(base+'/hunt.html',{signal:abort()});
           assert.equal(huntHtml.status,200,'standalone hunt 3D page unavailable');
-          assert((await huntHtml.text()).includes('data-skill="strike"'),'hunt skill buttons absent');
+          const huntHtmlBody=await huntHtml.text();
+          assert(huntHtmlBody.includes('data-skill="strike"'),'hunt skill buttons absent');
+          assert(huntHtmlBody.includes('id="resetView"'),'mobile reset view button missing');
           const huntJs=await fetch(base+'/hunt.js',{signal:abort()});
           assert.equal(huntJs.status,200,'hunt combat script unavailable');
           const huntLogic=await huntJs.text();
           assert(huntLogic.includes('function skillUse('),'combat mechanics are not deployed');
           assert(huntLogic.includes('function mobHit('),'enemy damage mechanics are not deployed');
+          assert(huntLogic.includes("function antiZoomTouch("),'iPhone pinch and double-tap handling not deployed');
+          assert(huntLogic.includes("raycaster.intersectObjects(m.body.children,true)"),'touching actual monster geometry not deployed');
+          assert(huntLogic.includes("function hitBurst("),'hit sparks and attack arcs missing');
+          assert(huntLogic.includes("function resetView("),'camera reset function missing');
+          assert(huntLogic.includes("function mobOverhead("),'monster name and HP graphics missing');
           const huntData=await fetch(base+'/hunt-data.js',{signal:abort()});
           assert.equal(huntData.status,200,'hunt level and monster data unavailable');
           assert((await huntData.text()).includes('태고의 수호룡 아스트라'),'4th region boss unavailable');
