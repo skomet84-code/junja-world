@@ -107,6 +107,26 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  const player=createAvatar(),villagers=npcs.map((n,i)=>{const a=createAvatar({coat:n.coat,hat:n.hat});a.root.userData.pick={type:'npc',index:i};scene.add(a.root);label(a.root,n.name,0,121,0,70);pickRoots.push(a.root);return a});scene.add(player.root);
  const residents=animals.map((n,i)=>{const a=createAvatar({coat:['lavender','mint','amber','rose'][i],animal:n.species});a.root.scale.setScalar(.85);a.root.userData.pick={type:'animal',id:n.id};scene.add(a.root);label(a.root,n.name,0,n.species==='rabbit'?146:124,0,70);pickRoots.push(a.root);return a});
  const playerLabel=label(scene,'준자',0,132,0,65);
+ // Online guests are real articulated actors with the same wardrobe rig.
+ const guestAvatars=new Map();
+ function updateGuests(peers,dt,time){
+  for(const id of guestAvatars.keys())if(!Object.hasOwn(peers,id)){
+   const old=guestAvatars.get(id);scene.remove(old.avatar.root);old.avatar.dispose();guestAvatars.delete(id);
+  }
+  for(const [id,p] of Object.entries(peers)){
+   let rec=guestAvatars.get(id);
+   if(!rec){
+    const avatar=createAvatar({coat:p.coat||'mint',hat:p.hat||'none'});
+    scene.add(avatar.root);label(avatar.root,String(p.nick||'마을친구').slice(0,12),0,121,0,70);
+    rec={avatar,prevX:p.x,prevY:p.y,distance:0};
+    guestAvatars.set(id,rec);
+   }
+   const dx=p.x-rec.prevX,dy=p.y-rec.prevY,movement=Math.hypot(dx,dy);
+   rec.distance+=movement/70*Math.PI*2;rec.prevX=p.x;rec.prevY=p.y;
+   rec.avatar.equip(p.coat||'mint',p.hat||'none');
+   rec.avatar.animate({x:p.x,y:p.y,vx:movement>0.01?dx/Math.max(dt,.001):0,vy:movement>0.01?dy/Math.max(dt,.001):0,dir:p.dir||0,stride:rec.distance},dt,time);
+  }
+ }
  const destination=new T.Mesh(new T.RingGeometry(12,17,32),new T.MeshBasicMaterial({color:0xfff3b1,side:T.DoubleSide}));destination.rotation.x=-Math.PI/2;destination.position.y=2;scene.add(destination);destination.visible=false;
  const pathLine=new T.Line(new T.BufferGeometry(),new T.LineDashedMaterial({color:0xfff6dc,dashSize:10,gapSize:8,transparent:true,opacity:.7}));scene.add(pathLine);let routeKey='';
  const decorGroup=group(scene);let decorKey='';
@@ -138,7 +158,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  }
  function updateDecor(state){const key=JSON.stringify(state.decorations);if(key===decorKey)return;decorKey=key;decorGroup.clear();for(const d of state.decorations){if(d.id==='bench')bench(decorGroup,d.x,d.y);else if(d.id==='lantern')lamp(decorGroup,d.x,d.y);else if(d.id==='topiary')tree(decorGroup,d.x,d.y,{size:.4});else if(d.id==='birdbath'){const g=group(decorGroup,d.x,0,d.y);cylinder(g,0xd8d0b9,0,20,0,5,40);cylinder(g,0xd8d0b9,0,40,0,22,6);cylinder(g,0x94c7c0,0,44,0,18,1)}else if(d.id==='picnic'){box(decorGroup,0xe5bdb0,d.x,2,d.y,65,2,55)}else{const g=group(decorGroup,d.x,0,d.y);cylinder(g,0xc49d80,0,9,0,12,18);for(const [x,z] of [[0,0],[-6,5],[5,-5]]){const f=flower(g,x,z);f.position.y=16}}}}
  let lastFrameMs=0,frameCount=0,avgMs=0;
- function render({state,actor,npcs:ns,animals:as,time,dt,goal,path}){
+ function render({state,actor,npcs:ns,animals:as,peers={},time,dt,goal,path}){
   resize();follow(actor);
   if(time-lastShadowTime>.28||Math.hypot(actor.x-lastShadowPos.x,actor.y-lastShadowPos.y)>75){
    renderer.shadowMap.needsUpdate=true;lastShadowPos={x:actor.x,y:actor.y};lastShadowTime=time;
@@ -146,6 +166,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   player.equip(state.coat,state.hat);player.animate(actor,dt,time);playerLabel.position.set(actor.x,135,actor.y);
   ns.forEach((n,i)=>{villagers[i].animate({x:n.x,y:n.y,dir:0},dt,time+i)});
   as.forEach((n,i)=>{residents[i].animate({x:n.x,y:n.y,vx:n.moving?n.dx-n.x:0,vy:n.moving?n.dy-n.y:0,stride:(n.travel||0)/70*Math.PI*2,dir:0},dt,time+i)});
+  updateGuests(peers,dt,time);
   for(const r of resources){const ready=!(state.nodeReady[r.id]>Date.now()),g=resGroups.get(r.id);g.scale.y=ready?1:.55;}
   updateCrops(state);updateDecor(state);
   destination.visible=!!goal;if(goal)destination.position.set(goal.x,2,goal.y);
@@ -157,5 +178,5 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,screenToWorld,pick,fitting,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{renderer.dispose();previewRenderer?.dispose()}};
+ return {render,screenToWorld,pick,fitting,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();renderer.dispose();previewRenderer?.dispose()}};
 }
