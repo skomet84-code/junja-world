@@ -19,11 +19,14 @@ async function action(name,body){try{const r=await api(name,body);say(r.message|
 $('accountRegister').onclick=()=>action('register',{username:$('accountUser').value,nickname:$('accountNick').value,password:$('accountPassword').value});
 $('accountLogin').onclick=()=>action('login',{username:$('accountUser').value,password:$('accountPassword').value});
 $('accountLogout').onclick=()=>action('logout',{});
-$('accountTransfer').onclick=()=>{
+$('accountTransfer').onclick=async()=>{
  const recipient=$('accountRecipient').value.trim(),amount=Number($('accountAmount').value);
- if(!recipient||!Number.isSafeInteger(amount)||amount<=0)return say('받는 아이디와 금액을 확인해줘');
- if(!confirm(recipient+'에게 '+amount.toLocaleString()+'G 송금할까요?'))return;
- action('transfer',{recipient,amount,key:crypto.randomUUID()});
+ if(!recipient||!Number.isSafeInteger(amount)||amount<=0)return say('받는 친구의 닉네임과 금액을 확인해줘');
+ try{
+  const found=await api('resolve_recipient&nickname='+encodeURIComponent(recipient));
+  if(!confirm('받는 친구: '+found.nickname+'\\n송금 금액: '+amount.toLocaleString()+'G\\n정말 송금할까요?'.replaceAll('\\n','\n')))return;
+  await action('transfer',{recipient:found.nickname,confirmedNickname:found.nickname,amount,key:crypto.randomUUID()});
+ }catch(e){say(e.message)}
 };
 $('accountGrant').onclick=()=>{
  const recipient=$('accountRecipient').value.trim(),amount=Number($('accountAmount').value);
