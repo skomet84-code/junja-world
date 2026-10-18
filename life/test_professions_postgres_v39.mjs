@@ -75,7 +75,7 @@ try{
  await pool.query("UPDATE village_economy_v36_accounts SET state=jsonb_set(state,'{coins}','9999'::jsonb) WHERE user_key=$1",['ci-worker']);
  const interrupted=await post('claim');
  assert.equal(interrupted.statusCode,409,'Corrupt account must block every role transaction');
- assert.equal((await account()).version,2,'Corrupt attempt does not mint a new checkpoint or receipt');
+ assert.equal(Number((await account()).version),2,'Corrupt attempt does not mint a new checkpoint or receipt');
  const snapshots=await pool.query('SELECT count(*)::int AS n FROM village_economy_v37_checkpoints');
  assert.equal(snapshots.rows[0].n,3);
  console.log('PASS v39 disposable PostgreSQL: signed server-activity proofs, license debit, six concurrent reward retries, one daily payment, cooldown, audit fail-closed');
