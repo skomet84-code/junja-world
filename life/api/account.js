@@ -21,7 +21,7 @@ export default async function handler(req,res){
  try{
   if(action==='register'&&req.method==='POST'){
    const username=String(body.username||'').trim().toLowerCase(),password=String(body.password||''),nickname=String(body.nickname||username).trim();
-   if(!/^[a-z0-9_]{4,24}$/.test(username)||username==='admin_junja'||password.length<10||password.length>128||nickname.length<1||nickname.length>12)return send(res,400,{error:'아이디는 영문·숫자 4~24자, 비밀번호는 10자 이상, 닉네임은 12자 이하'});
+   if(!/^[a-z0-9_]{4,24}$/.test(username)||username==='admin_junja'||password.length<4||password.length>128||nickname.length<1||nickname.length>12)return send(res,400,{error:'아이디는 영문·숫자 4~24자, 비밀번호는 4자 이상, 닉네임은 12자 이하'});
    const salt=randomBytes(16).toString('hex');
    await client.query('INSERT INTO village_users(username,nickname,password_salt,password_hash,role) VALUES($1,$2,$3,$4,$5)',[username,nickname,salt,digest(password,salt),'player']);
    return send(res,201,{ok:true,message:'회원가입 완료. 로그인해주세요.'});
