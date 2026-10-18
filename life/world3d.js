@@ -114,6 +114,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  for(const object of [...scene.children])if(object.isGroup)batchStatic(object);
  const player=createAvatar(),villagers=npcs.map((n,i)=>{const a=createAvatar({coat:n.coat,hat:n.hat});a.root.userData.pick={type:'npc',index:i};scene.add(a.root);label(a.root,n.name,0,142,0,118);pickRoots.push(a.root);return a});scene.add(player.root);
  const residents=animals.map((n,i)=>{const a=createAvatar({coat:['lavender','mint','amber','rose'][i],animal:n.species});a.root.scale.setScalar(.85);a.root.userData.pick={type:'animal',id:n.id};scene.add(a.root);label(a.root,n.name,0,n.species==='rabbit'?161:140,0,118);pickRoots.push(a.root);return a});
+ const questMarkers=animals.map(()=>{const mark=label(scene,'❗',0,185,0,48);mark.visible=false;return mark});
  const playerLabel=label(scene,nickname,0,143,0,120);
  const playerSpeech=label(scene,'',0,192,0,172);playerSpeech.visible=false;
  let playerPhrase='',playerPhraseUntil=0;
@@ -243,6 +244,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   if(playerSpeech.visible&&Date.now()>playerPhraseUntil)playerSpeech.visible=false;
   ns.forEach((n,i)=>{villagers[i].animate({x:n.x,y:n.y,dir:0},dt,time+i)});
   as.forEach((n,i)=>{residents[i].animate({x:n.x,y:n.y,vx:n.moving?n.dx-n.x:0,vy:n.moving?n.dy-n.y:0,stride:(n.travel||0)/70*Math.PI*2,dir:0},dt,time+i)});
+  as.forEach((n,i)=>{const m=questMarkers[i];if(m){m.visible=!!n.questMark;m.position.set(n.x,195+Math.sin(time*3+i)*5,n.y)}});
   updateGuests(peers,dt,time);
   for(const r of resources){const ready=!(state.nodeReady[r.id]>Date.now()),g=resGroups.get(r.id);g.scale.y=ready?1:.55;}
   updateCrops(state);updateDecor(state);
