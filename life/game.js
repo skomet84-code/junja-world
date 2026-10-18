@@ -434,9 +434,11 @@ function openStation(id){
 
 function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
  const remaining=(state.nodeReady[id]||0)-Date.now();if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
- const amount=2+lifeBonus('gather');
- if(!canStore(state,amount)){toast('🎒 가방이 가득 찼어요! 판매 또는 가방 확장 후 채집해요');return}
- state.nodeReady[id]=Date.now()+45000;addBagItems(state,'material',n.kind,amount);state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+' · 가방에 보관했어요');
+ const desired=2+lifeBonus('gather'),free=bagFree(state);
+ if(free<1){toast('🎒 가방에 빈칸이 없어요. 가방 > 채집 재료 판매하기에서 비워주세요');return}
+ const amount=Math.min(desired,free);
+ if(!addBagItems(state,'material',n.kind,amount)){toast('🎒 가방 보관에 실패했어요. 가방을 열어 잔여 칸을 확인해 주세요');return}
+ state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));
 }
 
 function openDelivery(){
@@ -711,6 +713,43 @@ function openBaitShop(){
  });
  document.getElementById('baitToMarket').onclick=openMarket;
 }
+
+const MATERIAL_MARKET=Object.freeze({
+ wood:{name:'목재',icon:'🪵',price:12},
+ stone:{name:'돌',icon:'🪨',price:14},
+ petal:{name:'꽃잎',icon:'🌼',price:10}
+});
+function openMaterialMarket(){
+ const inventory=Object.entries(MATERIAL_MARKET).map(([id,item])=>{
+  const held=Math.max(0,Math.floor(Number(state.materials?.[id])||0));
+  return '<div class="mini-card"><span class="emoji">'+item.icon+'</span><strong>'+item.name+' · '+held+'개 보유</strong>'+
+   '<p>매입가 1개 '+item.price.toLocaleString('ko-KR')+'G · 하루 판매 수입 감소 규칙 적용</p>'+
+   '<div class="pill-row"><button type="button" data-material-one="'+id+'" '+(held?'':'disabled')+'>1개 판매</button>'+
+   '<button type="button" data-material-all="'+id+'" '+(held?'':'disabled')+'>전체 '+held+'개 판매</button></div></div>';
+ }).join('');
+ openModal('<span class="titlebadge">FOREST MATERIAL EXCHANGE</span><h2>🌲 채집 재료 판매소</h2>'+
+ '<p>가방에 모은 목재·돌·꽃잎을 골드로 바꿀 수 있어요. 제작에 쓸 재료는 남겨두세요.</p>'+
+ '<div class="mini-card"><strong>🎒 가방 '+bagUsed(state)+'/'+bagCapacity(state)+'칸 · 빈칸 '+bagFree(state)+'칸</strong></div>'+
+ '<div class="card-grid">'+inventory+'</div>'+
+ '<div class="pill-row"><button class="pill-btn" id="materialMarketBag">🎒 가방으로 돌아가기</button>'+
+ '<button class="pill-btn ghost" id="materialMarketFish">🐟 물고기 판매소</button></div>');
+ els.panelBody.querySelectorAll('[data-material-one],[data-material-all]').forEach(btn=>btn.onclick=()=>{
+  const id=btn.dataset.materialOne||btn.dataset.materialAll,item=MATERIAL_MARKET[id];
+  const held=Math.max(0,Math.floor(Number(state.materials?.[id])||0));
+  if(!item||held<1){toast('판매할 채집 재료가 없어요');return}
+  const amount=btn.dataset.materialAll?held:1;
+  const receipt=credit(state,item.price*amount,'harvest','채집 재료 판매 · '+item.name,lifeLevel());
+  if(!receipt.ok){toast(receipt.error||'재료 판매에 실패했어요');return}
+  state.materials[id]=held-amount;
+  state.economy.trades++;
+  save();hud();
+  openMaterialMarket();
+  toast('💰 '+item.name+' '+amount+'개 판매 · +'+receipt.amount.toLocaleString('ko-KR')+'G'+(receipt.softCapped?' (오늘 수입 감소 적용)':''));
+ });
+ document.getElementById('materialMarketBag').onclick=openBag;
+ document.getElementById('materialMarketFish').onclick=openMarket;
+}
+
 function openMarket(){
  const day=marketDay(),species=FISH.filter(f=>state.fishStock?.[f.name]>0);
  const stock=species.reduce((n,f)=>n+state.fishStock[f.name],0);
@@ -724,7 +763,7 @@ function openMarket(){
  '<strong>'+f.rarity+' · '+f.name+'</strong><p>보유 '+state.fishStock[f.name]+'마리 · 오늘 매입가 '+quoteFish(f).toLocaleString('ko-KR')+'G</p>'+
  '<button data-sell-fish="'+f.name+'">1마리 판매</button></div>').join('')+'</div>':
  '<div class="mini-card"><strong>🎣 아직 판매할 물고기가 없어요</strong><p>이번 경제 업데이트 이후 낚은 물고기부터 판매 가방에 쌓여요. 예전에 잡은 물고기는 이미 보상을 받았으므로 중복 지급되지 않아요.</p></div>')+
- '<div class="pill-row"><button class="pill-btn" id="marketEconomy">🏦 경제 수첩</button>'+
+ '<div class="pill-row"><button class="pill-btn" id="marketMaterials">🌲 목재·돌·꽃잎 판매</button><button class="pill-btn" id="marketEconomy">🏦 경제 수첩</button>'+
  '<button class="pill-btn ghost" id="marketBait">🪱 미끼 상점</button><button class="pill-btn ghost" id="marketBag">🐠 어항 도감</button><button class="pill-btn ghost" id="marketStorage">🎒 가방 확장</button></div>');
  els.panelBody.querySelectorAll('[data-sell-fish]').forEach(btn=>btn.onclick=()=>{
   const fish=FISH_BY_NAME[btn.dataset.sellFish];if(!fish)return;
@@ -734,6 +773,7 @@ function openMarket(){
   toast('💰 '+fish.name+' 매입 완료 · +'+result.amount.toLocaleString('ko-KR')+'G'+(result.softCapped?' · 오늘 보상 감소 적용':''));
   openMarket();
  });
+ document.getElementById('marketMaterials').onclick=openMaterialMarket;
  document.getElementById('marketEconomy').onclick=openEconomyDashboard;
  document.getElementById('marketBait').onclick=openBaitShop;
  document.getElementById('marketBag').onclick=openAquarium;
@@ -1324,8 +1364,9 @@ function openBag(){
  openModal('<span class="titlebadge">STORAGE · LV.'+bag.level+'</span><h2>🎒 나의 가방</h2>'+
  '<div class="mini-card"><strong>'+BAG_TIERS[bag.level-1].name+' · '+used+'/'+capacity+'칸</strong>'+
  '<div class="mini-progress"><i style="width:'+storageBar+'%"></i></div>'+
- '<p>물고기·채집 재료·사냥 전리품·제작품·물약을 합산해요. 기존 소지품은 절대 삭제되지 않아요.</p>'+
+ '<p>물고기·채집 재료·사냥 전리품·제작품·물약을 합산해요. <b>빈칸 '+bagFree(state)+'칸</b> · 기존 소지품은 삭제되지 않아요.</p>'+
  (next?'<button id="upgradeBag">🧰 '+next.name+' · '+Math.max(next.slots,capacity+next.slots-BAG_TIERS[bag.level-1].slots)+'칸 · '+next.price.toLocaleString('ko-KR')+'G</button>':'<p>👑 최고 단계 가방!</p>')+'</div>'+
+ '<div class="mini-card"><strong>🏪 바로 판매하기</strong><p>목재·돌·꽃잎 또는 물고기를 팔아 가방을 비워보세요.</p><div class="pill-row"><button type="button" class="pill-btn" id="bagSellMaterials">🌲 채집 재료 판매하기</button><button type="button" class="pill-btn" id="bagSellFish">🐟 물고기 판매하기</button></div></div>'+
  '<div class="mini-card"><strong>🎟️ 물고기 자동 판매권 '+bag.autoSellTickets+'장</strong>'+
  '<p>보유한 판매용 물고기만 오늘 시세로 한 번에 판매합니다. 도감·사냥 재료·의상은 그대로 유지돼요.</p>'+
  '<button id="autoSellBag" '+(bag.autoSellTickets&&fishTotal?'':'disabled')+'>🎟️ 자동 비우기권 사용</button>'+
@@ -1338,6 +1379,8 @@ function openBag(){
  '<h3>🪵 제작품</h3><p>'+crafted+'</p>');
  document.getElementById('buyAutoSellTicket').onclick=()=>{const r=purchaseAutoSellTicket(state);if(!r.ok){toast(r.error);return}save();hud();openBag();toast('🎟️ 자동 판매권 1장 구매');};
  els.panelBody.querySelectorAll('[data-fish-lock]').forEach(b=>b.onclick=()=>{toggleFishProtection(state,b.dataset.fishLock);save();openBag();});
+ document.getElementById('bagSellMaterials').onclick=openMaterialMarket;
+ document.getElementById('bagSellFish').onclick=openMarket;
  document.getElementById('bagGoMarket').onclick=openMarket;
  document.getElementById('bagGoAquarium').onclick=openAquarium;
  document.getElementById('bagGoRods').onclick=openFishingGear;
@@ -1504,4 +1547,3 @@ function redeemOperatorPreviewGift(){
 redeemOperatorPreviewGift();
 setTimeout(()=>{els.welcome.style.opacity=0},5500);window.__JUNJA_TEST__={getRenderer:()=>world3D?.stats(),getNavSafe:()=>navigation.safe(player),probeTap:(sx,sy)=>{const p=screenWorld(sx,sy),hit=world3D?.pick(sx,sy),route=navigation.route(player,p);return {screen:{x:sx,y:sy},world:p,hit,safe:navigation.safe(p),reachable:route.length>0,endpoint:route.at(-1)||null,actor:{x:player.x,y:player.y}}},getPeers:()=>Object.values(peers).map(p=>({id:p.id,x:p.x,y:p.y,targetX:p.targetX,targetY:p.targetY,coat:p.coat,nick:p.nick})),getNavigation:()=>({path:path.map(p=>({...p})),goal,camera:{...camera},scale}),getJourney:()=>({chapter:state.chapter,materials:state.materials,crafted:state.crafted,stations:stations.map(s=>s.id)}),getSeason:()=>state.season,setSeason:(s)=>{if(seasonLabels[s]){state.season=s;save()}},getAnimalFriends:()=>animalFriends.map(a=>({id:a.id,x:a.x,y:a.y,friendship:state.animalBonds[a.id]?.love||0})),getLifeSystems:()=>({rod:{...state.fishingGear},aquarium:{...state.aquarium},home:{...state.home},fish:FISH.length,eligible:eligibleFish(state.fishingGear.equipped,lifeLevel()).length,missions:dailyTask()}),getCatalog:()=>CATALOG.map(({id,type,price,grade})=>({id,type,price,grade})),getState:()=>({nickname:socialNickname,festival:{week:state.festival?.week,claimed:state.festival?.claimed,attendance:state.attendance},player:{...player},fashion:{owned:[...state.fashion.owned],equipped:{...state.fashion.equipped}},coins:state.coins,fish:state.fish,phase:fishPhase,fishing:hookedFish?{name:hookedFish.name,tier:hookedFish.tier,profile:reelProfile,progress:fishAttempts,misses:reelMisses}:null,owned:[...owned],outfit:state.coat,hat:state.hat,gauge:gaugePos,pathlen:path.length,beds:state.beds,decorations:state.decorations,daily:dailyTask(),friends:state.friends}),openBag,openMarket,openEconomyDashboard,openBaitShop,moveTo,beginFishing,openShop,openFarmShop,farmAt,openDecor,placeAt,openHome,openNpc,openMarket,openCraft,openJournal,openSocial};
 })();
-
