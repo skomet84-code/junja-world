@@ -13,7 +13,7 @@ async function session(client,req){
 }
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
- if(!process.env.DATABASE_URL)return send(res,503,{error:'인증 서버 준비 중'});
+ if(!(process.env.VILLAGE_DATABASE_URL||process.env.DATABASE_URL))return send(res,503,{error:'인증 서버 연결 설정을 확인해야 합니다'});
  if(!['POST','GET'].includes(req.method))return send(res,405,{error:'지원하지 않는 요청'});
  const action=String(req.query.action||req.body?.action||'me');
  const body=req.body||{};
