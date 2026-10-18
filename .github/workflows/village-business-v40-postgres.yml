@@ -1,0 +1,48 @@
+name: Junja Village v40 Business PostgreSQL QA
+on:
+  push:
+    branches:
+      - feat/village-business-workshops-v40
+  pull_request:
+    branches:
+      - feat/village-professions-v39
+
+permissions:
+  contents: read
+
+jobs:
+  business-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: junja_business_test
+          POSTGRES_USER: junja_ci
+          POSTGRES_PASSWORD: disposable_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U junja_ci -d junja_business_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    steps:
+      - name: Checkout reviewed code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Use Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Install locked backend dependencies
+        working-directory: life
+        run: npm install --ignore-scripts --no-package-lock
+      - name: Real Postgres business-to-market cross-player test
+        working-directory: life
+        run: node test_business_postgres_v40.mjs
+        env:
+          JUNJA_V40_DISPOSABLE_DB: 'true'
+          JUNJA_V40_TEST_DATABASE_URL: postgresql://junja_ci:disposable_ci_only@127.0.0.1:5432/junja_business_test
