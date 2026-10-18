@@ -143,12 +143,22 @@ export default async function handler(req,res){
    await client.query("INSERT INTO village_wallet_transfers(sender_id,recipient_id,amount,kind,idempotency_key) VALUES($1,$2,$3,'admin_reclaim',$4)",[user.id,target.rows[0].id,amount,key]);
    await client.query('COMMIT');return send(res,200,{ok:true,message:'서버 지갑 회수 완료'});
   }
+  if(action==='resolve_recipient'&&req.method==='GET'){
+   const nickname=String(req.query.nickname||'').trim();
+   if(!nickname||nickname.length>12)return send(res,400,{error:'닉네임을 입력해주세요'});
+   const q=await client.query('SELECT nickname FROM village_users WHERE lower(nickname)=lower($1) LIMIT 2',[nickname]);
+   if(q.rows.length!==1)return send(res,400,{error:q.rows.length?'같은 닉네임의 친구가 여러 명이에요.':'해당 닉네임의 친구가 없어요'});
+   if(q.rows[0].nickname.toLowerCase()===user.nickname.toLowerCase())return send(res,400,{error:'자기 자신에게는 송금할 수 없어요'});
+   return send(res,200,{nickname:q.rows[0].nickname});
+  }
   if(action==='transfer'&&req.method==='POST'){
-   const recipient=String(body.recipient||'').trim().toLowerCase(),amount=Number(body.amount),key=String(body.key||'');
-   if(!/^[a-z0-9_]{4,24}$/.test(recipient)||!Number.isSafeInteger(amount)||amount<1||amount>1000000000000||!/^[-a-zA-Z0-9]{16,80}$/.test(key))return send(res,400,{error:'송금 입력값을 확인해주세요'});
+   const recipient=String(body.recipient||'').trim(),amount=Number(body.amount),key=String(body.key||'');
+   if(recipient.length<1||recipient.length>12||!Number.isSafeInteger(amount)||amount<1||amount>1000000000000||!/^[-a-zA-Z0-9]{16,80}$/.test(key))return send(res,400,{error:'송금 입력값을 확인해주세요'});
    await client.query('BEGIN');
-   const target=await client.query('SELECT id FROM village_users WHERE username=$1',[recipient]);
-   if(!target.rows[0]||target.rows[0].id===user.id){await client.query('ROLLBACK');return send(res,400,{error:'받는 사람을 확인해주세요'})}
+   const target=await client.query('SELECT id,nickname FROM village_users WHERE lower(nickname)=lower($1) LIMIT 2',[recipient]);
+   if(target.rows.length!==1){await client.query('ROLLBACK');return send(res,400,{error:target.rows.length?'같은 닉네임을 사용하는 친구가 여러 명이에요. 송금을 중단했어요.':'해당 닉네임의 친구가 없어요'});}
+   if(target.rows[0].id===user.id){await client.query('ROLLBACK');return send(res,400,{error:'자기 자신에게는 송금할 수 없어요'});}
+   if(String(body.confirmedNickname||'')!==target.rows[0].nickname){await client.query('ROLLBACK');return send(res,409,{error:'받는 친구의 닉네임을 다시 확인해주세요'});}
    const existing=await client.query('SELECT id FROM village_wallet_transfers WHERE idempotency_key=$1',[key]);
    if(existing.rows.length){await client.query('ROLLBACK');return send(res,409,{error:'이미 처리된 송금 요청'})}
    await client.query('INSERT INTO village_wallets(user_id) VALUES($1),($2) ON CONFLICT DO NOTHING',[user.id,target.rows[0].id]);
