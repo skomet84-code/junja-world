@@ -127,6 +127,26 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
  .social-status{right:10px;bottom:calc(88px + env(safe-area-inset-bottom));max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .welcome{max-width:70vw;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
 }
+
+/* One compact mobile utility dock; no floating controls over the map. */
+#accountDock{display:flex;flex-direction:column;align-items:flex-end;gap:5px;top:calc(77px + env(safe-area-inset-top));right:9px;max-width:40vw}
+#accountDock>button{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;padding:7px 10px}
+#accountDock #onlineBody{position:absolute;right:0;top:100%;width:min(300px,85vw);max-width:none;box-sizing:border-box}
+.toast{max-width:min(320px,80vw);white-space:normal;text-align:center;overflow-wrap:anywhere;top:39%;font-size:12px;line-height:1.35;padding:9px 12px}
+@media(max-width:550px){
+ .minimap{top:calc(118px + env(safe-area-inset-top));right:8px;padding:3px;border-radius:12px;opacity:.86}
+ .minimap canvas{width:49px;height:39px}
+ .minimap span{display:none}
+ .welcome{display:none!important}
+ #accountDock{top:calc(74px + env(safe-area-inset-top));max-width:38vw}
+ #accountDock>button{font-size:11px;padding:6px 9px}
+ #accountDock #onlineToggle{font-size:11px!important;padding:5px 9px!important}
+ .hud.left{top:calc(88px + env(safe-area-inset-top));max-width:40vw}
+ .hud.left .quest{max-width:100%;padding:7px}
+ .season-bar{top:calc(59px + env(safe-area-inset-top));max-width:36vw}
+ .season-bar .mini-pill{max-width:36vw;text-overflow:ellipsis}
+ .social-status{display:none!important}
+}
 </style></head><body><canvas id="game" aria-label="모여봐요 반말방숲 입체 게임 필드"></canvas><div id="shade"></div>
 <div class="hud top"><div class="profile"><div class="portrait">🌿</div><div><div class="name" id="name">새싹</div><div class="rank" id="level">Lv. 1 · 초보 낚시꾼</div><div class="xp"><i id="xp"></i></div></div></div><div class="wallet"><i class="gold">★</i><span id="coins">800</span><span style="font-size:10px;color:#fff6">G</span></div></div>
 <div class="hud left"><div class="quest"><div class="eyebrow">✦ 오늘의 의뢰</div><strong id="questText">첫 생활 목표 확인하기</strong><span id="questNext">수첩을 눌러 다음 활동을 확인해요</span><div class="questbar"><i id="questProgress"></i></div><em id="questCount">0 / 1</em></div></div>
