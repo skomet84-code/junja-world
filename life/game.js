@@ -959,7 +959,15 @@ function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers))
   updateJourney();
 
 }
-function frame(now){const dt=Math.min(.038,(now-last)/1000);last=now;update(dt);drawWorld(dt);drawMini();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+let lastFrameError='';
+function frame(now){
+ const dt=Math.min(.038,(now-last)/1000);last=now;
+ try{update(dt);drawWorld(dt);drawMini()}catch(error){
+  const message=String(error?.stack||error?.message||error).slice(0,400);
+  if(message!==lastFrameError){lastFrameError=message;console.error('Village frame error',error);showRenderError(error)}
+ }
+ requestAnimationFrame(frame)
+}requestAnimationFrame(frame);
 function drawMini(){const w=mini.width,h=mini.height,sx=w/W,sy=h/H;
  mctx.fillStyle='#65aeb3';mctx.fillRect(0,0,w,h);mctx.fillStyle='#a1ca8d';mctx.fillRect(2000*sx,0,1600*sx,h);
  mctx.fillStyle='#b5cc91';mctx.fillRect(80*sx,120*sy,1840*sx,1050*sy);mctx.fillRect(455*sx,1170*sy,910*sx,400*sy);mctx.fillRect(1800*sx,720*sy,400*sx,340*sy);
