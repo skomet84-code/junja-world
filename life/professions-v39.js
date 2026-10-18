@@ -1,9 +1,9 @@
 // JUNJA v39 — deterministic professions driven by VERIFIED server economy receipts only.
 // This module cannot create a reward from a client-supplied activity count.
 export const PROFESSION_ROLES=Object.freeze({
- farmer:Object.freeze({name:'🌿 전문 농부',focus:'작물 재배와 수확',actions:Object.freeze({harvest:12}),daily:Object.freeze({harvest:4}),reward:160}),
- chef:Object.freeze({name:'🥧 요리 장인',focus:'재료 가공과 요리',actions:Object.freeze({craft:30}),daily:Object.freeze({craft:2}),reward:240}),
- merchant:Object.freeze({name:'🏪 전문 상인',focus:'주민 거래와 상점 유통',actions:Object.freeze({market_sold:40,sell:5}),dailyEither:Object.freeze([{market_sold:1},{sell:5}]),reward:200})
+ farmer:Object.freeze({name:'🌿 전문 농부',focus:'작물 재배와 수확',actions:Object.freeze({harvest:12,business_produce:18}),daily:Object.freeze({harvest:4}),reward:160}),
+ chef:Object.freeze({name:'🥧 요리 장인',focus:'재료 가공과 요리',actions:Object.freeze({craft:30,business_produce:30}),daily:Object.freeze({craft:2}),reward:240}),
+ merchant:Object.freeze({name:'🏪 전문 상인',focus:'주민 거래와 상점 유통',actions:Object.freeze({market_sold:40,sell:5,business_produce:20}),dailyEither:Object.freeze([{market_sold:1},{sell:5}]),reward:200})
 });
 export const PROFESSION_FIRST_LICENSE=250;
 export const PROFESSION_SWITCH_FEE=1200;
@@ -41,7 +41,7 @@ export function professionRank(xp){
  return [...PROFESSION_RANKS].reverse().find(rank=>score>=rank.xp);
 }
 export function professionProof(counts={}){
- return Object.fromEntries(['harvest','craft','market_sold','sell'].map(action=>[action,safeCount(counts[action])]));
+ return Object.fromEntries(['harvest','craft','market_sold','sell','business_produce'].map(action=>[action,safeCount(counts[action])]));
 }
 export function professionXp(role,counts={}){
  if(!supportedRole(role))error('존재하지 않는 직업입니다',400);
