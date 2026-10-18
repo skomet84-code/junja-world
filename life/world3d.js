@@ -12,12 +12,25 @@ function sphere(p,color,x,y,z,w,h=w,d=w){return mesh(p,sphereGeo,color,x,y,z,w,h
 function cylinder(p,color,x,y,z,r,h){return mesh(p,cylinderGeo,color,x,y,z,r,h,r)}
 function group(p,x=0,y=0,z=0){const g=new T.Group();g.position.set(x,y,z);p.add(g);return g}
 function label(parent,text,x,y,z,width=150){
- const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');
- ctx.fillStyle='#fff8e7';ctx.beginPath();ctx.roundRect(5,12,502,99,28);ctx.fill();ctx.strokeStyle='#bca884';ctx.lineWidth=5;ctx.stroke();ctx.font='800 42px "Malgun Gothic",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#52624b';ctx.fillText(text,256,64,460);
- const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,depthWrite:false,depthTest:false,transparent:true}));
- sprite.renderOrder=500;sprite.position.set(x,y,z);sprite.scale.set(width,width/4,1);
- sprite.userData.setLabel=(name)=>{ctx.clearRect(0,0,512,128);ctx.fillStyle='#fff8e7';ctx.beginPath();ctx.roundRect(5,12,502,99,28);ctx.fill();ctx.strokeStyle='#bca884';ctx.lineWidth=5;ctx.stroke();ctx.font='800 42px "Malgun Gothic",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#52624b';ctx.fillText(String(name||'마을 친구').slice(0,12),256,64,460);tex.needsUpdate=true};
- parent.add(sprite);return sprite;
+ const canvas=document.createElement('canvas');canvas.width=640;canvas.height=160;
+ const ctx=canvas.getContext('2d');
+ const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;
+ const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,depthWrite:false,depthTest:false,transparent:true}));
+ sprite.renderOrder=500;sprite.position.set(x,y,z);sprite.scale.set(width*1.09,width*1.09/4,1);
+ const renderName=(name)=>{
+  ctx.clearRect(0,0,640,160);
+  ctx.shadowColor='rgba(30,58,42,.22)';ctx.shadowBlur=10;ctx.shadowOffsetY=5;
+  ctx.fillStyle='rgba(255,253,239,.97)';ctx.beginPath();ctx.roundRect(8,13,624,132,30);ctx.fill();
+  ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  ctx.strokeStyle='#80ab91';ctx.lineWidth=5;ctx.stroke();
+  ctx.font='900 57px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+  ctx.strokeStyle='#f9fff6';ctx.lineWidth=4;
+  const title=String(name||'마을 친구').slice(0,12);
+  ctx.strokeText(title,320,78,580);ctx.fillStyle='#1c513b';ctx.fillText(title,320,78,580);
+  tex.needsUpdate=true;
+ };
+ renderName(text);sprite.userData.setLabel=renderName;parent.add(sprite);return sprite;
 }
 function gable(parent,color,width,depth,height,y){
  const shape=new T.Shape();shape.moveTo(-width/2,0);shape.lineTo(width/2,0);shape.lineTo(0,height);shape.closePath();const g=new T.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:4,bevelThickness:4});const roof=new T.Mesh(g,material(color));roof.position.set(0,y,-depth/2);roof.castShadow=true;roof.receiveShadow=true;parent.add(roof);return roof;
