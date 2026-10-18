@@ -7,6 +7,12 @@ assert.equal(restoreProfile(cloud,broken,'user').profile.xp,6720,'Storage failur
 assert.equal(restoreProfile(cloud,{getItem:()=>'{bad json'},'user').profile.xp,6720);
 assert.equal(restoreProfile(cloud,{getItem:()=>JSON.stringify({baseVersion:6,profile:{xp:100}})},'user').profile.xp,6720,'Stale draft must not win');
 assert.equal(restoreProfile(cloud,{getItem:()=>JSON.stringify({baseVersion:7,profile:{xp:6760}})},'user').profile.xp,6760);
+const localOnly={getItem(key){return key==='junja-local'?JSON.stringify({xp:3200,coins:333}):null}};
+assert.equal(restoreProfile(null,localOnly,'junja-local').profile.xp,3200,'Missing cloud row must recover per-account browser progress');
+assert.equal(restoreProfile(cloud,localOnly,'junja-local').profile.xp,6720,'A local disk save must never replace a newer cloud record');
+const pendingOnly={getItem(key){return key==='junja-local-unsynced'?JSON.stringify({baseVersion:6,profile:{xp:3360},owned:['mint']}):null}};
+assert.equal(restoreProfile(null,pendingOnly,'junja-local').profile.xp,3360,'Server row loss must not erase unsynced local draft');
+
 const sent=[];let release;
 const q=createSaveQueue({version:7,send:async payload=>{sent.push(payload);if(sent.length===1)await new Promise(r=>release=r);return {ok:true,status:200,json:async()=>({version:payload.version+1})}}});
 const first=q.enqueue({xp:6800},['mint']);q.enqueue({xp:6840},['mint','linen']);release();assert(await first);
@@ -15,6 +21,10 @@ let attempts=0;const retried=[];
 const retry=createSaveQueue({version:9,send:async p=>{retried.push(p);if(!attempts++)throw Error('response lost');return {ok:true,status:200,json:async()=>({version:10})}}});
 assert.equal(await retry.enqueue({xp:6900},[]),false);assert.equal(await retry.flush(),true);assert.strictEqual(retried[0],retried[1],'Retry the exact payload and id');
 const blocked=createSaveQueue({send:async()=>({status:409,ok:false,json:async()=>({error:'conflict'})})});assert.equal(await blocked.enqueue({xp:1},[]),false);assert(blocked.blocked);
+const clientError=createSaveQueue({send:async()=>({status:400,ok:false,json:async()=>({error:'저장 형식 오류'})})});
+assert.equal(await clientError.enqueue({xp:1},[]),false);
+assert(clientError.blocked,'Permanent save validation failures must be visible rather than silently retried forever');
+
 // Exercise the actual API handler with an in-memory SQL adapter, never live accounts.
 process.env.VILLAGE_DATABASE_URL='test-only';let row={profile:{xp:6720},owned:['mint'],version:7},writes=0;
 const db={release(){},async query(sql,args){
