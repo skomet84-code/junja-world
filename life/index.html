@@ -147,6 +147,14 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
  .season-bar .mini-pill{max-width:36vw;text-overflow:ellipsis}
  .social-status{display:none!important}
 }
+
+/* Keep the actual minimap visible below the compact account/online controls. */
+@media(max-width:550px){
+ .minimap{display:flex!important;position:fixed;top:calc(192px + env(safe-area-inset-top));right:9px;left:auto;opacity:1;background:#f9f4dfeb;border:2px solid #b8cba9;padding:5px;z-index:18;box-shadow:0 3px 12px #23452e33}
+ .minimap canvas{display:block!important;width:94px;height:75px;border-radius:7px}
+ .minimap span{display:block!important;font-size:9px;color:#42614c;max-width:94px;text-align:center;white-space:normal}
+ #junjaAdminBtn{left:12px!important;right:auto!important;top:auto!important;bottom:calc(110px + env(safe-area-inset-bottom))!important;width:43px!important;height:43px!important;padding:0!important;border-radius:50%!important;font-size:22px!important}
+}
 </style></head><body><canvas id="game" aria-label="모여봐요 반말방숲 입체 게임 필드"></canvas><div id="shade"></div>
 <div class="hud top"><div class="profile"><div class="portrait">🌿</div><div><div class="name" id="name">새싹</div><div class="rank" id="level">Lv. 1 · 초보 낚시꾼</div><div class="xp"><i id="xp"></i></div></div></div><div class="wallet"><i class="gold">★</i><span id="coins">800</span><span style="font-size:10px;color:#fff6">G</span></div></div>
 <div class="hud left"><div class="quest"><div class="eyebrow">✦ 오늘의 의뢰</div><strong id="questText">첫 생활 목표 확인하기</strong><span id="questNext">수첩을 눌러 다음 활동을 확인해요</span><div class="questbar"><i id="questProgress"></i></div><em id="questCount">0 / 1</em></div></div>
