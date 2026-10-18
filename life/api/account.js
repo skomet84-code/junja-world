@@ -73,6 +73,14 @@ export default async function handler(req,res){
    const current=await client.query('SELECT profile FROM village_saves WHERE user_id=$1 FOR UPDATE',[user.id]);
    const incoming={...profile};
    const saved=current.rows[0]?.profile||{};
+   // Ignore delayed requests from an older tab or an earlier game session.
+   // Otherwise a level-1 snapshot can overwrite a level-3 character on relogin.
+   const oldTimestamp=Number(saved.savedAt)||0;
+   const newTimestamp=Number(incoming.savedAt)||0;
+   if(oldTimestamp>newTimestamp){
+    await client.query('COMMIT');
+    return send(res,200,{ok:true,skipped:true,reason:'older_save'});
+   }
    if((Number(saved.__adminRevision)||0)>(Number(incoming.__adminRevision)||0)){
     for(const field of ['coins','xp','fashion'])if(Object.prototype.hasOwnProperty.call(saved,field))incoming[field]=saved[field];
     incoming.__adminRevision=saved.__adminRevision;
