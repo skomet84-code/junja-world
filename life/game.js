@@ -8,6 +8,7 @@ import {openPlayerMarket} from './player-market-ui-v38.js';
 import {openProfessionCenter} from './professions-ui-v39.js';
 import {openBusinessCenter} from './business-ui-v40.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
+import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
 import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
@@ -400,7 +401,9 @@ const stations=[
  {id:'boutique',name:'달빛 의상실',icon:'👒',x:3100,y:920,desc:'벌어들인 돈으로 의상·모자 구매'},
  {id:'quarry',name:'반짝 광산',icon:'⛏️',x:3200,y:1430,desc:'돌 채집 · 제작 재료 확보'},
  {id:'lodge',name:'숲속 교역소',icon:'📦',x:2910,y:1900,desc:'제작 상자 납품으로 수입 얻기'},
- {id:'garden',name:'별빛 정원',icon:'🌼',x:2470,y:2040,desc:'꽃 채집 · 원하는 곳에 장식 배치'}
+ {id:'garden',name:'별빛 정원',icon:'🌼',x:2470,y:2040,desc:'꽃 채집 · 원하는 곳에 장식 배치'},
+ {id:BUSINESS_PORTAL_V42.id,name:BUSINESS_PORTAL_V42.name,icon:BUSINESS_PORTAL_V42.icon,
+  x:BUSINESS_PORTAL_V42.x,y:BUSINESS_PORTAL_V42.y,desc:BUSINESS_PORTAL_V42.description}
 ];
 const resourceNodes=[
  ...Array.from({length:9},(_,i)=>({id:'wood'+i,kind:'wood',x:2200+(i%3)*150,y:1100+Math.floor(i/3)*180})),
@@ -483,8 +486,27 @@ function openWorldMap(){
  document.getElementById('mapHuntGo').onclick=goToHunting;
 }
 function goStation(id){const s=stations.find(s=>s.id===id);if(!s)return;closeModal();if(distance(player,s)<90){openStation(id);return}if(moveTo(s.x,s.y,{type:'station',id}))toast(s.icon+' '+s.name+'까지 걸어가요')}
+function openBusinessDistrictFromVillage(){
+ if(!canUseBusinessPortal(player)){goStation(BUSINESS_PORTAL_V42.id);return}
+ // Capture return point in RAM only. Never change persisted cloud-save shape.
+ const returnSpot=portalReturnPosition(player);
+ stopWalking();
+ openModal('<span class="titlebadge">JUNJA V42 · VILLAGE BUSINESS GATEWAY</span>'+
+  '<p style="margin:2px 0 10px">🚪 동쪽 사업장 거리 입장 · 돌아가기를 누르면 마을의 원래 위치로 복귀해요.</p>'+
+  '<div id="districtPortalV42" role="region" aria-label="3D 주민 사업장 거리"></div>');
+ workshopPlaza=openWorkshopPlaza(document.getElementById('districtPortalV42'),{
+  back:()=>{closeModal();toast('🏡 주민 사업장 거리에서 마을로 돌아왔어요')}
+ });
+ // Main avatar never moves while the district modal is open.
+ return returnSpot;
+}
+
 function openStation(id){
  const s=stations.find(s=>s.id===id);if(!s)return;
+ if(id===BUSINESS_PORTAL_V42.id){
+  if(!canUseBusinessPortal(player)){goStation(id);return}
+  openBusinessDistrictFromVillage();return;
+ }
  if(distance(player,s)>155){goStation(id);return}
  state.visits[id]=true;if(!state.dailyVisits.includes(id))state.dailyVisits.push(id);completeDaily();save();
  if(id==='workshop')return openCraft();if(id==='boutique')return openShop();if(id==='lodge')return openDelivery();if(id==='home')return openHome();if(id==='farm')return farmAll();if(id==='pier')return beginFishing();if(id==='village')return openJourney();
@@ -586,9 +608,10 @@ for(const coat of Object.keys(AVATAR_SPRITES)) AVATAR_IMAGES[coat]=AVATAR_SPRITE
 const AVATAR_PREVIEWS={};
 for(const [coat,urls] of Object.entries(AVATAR_SPRITES)) AVATAR_PREVIEWS[coat]='data:image/webp;base64,'+urls[0];
 
-function drawWorld(dt){if(estateWorld)return;if(world3D){const q=villagerQuestState();world3D.render({state,actor:player,npcs,animals:animalFriends.map(a=>({...a,questMark:q.requests.some(r=>r.id===a.id&&r.status!=='done')})),peers,time:t,dt,goal,path});}}
+function drawWorld(dt){if(estateWorld||workshopPlaza)return;if(world3D){const q=villagerQuestState();world3D.render({state,actor:player,npcs,animals:animalFriends.map(a=>({...a,questMark:q.requests.some(r=>r.id===a.id&&r.status!=='done')})),peers,time:t,dt,goal,path});}}
 function party(x,y,n=12){for(let i=0;i<n;i++){fx.push({x,y,v:rand(22,64),vx:rand(-56,56),life:rand(.7,1.3),total:1.3,r:rand(2,5),col:['#fff7b5','#ffe1f1','#f3f7fb','#8de3dc'][Math.floor(rand(0,4))]})}}
 function walkable(x,y){
+ if(portalCollision(x,y))return false;
  if(world3D?.blocked(x,y))return false;
  if(x<80||x>W-80||y<120||y>H-80)return false;
  // Original harbor coast stays at its authored size; the east trail exits at y=720..1060.
