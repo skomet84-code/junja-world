@@ -457,7 +457,7 @@ if(accountScope){
    const revision=Number(remote.__adminRevision)||0;
    if(revision<=lastAdminRevision)return;
    lastAdminRevision=revision;
-   for(const key of ['coins','xp','fashion'])if(Object.prototype.hasOwnProperty.call(remote,key))state[key]=remote[key];
+   for(const key of ['coins','xp','fashion','autoFishing'])if(Object.prototype.hasOwnProperty.call(remote,key))state[key]=remote[key];
    state.__adminRevision=revision;
    hud();
    try{localStorage.setItem(scopedSaveKey,JSON.stringify(state))}catch{}
@@ -1341,6 +1341,22 @@ function fishingAction(){
  }
 }
 
+// Compact active fishing timer, fixed above the bottom action bar.
+const fishingTimerBadge=document.createElement('button');
+fishingTimerBadge.type='button';
+fishingTimerBadge.id='villageFishingTimer';
+fishingTimerBadge.setAttribute('aria-label','자동낚시 남은 시간 확인');
+fishingTimerBadge.style.cssText='display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(165px + env(safe-area-inset-bottom));z-index:42;max-width:calc(100vw - 160px);min-width:138px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1.5px solid #a4c9b4;border-radius:999px;background:#f3fff2ed;color:#255742;font-size:12px;font-weight:850;padding:9px 13px;box-shadow:0 4px 13px #243c2c35;backdrop-filter:blur(8px);pointer-events:auto';
+document.body.appendChild(fishingTimerBadge);
+fishingTimerBadge.onclick=()=>autoFishPanel();
+function updateFishingTimerBadge(){
+ const a=autoFishState(state),ms=a.remainingMs;
+ if(!autoFishRunning||ms<=0){fishingTimerBadge.style.display='none';return}
+ const total=Math.ceil(ms/1000),hh=Math.floor(total/3600),mm=Math.floor(total%3600/60),ss=total%60;
+ fishingTimerBadge.textContent='🎣 자동낚시 중 · '+(hh?hh+'시간 ':'')+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+ fishingTimerBadge.style.display='block';
+}
+setInterval(updateFishingTimerBadge,1000);
 // v31: paid automatic fishing at the pier, no offline income, legendary/mythic fish retained.
 let autoFishRunning=false,autoFishLast=performance.now(),autoFishNext=0;
 function autoFishPanel(){
@@ -1358,11 +1374,12 @@ function autoFishPanel(){
 }
 function autoFishTick(){
  const now=performance.now(),elapsed=Math.max(0,Math.min(1000,now-autoFishLast));autoFishLast=now;
- if(!autoFishRunning)return;
+ if(!autoFishRunning){updateFishingTimerBadge();return}
  const a=autoFishState(state);
  if(!a.remainingMs){autoFishRunning=false;toast('🎣 자동낚시 이용권 종료');save();return}
  if(document.hidden)return;
  a.remainingMs=Math.max(0,a.remainingMs-elapsed);
+ updateFishingTimerBadge();
  if(now<autoFishNext)return;
  autoFishNext=now+12000+Math.random()*9000;
  // Lower efficiency than manual play; gear improves the chance of a catch.
