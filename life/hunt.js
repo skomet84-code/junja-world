@@ -1,3 +1,4 @@
+import {restoreProfile,createSaveQueue} from './save-client.js';
 import * as T from './vendor/three.module.js';
 import {createAvatar} from './avatar3d.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
@@ -11,24 +12,16 @@ const $=id=>document.getElementById(id),canvas=$('battle');
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
 const saveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
 const room=new URLSearchParams(location.search).get('room')||'SPRING';
-let state={};
-try{state=JSON.parse(localStorage.getItem(saveKey)||'{}')}catch{}
+let cloud=null,storage;try{storage=localStorage}catch{}
 if(accountScope){
  try{
-  const response=await fetch('/api/account?action=save',{credentials:'same-origin',cache:'no-store'});
-  if(response.ok){
-   const payload=await response.json(),remote=payload.save?.profile;
-   if(remote&&typeof remote==='object'&&!Array.isArray(remote)){
-    const localTime=Number(state.savedAt)||0,remoteTime=Number(remote.savedAt)||0;
-    // Never replace a newer level-3+ character with a stale level-1 cloud snapshot.
-    const localXp=Number(state.xp)||0,remoteXp=Number(remote.xp)||0;
-    if(remoteTime>localTime&&!(localXp>=320&&remoteXp<320)){
-     state=remote;localStorage.setItem(saveKey,JSON.stringify(state));
-    }
-   }
-  }
- }catch(error){console.warn('사냥터 서버 저장 불러오기 실패',error)}
+  const response=await fetch('/api/account?action=save',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(12000)});
+  if(!response.ok)throw Error('서버 기록을 불러올 수 없어요');
+  cloud=(await response.json()).save;
+ }catch(error){document.body.textContent='저장 기록을 확인할 수 없어 사냥터 입장을 중지했어요. 잠시 후 새로고침해 주세요.';throw error}
 }
+const restored=restoreProfile(cloud,storage,saveKey);
+let state=restored.profile;
 if(!state||typeof state!=='object'||Array.isArray(state))state={};
 state.coins=Math.max(0,Number(state.coins)||0);state.xp=Math.max(0,Number(state.xp)||0);
 initEconomy(state);
@@ -43,19 +36,18 @@ ensurePotions(state);initBag(state);initCombat(state);
 state.hunt.potionCooldowns=state.hunt.potionCooldowns||{};
 const level=()=>huntLevel(state.xp),stats=()=>equippedStats(state),today=()=>new Date().toLocaleDateString('en-CA');
 let cloudSaveTimer=null;
-async function syncHuntSave(){
- if(!accountScope)return;
- try{
-  const owned=JSON.parse(localStorage.getItem('junja-harbor-owned-'+accountScope)||'[]');
-  const response=await fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:state,owned:Array.isArray(owned)?owned:[]})});
-  if(!response.ok)console.warn('사냥터 서버 저장 실패',response.status);
- }catch(error){console.warn('사냥터 서버 저장 실패',error)}
-}
+const saveNotice=document.createElement('div');saveNotice.id='huntSaveStatus';saveNotice.style.cssText='position:fixed;top:70px;left:12px;z-index:90;background:#fff7e5;color:#31543c;padding:6px 10px;border-radius:12px;font-size:12px';document.body.append(saveNotice);
+const saveQueue=createSaveQueue({version:restored.version,
+ send:payload=>fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)}),
+ onCommit:(version,latest)=>{try{if(latest)storage.setItem(saveKey+'-unsynced',JSON.stringify({baseVersion:version,...latest}));else storage.removeItem(saveKey+'-unsynced')}catch{}},
+ onStatus:(status,data)=>{saveNotice.textContent=status==='saved'?'✔ 사냥 기록 저장 완료':status==='saving'?'⏳ 사냥 기록 저장 중':status==='retry'?'⚠ 저장 재시도 중':('⚠ '+(data.error||'최신 기록으로 재접속해 주세요'));}
+});
+async function syncHuntSave(){if(!accountScope)return true;return saveQueue.enqueue(state,restored.owned)}
 function save(){
  state.hunt.hp=Math.max(1,Math.ceil(hero.hp));state.hunt.mp=Math.max(0,Math.ceil(hero.mp));
  state.hunt.lastZone=currentZone?.id||state.hunt.lastZone||null;
  state.savedAt=Date.now();
- try{localStorage.setItem(saveKey,JSON.stringify(state))}catch{}
+ try{storage.setItem(saveKey,JSON.stringify(state));storage.setItem(saveKey+'-unsynced',JSON.stringify({baseVersion:saveQueue.version,profile:state,owned:restored.owned}))}catch{}
  if(accountScope){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(syncHuntSave,1200)}
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -360,7 +352,7 @@ function craftMenu(){
  addShopLinks();$('potionShopLink').onclick=potionShop;
  $('collectHuntOverflow').onclick=claimOverflow;
 }
-async function goHome(){save();clearTimeout(cloudSaveTimer);await syncHuntSave();location.assign('/?room='+encodeURIComponent(room))}
+async function goHome(){save();clearTimeout(cloudSaveTimer);if(!await syncHuntSave()){toast('저장 확인 후 돌아갈 수 있어요. 잠시 후 다시 눌러주세요');return}location.assign('/?room='+encodeURIComponent(room))}
 function floatNumber(x,z,label,color='#ffeaa5'){
  if(!camera)return;
  const v=new T.Vector3(x,92,z).project(camera),el=document.createElement('div');

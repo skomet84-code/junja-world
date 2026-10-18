@@ -80,6 +80,11 @@ export default async function handler(req,res){
    const current=await client.query('SELECT profile,owned,version FROM village_saves WHERE user_id=$1 FOR UPDATE',[user.id]);
    const row=current.rows[0];
    const currentVersion=row?.version||0;
+   const requestId=typeof body.requestId==='string'&&/^[a-f0-9-]{36}$/i.test(body.requestId)?body.requestId:null;
+   const requestHash=hash(JSON.stringify({profile,owned,version:expectedVersion}));
+   if(requestId&&row?.profile?.__saveRequest?.id===requestId&&row.profile.__saveRequest.hash===requestHash&&currentVersion===expectedVersion+1){
+    await client.query('COMMIT');return send(res,200,{ok:true,version:currentVersion});
+   }
    if(currentVersion!==expectedVersion){
     await client.query('COMMIT');
     // Never mix unrelated snapshots or auto-raise XP from an older tab.
@@ -99,6 +104,7 @@ export default async function handler(req,res){
    const confirmedLevel=Math.floor(xp/160)+1;
    const history=Array.isArray(saved.__levelHistory)?saved.__levelHistory.slice(-19):[];
    if(!row||oldLevel!==confirmedLevel)history.push({version:nextVersion,level:confirmedLevel,at:new Date().toISOString(),source:'save'});
+   incoming.__saveRequest=requestId?{id:requestId,hash:requestHash}:null;
    incoming.__levelHistory=history.slice(-20);
    incoming.__confirmedLevel=confirmedLevel;
    if(row){

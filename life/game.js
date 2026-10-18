@@ -1,3 +1,5 @@
+import {installQualityHUD} from './quality-v32.js';
+import {restoreProfile,createSaveQueue} from './save-client.js';
 import {createWorld} from './world3d.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
 import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
@@ -18,23 +20,9 @@ const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-har
 let cloudSave=window.__villageCloudSave||null;
 // Cloud data is loaded before module import, without top-level await.
 const initialCloudVersion=Number.isSafeInteger(Number(cloudSave?.version))?Number(cloudSave.version):0;
-let saved={},resumeUnsynced=false,resumeUnsyncedOwned=null;try{
- const local=accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{};
- const remote=cloudSave?.profile;
- const valid=o=>o&&typeof o==='object'&&!Array.isArray(o);
- const localProfile=valid(local)?local:{},serverProfile=valid(remote)?remote:null;
- // The server snapshot is authoritative. Never restore the biggest XP
- // or let timestamps from unrelated tabs select the level.
- saved=serverProfile?{...serverProfile}:{...localProfile};
- if(accountScope){
-  const pending=JSON.parse(localStorage.getItem(scopedSaveKey+'-unsynced')||'null');
-  if(valid(pending?.profile)&&pending.baseVersion===initialCloudVersion){
-   // Only a draft made against the exact current server version can resume.
-   saved={...pending.profile};resumeUnsynced=true;
-   if(Array.isArray(pending.owned))resumeUnsyncedOwned=pending.owned;
-  }
- }
-}catch{}
+let storage;try{storage=localStorage}catch{}
+const restored=restoreProfile(cloudSave,storage,scopedSaveKey);
+const saved=restored.profile,resumeUnsynced=restored.resume,resumeUnsyncedOwned=restored.owned;
 const state={...seedData,...saved};
 initEconomy(state);initializeFishStock(state);initBag(state);
 state.baitInventory=state.baitInventory&&typeof state.baitInventory==='object'?state.baitInventory:{};
@@ -318,7 +306,7 @@ const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashi
 const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
 state.fashion={owned:[...fashionOwned],equipped:validFashion(originalFashion.equipped)};
 for(const type of ['hair','outfit','accessory','pet'])if(state.fashion.equipped[type]&&!fashionOwned.has(state.fashion.equipped[type]))state.fashion.equipped[type]=null;
-let cloudSaving=false,cloudSavePending=false,saveBlocked=false;
+let saveBlocked=false;
 let cloudVersion=initialCloudVersion,lastLocalFingerprint='';
 const unsyncedKey=scopedSaveKey+'-unsynced';
 const villageSaveStatus=document.createElement('div');
@@ -346,40 +334,16 @@ function showSaveConflict(message){
  }
  document.getElementById('villageSaveConflictMessage').textContent=message;
 }
-async function queueCloudSave(){
- if(!accountScope||saveBlocked)return;
- if(cloudSaving){cloudSavePending=true;return}
- cloudSaving=true;cloudSavePending=false;
- const version=cloudVersion;
- const payload={version,profile:JSON.parse(JSON.stringify(state)),owned:[...owned]};
- setSaveStatus('⏳ 서버 저장 중 · Lv.'+(1+Math.floor((Number(state.xp)||0)/160)));
- try{
-  const response=await fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
-  const result=await response.json().catch(()=>({}));
-  if(response.status===401||response.status===403){
-   showSaveConflict('🔐 로그인이 만료돼 저장할 수 없어요. 로그인 후 최신 기록을 다시 불러와 주세요.');
-  }else if(response.status===409||response.status===428){
-   showSaveConflict('⚠️ '+(result.error||'서버 저장 기록이 변경됐어요.')+' 현재 화면에서 서버 덮어쓰기를 중지했어요.');
-  }else if(!response.ok||!Number.isSafeInteger(result.version)){
-   throw Error(result.error||'서버 저장 확인 실패');
-  }else{
-   cloudVersion=result.version;
-   setSaveStatus('✔ 서버 저장 완료 · Lv.'+(1+Math.floor((Number(payload.profile.xp)||0)/160))+' · 기록 '+result.version);
-   try{
-    if(cloudSavePending){
-     // The latest unsent draft is now based on this newly accepted server version.
-     localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:cloudVersion,profile:state,owned:[...owned],savedAt:state.savedAt}));
-    }else localStorage.removeItem(unsyncedKey);
-   }catch{}
-  }
- }catch(e){
-  cloudSavePending=true;
-  setSaveStatus('⚠ 서버 저장 실패 · 자동 재시도',true);
-  console.warn('Village save will retry',e);
+const saveQueue=createSaveQueue({version:initialCloudVersion,
+ send:payload=>fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',signal:AbortSignal.timeout(12000)}),
+ onCommit:(version,latest)=>{cloudVersion=version;try{if(latest)localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:version,...latest}));else localStorage.removeItem(unsyncedKey)}catch{}},
+ onStatus:(status,data)=>{
+  if(status==='blocked')showSaveConflict(data.error||'다른 화면에서 기록이 변경됐어요. 최신 기록으로 다시 접속해 주세요.');
+  else if(status==='retry')setSaveStatus('⚠ 서버 저장 실패 · 자동 재시도',true);
+  else setSaveStatus((status==='saved'?'✔ 서버 저장 완료':'⏳ 서버 저장 중')+' · Lv.'+(1+Math.floor((Number(data.profile.xp)||0)/160)));
  }
- cloudSaving=false;
- if(cloudSavePending&&!saveBlocked){cloudSavePending=false;setTimeout(queueCloudSave,5000)}
-}
+});
+function queueCloudSave(){if(accountScope&&!saveBlocked)return saveQueue.enqueue(state,owned)}
 function save(){
  state.x=player.x;state.y=player.y;state.dir=player.dir;
  const fingerprint=JSON.stringify({profile:{...state,savedAt:0},owned});
@@ -393,7 +357,7 @@ function save(){
   }
   if(accountScope)localStorage.setItem('junja-harbor-owned-'+accountScope,JSON.stringify(owned));
   // Retain up to seven daily restore points, not every five-second save.
-  const day=nowDay(),key='junja-village-snapshots-v27';
+  const day=nowDay(),key='junja-village-snapshots-v27-'+accountScope;
   const shots=JSON.parse(localStorage.getItem(key)||'[]');
   if(Array.isArray(shots)&&shots.at(-1)?.day!==day){
    shots.push({day,save:JSON.stringify(state),owned:[...owned]});
@@ -484,12 +448,12 @@ function updateJourney(force=false){
 }
 function openJourney(){
  const q=chapters[state.chapter];
- openModal(`<span class="titlebadge">MY LIFE · ${Math.min(CHAPTER_COUNT,state.chapter+1)} / ${CHAPTER_COUNT}</span><h2>나의 마을 생활</h2><p>생활 · 낚시 · 사냥 · 꾸미기 · 주민 교류 · 장기 성장</p>${q?`<div class="mini-card"><strong>${q.title}</strong><p>${q.desc}</p><div class="mini-progress"><i style="width:${q.done()/q.total*100}%"></i></div><p>${q.done()} / ${q.total} · 보상 ${q.reward}G + 경험치 ${q.xp||60}</p><button id="journeyGo">${(stations.find(s=>s.id===q.station)?.icon||'🌿')} 목적지까지 걷기</button><button id="journeyClaim" ${q.done()<q.total?'disabled':''}>보상 받고 다음 목표</button></div>`:'<div class="mini-card"><strong>🎉 생활 장인 달성!</strong><p>자유롭게 채집·제작·꾸미기를 즐기고 일일 의뢰도 도전해요.</p></div>'}<h3>나의 성장 혜택 · Lv.${lifeLevel()}</h3>${lifePerkGuide()}<h3>🏅 나의 칭호 · ${villageTitle(state.chapter)}</h3><p>50장 이후에도 월간 기록과 마을 평판은 계속 성장해요.</p><h3>걸어온 길</h3>${chapters.map((c,i)=>`<p>${i<state.chapter?'✅':i===state.chapter?'▶':'▫️'} ${i+1}. ${c.title}</p>`).join('')}<div class="pill-row"><button class="pill-btn" id="journeyMap">마을 지도</button><button class="pill-btn ghost" id="journeyDaily">일일 의뢰 / 업적</button><button class="pill-btn ghost" id="journeyHelp">조작법</button></div>`);
+ openModal(`<span class="titlebadge">MY LIFE · ${Math.min(CHAPTER_COUNT,state.chapter+1)} / ${CHAPTER_COUNT}</span><h2>나의 마을 생활</h2><p>생활 · 낚시 · 사냥 · 꾸미기 · 주민 교류 · 장기 성장</p>${q?`<div class="mini-card"><strong>${q.title}</strong><p>${q.desc}</p><div class="mini-progress"><i style="width:${q.done()/q.total*100}%"></i></div><p>${q.done()} / ${q.total} · 보상 ${q.reward}G + 경험치 ${q.xp||60}</p><button id="journeyGo">${(stations.find(s=>s.id===q.station)?.icon||'🌿')} 목적지까지 걷기</button><button id="journeyClaim" ${q.done()<q.total?'disabled':''}>보상 받고 다음 목표</button></div>`:'<div class="mini-card"><strong>🎉 생활 장인 달성!</strong><p>자유롭게 채집·제작·꾸미기를 즐기고 일일 의뢰도 도전해요.</p></div>'}<div class="village-loop"><button id="loopGather">🌳 채집<small>재료 모으기</small></button><button id="loopCraft">🪵 제작<small>가치 더하기</small></button><button id="loopSell">⚓ 판매<small>성장 비용 마련</small></button></div><h3>나의 성장 혜택 · Lv.${lifeLevel()}</h3>${lifePerkGuide()}<h3>🏅 나의 칭호 · ${villageTitle(state.chapter)}</h3><p>50장 이후에도 월간 기록과 마을 평판은 계속 성장해요.</p><h3>걸어온 길</h3>${chapters.map((c,i)=>`<p>${i<state.chapter?'✅':i===state.chapter?'▶':'▫️'} ${i+1}. ${c.title}</p>`).join('')}<div class="pill-row"><button class="pill-btn" id="journeyMap">마을 지도</button><button class="pill-btn ghost" id="journeyDaily">일일 의뢰 / 업적</button><button class="pill-btn ghost" id="journeyHelp">조작법</button></div>`);
  if(q){document.getElementById('journeyGo').onclick=()=>goStation(q.station);document.getElementById('journeyClaim').onclick=()=>{if(chapters[state.chapter]!==q||q.done()<q.total)return;state.chapter++;earn(q.reward,'chapter','메인 챕터 완성');state.xp+=(q.xp||60);save();hud();updateJourney(true);toast('생활 목표 완료! +'+q.reward+'G');openJourney()}}
- document.getElementById('journeyMap').onclick=openWorldMap;document.getElementById('journeyDaily').onclick=openJournal;document.getElementById('journeyHelp').onclick=guide;
+ document.getElementById('loopGather').onclick=()=>goStation('forest');document.getElementById('loopCraft').onclick=openCraft;document.getElementById('loopSell').onclick=openMarket;document.getElementById('journeyMap').onclick=openWorldMap;document.getElementById('journeyDaily').onclick=openJournal;document.getElementById('journeyHelp').onclick=guide;
 }
-function goToHunting(){
- save();const room=(new URLSearchParams(location.search).get('room')||'SPRING').replace(/[^A-Za-z0-9_-]/g,'').slice(0,12);
+async function goToHunting(){
+ save();if(accountScope&&!await saveQueue.flush()){toast('저장을 확인한 뒤 사냥터로 이동할 수 있어요');return}const room=(new URLSearchParams(location.search).get('room')||'SPRING').replace(/[^A-Za-z0-9_-]/g,'').slice(0,12);
  location.assign('/hunt.html?room='+encodeURIComponent(room||'SPRING'));
 }
 function openWorldMap(){
@@ -509,10 +473,10 @@ function openStation(id){
 function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
  const remaining=(state.nodeReady[id]||0)-Date.now();if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
  const desired=2+lifeBonus('gather'),free=bagFree(state);
- if(free<1){toast('🎒 가방에 빈칸이 없어요. 가방 > 채집 재료 판매하기에서 비워주세요');return}
+ if(free<1){openBag();toast('🎒 가방이 가득 찼어요. 판매하거나 가방을 확장하세요');return}
  const amount=Math.min(desired,free);
  if(!addBagItems(state,'material',n.kind,amount)){toast('🎒 가방 보관에 실패했어요. 가방을 열어 잔여 칸을 확인해 주세요');return}
- state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));
+ world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));
 }
 
 function openDelivery(){
@@ -967,20 +931,20 @@ function openCraft(){
  els.panelBody.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=()=>{const r=recipes.find(r=>r.id===b.dataset.recipe);if(!r||(r.outfit&&owned.includes(r.outfit))||!Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v))return;for(const [k,v] of Object.entries(r.needs))state.materials[k]-=v;if(r.outfit){owned.push(r.outfit)}else state.crafted[r.id]=(state.crafted[r.id]||0)+1;state.craftCount++;state.dailyCraft++;state.xp+=r.xp;completeDaily();save();hud();updateJourney(true);toast(r.name+' 제작 완료!');openCraft()});document.getElementById('craftMap').onclick=openWorldMap;
 }
 function openSaveVault(){
- const backupKey='junja-village-snapshots-v27';
+ const backupKey='junja-village-snapshots-v27-'+accountScope;
  let snaps=[];
  try{const raw=JSON.parse(localStorage.getItem(backupKey)||'[]');snaps=Array.isArray(raw)?raw:[]}catch{}
  const nickname=(()=>{try{return localStorage.getItem('junja-village-nickname')||''}catch{return ''}})();
  openModal('<span class="titlebadge">VILLAGE DATA VAULT</span><h2>🗂️ 나의 마을 저장 보관함</h2>'+
-  '<p>현재 진행 기록은 이 브라우저에 저장돼요. 휴대폰을 바꾸거나 데이터를 삭제할 때 잃지 않도록 저장파일을 직접 보관할 수 있어요.</p>'+
+  '<p>계정 진행 기록은 서버 저장 완료 표시를 확인하세요. 추가 보관용으로 현재 기록을 파일로 내보낼 수 있어요.</p>'+
   '<div class="mini-card"><strong>📥 직접 백업</strong><p>돈, 의상, 집, 레벨, 사냥 전리품, 도감, 월간 기록을 한 개의 파일로 저장해요.</p>'+
   '<button id="vaultExport">내 게임 데이터 백업 파일 받기</button></div>'+
   '<div class="mini-card"><strong>📤 백업 복원</strong><p>내가 직접 저장한 모여봐요 반말방숲 JSON 파일을 불러옵니다. 현재 기록을 덮어쓰니 먼저 백업하세요.</p>'+
-  '<input id="vaultImport" type="file" accept=".json,application/json" aria-label="모여봐요 반말방숲 백업 불러오기" /></div>'+
+  '<input '+(accountScope?'disabled ':'')+'id="vaultImport" type="file" accept=".json,application/json" aria-label="모여봐요 반말방숲 백업 불러오기" /></div>'+
   '<div class="mini-card"><strong>🕰 최근 자동 저장 기록</strong><p>이 기기 내에서만 보관 · 최대 7일</p>'+
   (snaps.length?snaps.slice().reverse().map(shot=>'<p>🗓 '+shot.day+'</p>').join(''):'<p>아직 이전 날짜의 기록이 없어요.</p>')+
-  '<button id="vaultRestore" '+(snaps.length<2?'disabled':'')+'>이전 날짜 복원하기</button></div>'+
-  '<p class="item-note">이 기능은 서버 계정 동기화가 아니에요. 백업 파일을 안전한 개인 저장소에 보관해야 해요.</p>');
+  '<button id="vaultRestore" '+(accountScope||snaps.length<2?'disabled':'')+'>이전 날짜 복원하기</button></div>'+
+  '<p class="item-note">백업 파일은 보관용 사본입니다. 계정 기록을 복구할 때는 운영자에게 문의하세요.</p>');
  document.getElementById('vaultExport').onclick=()=>{
   save();
   const data={format:'junja-village-backup',version:1,createdAt:new Date().toISOString(),nickname,owned:[...owned],state:{...state}};
@@ -989,6 +953,7 @@ function openSaveVault(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);toast('✅ 백업 파일을 저장했어요');
  };
  function restore(data){
+  if(accountScope){toast('계정 기록 복구는 운영자에게 문의해 주세요. 서버 기록을 보호하기 위해 파일 덮어쓰기를 중지했어요.');return}
   if(data?.format!=='junja-village-backup'||data.version!==1||!data.state||typeof data.state!=='object')throw Error('모여봐요 반말방숲 백업 파일이 아니에요');
   if(!Number.isFinite(data.state.coins)||data.state.coins<0||!Number.isFinite(data.state.xp)||data.state.xp<0)throw Error('저장된 레벨 또는 금액이 올바르지 않아요');
   if(!Array.isArray(data.state.collection)||data.state.collection.length>200000)throw Error('물고기 도감 데이터가 손상됐어요');
@@ -1449,7 +1414,7 @@ function openBag(){
  '<button class="pill-btn ghost" id="bagGoRods">🎣 낚싯대 성장</button></div>'+
  '<h3>🐟 물고기 · 판매 가능 '+fishTotal+'마리</h3><div class="inventory">'+(inventory||'<div class="slot">아직 판매할 물고기가 없어요</div>')+'</div>'+
  '<h3>🌲 채집 재료</h3><p>'+resources+'</p><h3>⚔️ 사냥 전리품</h3><p>'+huntLoot+'</p>'+
- '<h3>🪵 제작품</h3><p>'+crafted+'</p>');
+ '<h3>🪵 제작품</h3><p>'+crafted+'</p><h3>🧪 물약</h3><p>'+Object.entries(state.hunt?.potions||{}).filter(([,n])=>n>0).map(([id,n])=>({hp:'생명 물약',mp:'마나 물약',hpPlus:'고급 생명 물약',mpPlus:'고급 마나 물약'}[id]||id)+' × '+n).join(' · ')+'</p><p>의상·도감은 가방 칸을 차지하지 않아요. 개인 농작물은 내 농장의 수확 창고에서 확인하세요.</p>');
  document.getElementById('buyAutoSellTicket').onclick=()=>{const r=purchaseAutoSellTicket(state);if(!r.ok){toast(r.error);return}save();hud();openBag();toast('🎟️ 자동 판매권 1장 구매');};
  els.panelBody.querySelectorAll('[data-fish-lock]').forEach(b=>b.onclick=()=>{toggleFishProtection(state,b.dataset.fishLock);save();openBag();});
  document.getElementById('bagSellMaterials').onclick=openMaterialMarket;
@@ -1597,6 +1562,17 @@ cv.addEventListener('webglcontextlost',e=>{e.preventDefault();save();showRenderE
 cv.addEventListener('webglcontextrestored',()=>location.reload());
 try{world3D=createWorld({canvas:cv,width:W,height:H,stations,resources:resourceNodes,beds:bedCenters,npcs,animals:animalFriends,walkable,nickname:socialNickname})}catch(error){console.error(error);showRenderError(error);}
 els.name.textContent=socialNickname;initJourney();connectSocial();
+installQualityHUD({
+ snapshot:()=>{
+  const resource=resourceNodes.filter(n=>distance(player,n)<105&&!(state.nodeReady[n.id]>Date.now())).sort((a,b)=>distance(player,a)-distance(player,b))[0];
+  const npc=npcs.find(n=>distance(player,n)<100);
+  const station=stations.filter(s=>distance(player,s)<125).sort((a,b)=>distance(player,a)-distance(player,b))[0];
+  const context=resource?{type:'resource',id:resource.id,label:(resource.kind==='wood'?'🪓 목재 채집':resource.kind==='stone'?'⛏️ 돌 채집':'🌼 꽃잎 채집')}:npc?{type:'npc',npc,label:'💬 '+npc.name+'와 대화'}:station?{type:'station',id:station.id,label:station.icon+' '+station.name}:null;
+  return {used:bagUsed(state),capacity:bagCapacity(state),context,busy:els.modal.classList.contains('open')||fishPhase!=='idle'||!!placeDecor};
+ },onBag:openBag,onMarket:openMarket,onJourney:openJourney,onMap:openWorldMap,
+ onContext:context=>{if(context.type==='resource')gather(context.id);else if(context.type==='npc')openNpc(context.npc);else openStation(context.id)}
+});
+
 // Preview-only owner funding: bearer link, NOT server-side authentication.
 // No grants to ordinary players; this prototype has only local browser saves.
 function redeemOperatorPreviewGift(){

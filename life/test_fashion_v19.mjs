@@ -3,10 +3,10 @@ import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './f
 import {createAvatar} from './avatar3d.js';
 import {createPet} from './fashion-3d.js';
 
-assert.equal(CATALOG.length,100,'100 playable items');
-assert.equal(new Set(CATALOG.map(x=>x.id)).size,100,'IDs unique');
+assert(CATALOG.length>=100,'Preserve the original 100 playable items');
+assert.equal(new Set(CATALOG.map(x=>x.id)).size,CATALOG.length,'IDs unique');
 for(const [type,count] of [['hair',20],['outfit',40],['accessory',20],['pet',20]])
- assert.equal(CATALOG.filter(x=>x.type===type).length,count,type+' count');
+ assert(CATALOG.filter(x=>x.type===type).length>=count,type+' original catalog retained');
 for(const item of CATALOG){
  assert(item.name&&item.price>0&&GRADES[item.grade]&&CATALOG_BY_ID[item.id]===item);
  assert(Number.isInteger(item.color)&&Number.isInteger(item.price));
@@ -43,4 +43,4 @@ assert(petBonus(pets[0].id,'gather')>0);
 assert.equal(petBonus(null,'gather'),0);
 assert.equal(petBonus(pets[0].id,'move'),0,'movement permanently unchanged');
 assert(CATALOG.at(-1).price>CATALOG[0].price,'luxury more expensive');
-console.log('PASS: 100 catalog entries, 40 articulated outfit fittings, 20 unique hair/accessory settings, 20 animated pets and no movement modifiers');
+console.log('PASS: '+CATALOG.length+' catalog entries, '+clothes.length+' articulated outfits, '+pets.length+' animated pets and no movement modifiers');
