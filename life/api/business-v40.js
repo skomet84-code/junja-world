@@ -84,7 +84,7 @@ export function makeBusinessHandler({pool=livePool,now=()=>new Date()}={}){
     return send(res,400,{error:'올바른 사업장과 행동을 선택해 주세요'});
    if(action==='place'&&process.env.ENABLE_VILLAGE_WORKSHOPS_V41!=='true')
     return send(res,503,{error:'3D 사업장 배치는 아직 비활성화 상태예요'});
-   const requestHash=hash(JSON.stringify({action,role,site:action==='place'?site:null}));
+   const requestHash=hash(JSON.stringify(action==='place'?{action,role,site}:{action,role}));
    await c.query('BEGIN');tx=true;
    await c.query(`INSERT INTO village_economy_v36_accounts(user_key,state)
     VALUES($1,$2::jsonb) ON CONFLICT(user_key) DO NOTHING`,[key,JSON.stringify(startingEconomy())]);
