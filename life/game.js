@@ -4,6 +4,7 @@ import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallen
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
 import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js';
 import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket,AUTO_SELL_PRICE,purchaseAutoSellTicket,toggleFishProtection} from './inventory-v29.js';
+import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -1179,8 +1180,44 @@ function fishingAction(){
   fishAttempts=Math.max(0,fishAttempts-1);fishingProgress();
  }
 }
+
+// v31: paid automatic fishing at the pier, no offline income, legendary/mythic fish retained.
+let autoFishRunning=false,autoFishLast=performance.now(),autoFishNext=0;
+function autoFishPanel(){
+ const a=autoFishState(state),minutes=Math.ceil(a.remainingMs/60000);
+ openModal('<span class="titlebadge">AUTO FISHING</span><h2>🎣 자동낚시 이용권</h2><p>낚시터 전용 · 게임 화면을 켜둔 동안만 작동합니다. 전설·신화 물고기는 절대 판매하지 않고 가방에 보관해요.</p><p>남은 시간 '+minutes+'분 · 포획 '+a.catches+'마리 · 판매 '+a.sold+'마리 · 수익 '+a.earned.toLocaleString()+'G · 전설급 보관 '+a.protected+'마리</p><p>현재 '+(autoFishRunning?'🟢 자동낚시 중':'⏸ 정지')+' · 잔액 '+Math.floor(state.coins).toLocaleString()+'G</p><div class="card-grid">'+AUTO_FISH_PASSES.map(p=>'<button data-autofish-buy="'+p.hours+'">'+p.hours+'시간권 · '+p.price.toLocaleString()+'G</button>').join('')+'</div><button class="pill-btn" id="autoFishToggle">'+(autoFishRunning?'⏹ 자동낚시 중지':'▶ 자동낚시 시작')+'</button>');
+ els.panelBody.querySelectorAll('[data-autofish-buy]').forEach(b=>b.onclick=()=>{const r=buyAutoFish(state,b.dataset.autofishBuy);toast(r.ok?'🎣 이용권 구매 완료':r.error||'골드 부족');save();hud();autoFishPanel()});
+ const toggle=document.getElementById('autoFishToggle');if(toggle)toggle.onclick=()=>{if(autoFishRunning){autoFishRunning=false;toast('자동낚시 일시정지')}else if(!autoFishState(state).remainingMs){toast('먼저 이용권을 구매하세요')}else{autoFishRunning=true;autoFishLast=performance.now();autoFishNext=performance.now()+11000;fishPhase='idle';els.fishing.classList.remove('open');toast('🎣 자동낚시 시작!')}closeModal();save()};
+}
+function autoFishTick(){
+ const now=performance.now(),elapsed=Math.max(0,Math.min(1000,now-autoFishLast));autoFishLast=now;
+ if(!autoFishRunning)return;
+ const a=autoFishState(state);
+ if(!a.remainingMs){autoFishRunning=false;toast('🎣 자동낚시 이용권 종료');save();return}
+ if(document.hidden)return;
+ a.remainingMs=Math.max(0,a.remainingMs-elapsed);
+ if(now<autoFishNext)return;
+ autoFishNext=now+12000+Math.random()*9000;
+ // Lower efficiency than manual play; gear improves the chance of a catch.
+ const rod=rodById(state.fishingGear.equipped);
+ if(Math.random()>.58+Math.min(.22,(1-rod.wait)*.3))return;
+ const fish=FISH[fishRoll(Math.random(),state.fishingGear.equipped,lifeLevel())];
+ // The manual difficulty still matters: larger fish are harder to land automatically.
+ if(Math.random()<Math.min(.8,Math.max(.08,(fish.size||1)*.13)))return;
+ const result=autoFishCatch(state,fish,lifeLevel());
+ if(!result.ok){autoFishRunning=false;toast('🎒 자동낚시 정지: '+(result.error||'보관 또는 판매 실패'));save();return}
+ state.fish++;state.dailyFish++;state.collection.push(fish.name);state.xp+=12;
+ state.fishRecords[fish.name]??={count:0,bestCm:0};
+ state.fishRecords[fish.name].count++;
+ if(!state.dailyFishNames.includes(fish.name))state.dailyFishNames.push(fish.name);
+ hud();save();
+ if(result.protected)toast('🏆 '+fish.name+' 전설급 자동 보관!');
+}
+setInterval(autoFishTick,500);
+
 els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing;
  const gearShortcut=document.getElementById('fishGear');
+ const autoFishButton=document.createElement('button');autoFishButton.textContent='🎣 자동낚시권';autoFishButton.className='pill-btn';autoFishButton.style.cssText='position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:12px;z-index:24;font-size:12px;padding:9px';autoFishButton.onclick=autoFishPanel;document.body.appendChild(autoFishButton);
  if(gearShortcut)gearShortcut.onclick=()=>{els.fishing.classList.remove('open');fishPhase='idle';openFishingGear()};document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 준자마을 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
 function showRenderError(error){
  const panel=document.getElementById('renderError');panel.hidden=false;
