@@ -13,7 +13,9 @@ let world3D=null;
 const W=3600,H=2400; let CW=innerWidth,CH=innerHeight,dpr=1,scale=1,camera={x:1000,y:900},t=0,last=performance.now();
 const A={};
 const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
-let saved={};try{saved=JSON.parse(localStorage.getItem('junja-harbor-v1')||'{}')}catch{}
+const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
+const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
+let saved={};try{saved=accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{} }catch{}
 const state={...seedData,...saved};
 initEconomy(state);initializeFishStock(state);initBag(state);
 state.baitInventory=state.baitInventory&&typeof state.baitInventory==='object'?state.baitInventory:{};
@@ -300,7 +302,7 @@ for(const type of ['hair','outfit','accessory','pet'])if(state.fashion.equipped[
 function save(){
  state.x=player.x;state.y=player.y;state.dir=player.dir;state.savedAt=Date.now();
  try{
-  localStorage.setItem('junja-harbor-v1',JSON.stringify(state));
+  if(accountScope)localStorage.setItem(scopedSaveKey,JSON.stringify(state));
   localStorage.setItem('junja-harbor-owned',JSON.stringify(owned));
   // Retain up to seven daily restore points, not every five-second save.
   const day=nowDay(),key='junja-village-snapshots-v27';
