@@ -363,6 +363,20 @@ function save(){
    shots.push({day,save:JSON.stringify(state),owned:[...owned]});
    localStorage.setItem(key,JSON.stringify(shots.slice(-7)));
   }
+  // Extra per-account restore checkpoints, kept locally even if an API
+  // outage or an accidental future deployment disrupts normal server saves.
+  // The cloud record stays authoritative when it exists.
+  if(accountScope){
+   const backupKey=scopedSaveKey+'-checkpoints-v33';
+   const raw=JSON.parse(localStorage.getItem(backupKey)||'[]');
+   const checkpoints=Array.isArray(raw)?raw:[];
+   const previous=checkpoints.at(-1),now=Date.now();
+   const level=Math.max(1,1+Math.floor((Number(state.xp)||0)/160));
+   if(!previous || now-Number(previous.at||0)>300000 || level>Number(previous.level||0)){
+    checkpoints.push({at:now,level,profile:state,owned:[...owned]});
+    localStorage.setItem(backupKey,JSON.stringify(checkpoints.slice(-12)));
+   }
+  }
  }catch(e){/* Storage can be disabled in private preview browsers. */}
  // A blocked/quota-limited localStorage must never stop durable server writes.
  if(accountScope)queueCloudSave();
