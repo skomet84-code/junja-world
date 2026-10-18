@@ -1,0 +1,12 @@
+.git
+.gitignore
+**/node_modules
+**/public
+**/dist
+**/artifacts
+**/.env
+**/.env.*
+.env.village
+.env
+*.log
+npm-debug.log*
