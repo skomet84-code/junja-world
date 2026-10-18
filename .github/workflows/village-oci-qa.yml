@@ -1,0 +1,35 @@
+name: Village Oracle migration QA
+on:
+  push:
+    branches: [oci-village-migration-20261018]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: cd life && npm install --no-audit --no-fund
+      - name: Village save, economy and multiplayer regression tests
+        run: cd life && npm test
+      - name: OCI build, HTTP and private API smoke
+        run: |
+          cd life
+          npm run build
+          node --check oci-server.mjs
+          PORT=3000 node oci-server.mjs > /tmp/oci-village-test.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 25); do curl -fsS http://127.0.0.1:3000/health && break || sleep 1; done
+          curl -fsS http://127.0.0.1:3000/ >/dev/null
+          curl -fsS http://127.0.0.1:3000/game.js >/dev/null
+          status=$(curl -s -o /tmp/account-response.json -w '%{http_code}' 'http://127.0.0.1:3000/api/account?action=save')
+          test "$status" = 503
+          if curl -fsS http://127.0.0.1:3000/api/account.js >/dev/null; then
+            echo 'Private API source unexpectedly exposed'
+            exit 1
+          fi
