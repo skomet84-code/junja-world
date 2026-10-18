@@ -1,0 +1,39 @@
+name: Junja Village v42 Mobile Portal E2E
+on:
+  push:
+    branches:
+      - feat/village-business-portal-v42
+  pull_request:
+    branches:
+      - feat/village-walkable-workshops-v41
+permissions:
+  contents: read
+jobs:
+  native-portal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Checkout reviewed portal
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Install browser QA dependencies
+        working-directory: life
+        run: |
+          npm install --no-package-lock --ignore-scripts
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Navigate actual village to 3D district and return on mobile
+        working-directory: life
+        run: node test_district_browser_v42.mjs
+      - name: Keep evidence screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: village-v42-main-island-portal
+          path: life/artifacts/v42-village-business-portal-phone.png
+          if-no-files-found: ignore

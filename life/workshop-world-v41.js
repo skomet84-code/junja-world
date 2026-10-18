@@ -12,7 +12,7 @@ const roleColors={farmer:{wall:0xd0e4c4,roof:0x80b1a0,accent:0x658f71},
  chef:{wall:0xfbe2c5,roof:0xc3827c,accent:0xc99e73},
  merchant:{wall:0xdcd4e5,roof:0x9d94b9,accent:0x8a779c}};
 const titles={farmer:'프리미엄 온실',chef:'수제 베이커리',merchant:'유통 공방'};
-export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName='나',onArrival=()=>{},onInteriorChange=()=>{}}={}){
+export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName='나',look={},onArrival=()=>{},onInteriorChange=()=>{}}={}){
  if(!host)throw Error('3D 사업장 장면을 표시할 위치가 없습니다');
  if(!Array.isArray(buildings)||buildings.length>3)throw Error('허용되지 않는 사업장 배치 데이터입니다');
  const validate=new Set();
@@ -138,7 +138,9 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
    }
   }
  }
- const avatar=createAvatar({coat:'mint',hat:'none'});
+ const avatar=createAvatar({coat:look.coat||'mint',hat:look.hat||'none'});
+ avatar.equip(look.fashion?.outfit||look.coat||'mint',look.hat||'none');
+ avatar.setFashion(look.fashion||{});
  scene.add(avatar.root);avatar.root.scale.setScalar(.72);
  const pos={x:0,z:435};let goal=null,targetRole=null,inside=null,paused=false,disposed=false,raf=0,last=0,frames=0,stride=0;
  const mark=new THREE.Mesh(new THREE.TorusGeometry(24,3,6,28),mat(0xffe09b));

@@ -40,7 +40,7 @@ const game=await readFile(new URL('./game.js',import.meta.url),'utf8');
 const world=await readFile(new URL('./estate-world-v35.js',import.meta.url),'utf8');
 assert(game.includes('mountEstateWorld('),'Personal farm mounts interactive 3D scene');
 assert(game.includes('function disposeEstateWorld()'),'3D renderer is released before modal replacement');
-assert(game.includes('if(estateWorld)return;if(world3D)'), 'Do not render two world scenes at once on mobile');
+assert(game.includes('if(estateWorld||workshopPlaza)return;if(world3D)'), 'Farm and business district both suspend the underlying mobile world renderer');
 assert(world.includes('onPlot?.(chosen)'),'3D field selection invokes existing economy gameplay, not a duplicate payout');
 assert(world.includes('renderer.forceContextLoss()'),'Closing the farm must release mobile WebGL contexts');
 console.log('v35 walkable farm: layout, crop growth, avatar movement and safe UI integration passed');
