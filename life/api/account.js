@@ -19,6 +19,18 @@ export default async function handler(req,res){
  const body=req.body||{};
  const client=await pool.connect();
  try{
+  if(action==='admin_setup'&&req.method==='POST'){
+   const setup=process.env.VILLAGE_ADMIN_SETUP_CODE;
+   const supplied=String(body.setupCode||'');
+   if(!setup||setup.length<16||supplied.length!==setup.length||!timingSafeEqual(Buffer.from(supplied),Buffer.from(setup)))return send(res,403,{error:'운영자 설정 코드가 일치하지 않습니다'});
+   const password=String(body.password||'');
+   if(password.length<8||password.length>128)return send(res,400,{error:'운영자 비밀번호는 8자 이상으로 설정해주세요'});
+   const existing=await client.query("SELECT id FROM village_users WHERE username='admin_junja'");
+   if(existing.rows.length)return send(res,409,{error:'운영자 계정이 이미 존재합니다. 로그인 또는 복구 절차를 이용하세요'});
+   const salt=randomBytes(16).toString('hex');
+   await client.query("INSERT INTO village_users(username,nickname,password_salt,password_hash,role) VALUES('admin_junja','갓준자',$1,$2,'admin')",[salt,digest(password,salt)]);
+   return send(res,201,{ok:true,message:'운영자 계정 생성 완료. 로그인해주세요'});
+  }
   if(action==='register'&&req.method==='POST'){
    const username=String(body.username||'').trim().toLowerCase(),password=String(body.password||''),nickname=String(body.nickname||username).trim();
    if(!/^[a-z0-9_]{4,24}$/.test(username)||username==='admin_junja'||password.length<4||password.length>128||nickname.length<1||nickname.length>12)return send(res,400,{error:'아이디는 영문·숫자 4~24자, 비밀번호는 4자 이상, 닉네임은 12자 이하'});
