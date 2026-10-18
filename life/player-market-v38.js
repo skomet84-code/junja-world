@@ -1,7 +1,8 @@
 // v38 P2P marketplace: PURE server-only rules, separated from legacy gold and cosmetics.
 // Stock is escrowed BEFORE a listing becomes visible; buyer pays once, seller receives net of fee.
 import {LAB_CROPS,LAB_RECIPES} from './secure-economy-v36.js';
-export const MARKET_CATALOG=Object.freeze({...LAB_CROPS,...LAB_RECIPES});
+import {WORKSHOP_PRODUCTS} from './business-v40.js';
+export const MARKET_CATALOG=Object.freeze({...LAB_CROPS,...LAB_RECIPES,...WORKSHOP_PRODUCTS});
 export const MARKET_LISTING_FEE=12,MARKET_MAX_LISTINGS=12,MARKET_MAX_QUANTITY=20;
 export const MARKET_TAX_PERCENT=5,MARKET_MAX_GOLD=1_000_000_000_000;
 const fault=(error,status=409)=>{const err=new Error(error);err.status=status;throw err};

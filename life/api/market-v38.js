@@ -4,7 +4,7 @@ import pg from 'pg';
 import {createHash,randomUUID} from 'node:crypto';
 import {startingEconomy,economyView} from '../secure-economy-v36.js';
 import {makeCheckpoint,validateCheckpointChain} from '../economy-integrity-v37.js';
-import {reserveListing,cancelListing,settleListing,marketQuote,MARKET_MAX_LISTINGS} from '../player-market-v38.js';
+import {reserveListing,cancelListing,settleListing,marketQuote,MARKET_CATALOG,MARKET_MAX_LISTINGS} from '../player-market-v38.js';
 const livePool=new pg.Pool({connectionString:process.env.VILLAGE_DATABASE_URL||process.env.DATABASE_URL,ssl:{rejectUnauthorized:false},max:4});
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -89,7 +89,7 @@ export function makePlayerMarketHandler({pool=livePool,now=()=>new Date()}={}){
       WHERE l.status='active' ORDER BY l.created_at DESC LIMIT 40`);
     const own=await client.query(`SELECT id,item,quantity,unit_price,status,created_at
       FROM village_market_v38_listings WHERE seller_key=$1 ORDER BY created_at DESC LIMIT 25`,[actor]);
-    return respond(res,200,{ok:true,trial:true,me:actor,economy:economyView(mine.rows[0]?.state||startingEconomy(),now()),listings:all.rows,ownListings:own.rows,version:Number(mine.rows[0]?.version||0)});
+    return respond(res,200,{ok:true,trial:true,me:actor,products:MARKET_CATALOG,economy:economyView(mine.rows[0]?.state||startingEconomy(),now()),listings:all.rows,ownListings:own.rows,version:Number(mine.rows[0]?.version||0)});
    }
    const id=req.body?.requestId;
    if(typeof id!=='string'||!uuid.test(id))return respond(res,400,{error:'중복 거래 방지 요청 ID가 필요합니다'});

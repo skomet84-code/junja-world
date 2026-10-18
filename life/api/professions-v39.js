@@ -28,7 +28,7 @@ function canonical(body){
  if(action==='register'&&typeof role!=='string')fail('직업을 선택해 주세요',400);
  return {action,role};
 }
-const activeActions=['harvest','craft','market_sold','sell'];
+const activeActions=['harvest','craft','market_sold','sell','business_produce'];
 async function verifiedActivity(client,key,state,now){
  const profession=currentProfession(state);
  if(!profession)return {total:{},daily:{}};

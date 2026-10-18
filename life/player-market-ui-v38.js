@@ -53,17 +53,17 @@ export function openPlayerMarket(host,{back}={}){
   const {economy:s,listings,ownListings}=data;
   text(content,'💰 시험 지갑 '+gold(s.coins)+' · 상점 수수료: 등록 12G / 거래 5%','h3');
   text(content,'📤 내가 판매할 물건','h3');
-  const owned=Object.entries(s.stock||{}).filter(([id,n])=>n>0&&(s.catalog[id]||s.recipes[id]));
+  const owned=Object.entries(s.stock||{}).filter(([id,n])=>n>0&&(data.products?.[id]||s.catalog[id]||s.recipes[id]));
   if(!owned.length)text(content,'판매할 시험용 재고가 없어요. 서버 농장에서 먼저 수확하거나 가공해 주세요.');
   else{
    const section=css(node('section'),'padding:10px;border-radius:13px;background:#eff4e7');
    const item=node('select');css(item,'padding:10px;width:100%;max-width:100%;margin:5px 0');
-   for(const [id,n] of owned){const o=node('option',(s.catalog[id]||s.recipes[id]).label+' · '+n+'개 보유');o.value=id;item.append(o)}
+   for(const [id,n] of owned){const o=node('option',(data.products?.[id]||s.catalog[id]||s.recipes[id]).label+' · '+n+'개 보유');o.value=id;item.append(o)}
    const qty=node('input');qty.type='number';qty.min='1';qty.max='20';qty.value='1';
    const price=node('input');price.type='number';price.min='1';price.value='34';
    for(const el of [qty,price])css(el,'padding:9px;width:75px;margin:5px;border:1px solid #cbd3bd;border-radius:8px');
    const update=()=>{
-    const info=s.catalog[item.value]||s.recipes[item.value];price.value=String(info.sell);
+    const info=data.products?.[item.value]||s.catalog[item.value]||s.recipes[item.value];price.value=String(info.sell);
     price.min=String(Math.ceil(info.sell*.5));price.max=String(info.sell*3);
     qty.max=String(Math.min(20,s.stock[item.value]||0));
    };
@@ -80,7 +80,7 @@ export function openPlayerMarket(host,{back}={}){
   if(!listings.length)text(content,'현재 등록된 상품이 없어요.');
   for(const listing of listings){
    const box=css(node('section'),'background:#f2f4ec;padding:12px;border-radius:12px;margin:7px 0');
-   const name=(s.catalog[listing.item]||s.recipes[listing.item])?.label||listing.item;
+   const name=(data.products?.[listing.item]||s.catalog[listing.item]||s.recipes[listing.item])?.label||listing.item;
    text(box,name+' ×'+listing.quantity+' · '+gold(Number(listing.unit_price)*listing.quantity),'strong');
    text(box,'판매자 '+listing.seller_name+' · 개당 '+gold(listing.unit_price));
    if(listing.seller_key===data.me)box.append(btn('내 상품 · 등록 취소',()=>send('cancel',{listingId:listing.id})));
@@ -89,7 +89,7 @@ export function openPlayerMarket(host,{back}={}){
   }
   text(content,'📜 내 상점 거래 현황','h3');
   for(const listing of ownListings.slice(0,10)){
-   const name=(s.catalog[listing.item]||s.recipes[listing.item])?.label||listing.item;
+   const name=(data.products?.[listing.item]||s.catalog[listing.item]||s.recipes[listing.item])?.label||listing.item;
    text(content,name+' ×'+listing.quantity+' · '+(listing.status==='sold'?'판매 완료':listing.status==='cancelled'?'취소됨':'판매 중'),'p');
   }
   content.append(btn('↻ 거래소 새로고침',load));
