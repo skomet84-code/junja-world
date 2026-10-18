@@ -1,3 +1,4 @@
+import {CATALOG} from './fashion-catalog.js';
 const style=document.createElement('style');style.textContent=`
 #junjaAdminBtn{display:none;position:fixed;top:calc(120px + env(safe-area-inset-top));right:10px;z-index:96;background:linear-gradient(120deg,#f9d878,#fff4c5);color:#513a15;border:2px solid #b89542;border-radius:18px;padding:12px 15px;font-size:16px;font-weight:900;box-shadow:0 4px 18px #0004}
 #junjaAdminPanel{display:none;position:fixed;inset:0;z-index:210;background:#102b24d9;padding:calc(18px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));overflow:auto}
@@ -18,12 +19,12 @@ const panel=document.createElement('div');panel.id='junjaAdminPanel';panel.inner
 <div class="group"><strong>👥 받을 친구 선택</strong><input id="jaSearch" placeholder="아이디 또는 닉네임 검색" autocomplete="off"/><div id="junjaAdminMembers">회원 목록 불러오는 중…</div><p id="jaSelected">선택한 친구 없음</p><button id="jaSelf">👑 나에게 지급</button><button id="jaReload">↻ 목록 새로고침</button></div>
 <div class="group"><strong>💰 게임 골드</strong><input id="jaGold" type="number" inputmode="numeric" min="1" placeholder="지급하거나 회수할 금액"/><div><button class="quick" data-gold="10000">1만</button><button class="quick" data-gold="100000">10만</button><button class="quick" data-gold="1000000">100만</button><button class="quick" data-gold="10000000">1000만</button></div><button class="gold" id="jaGiveGold">💰 골드 지급</button><button class="danger" id="jaTakeGold">↩ 골드 회수</button></div>
 <div class="group"><strong>🎁 아이템 선물</strong><select id="jaItem"></select><button id="jaGiveItem">🎁 선택 아이템 지급</button></div>
-<div class="group"><strong>⭐ 레벨 변경</strong><input id="jaLevel" type="number" inputmode="numeric" min="1" max="1000" placeholder="변경할 레벨 (예: 50)"/><button id="jaSetLevel">⭐ 레벨 적용</button></div>
+<div class="group"><strong>⭐ 레벨 변경</strong><input id="jaLevel" type="number" inputmode="numeric" min="1" placeholder="변경할 레벨 (예: 5000)"/><button id="jaSetLevel">⭐ 레벨 적용</button></div>
 <p id="jaResult" aria-live="polite">관리자 계정에서만 실행할 수 있어.</p>
 <p class="muted">게임 기록 변경은 서버 저장에 반영돼. 접속 중인 친구는 로그아웃한 뒤 다시 로그인해야 해.</p>
 </div>`;document.body.append(panel);
 const $=id=>document.getElementById(id);let members=[],selected='';
-const itemNames=[['fashion_hair_09','🐺 울프컷'],['fashion_hair_01','💇 숏컷'],['fashion_outfit_01','👕 의상 01'],['fashion_accessory_01','💍 액세서리 01'],['fashion_pet_01','🐾 펫 01']];
+const itemNames=CATALOG.map(x=>[x.id,({hair:'💇',outfit:'👕',accessory:'💍',pet:'🐾'}[x.type]||'🎁')+' ['+({common:'일반',fine:'고급',rare:'희귀',hero:'영웅',legend:'전설',mythic:'신화'}[x.grade]||x.grade)+'] '+x.name]);
 for(const [id,name] of itemNames){const o=document.createElement('option');o.value=id;o.textContent=name;$('jaItem').append(o)}
 function status(t){$('jaResult').textContent=t}
 async function call(action,data){const res=await fetch('/api/account?action='+action,{method:data?'POST':'GET',credentials:'same-origin',headers:{'Content-Type':'application/json'},...(data?{body:JSON.stringify(data)}:{})});const out=await res.json().catch(()=>({}));if(!res.ok)throw Error(out.error||'서버 오류');return out}
@@ -35,6 +36,6 @@ panel.querySelectorAll('[data-gold]').forEach(b=>b.onclick=()=>{$('jaGold').valu
 async function submit(mode,value,item){if(!selected)return status('⚠️ 먼저 친구를 선택해');if(!confirm(selected+'에게 '+(mode==='coins_add'?'골드 '+value+'G 지급':mode==='coins_take'?'골드 '+value+'G 회수':mode==='level'?'레벨 '+value+' 적용':'아이템 '+item+' 지급')+'할까?'))return;try{const r=await call('admin_character',{recipient:selected,mode,value,item});status('✅ '+r.message)}catch(e){status('⚠️ '+e.message)}}
 $('jaGiveGold').onclick=()=>{const n=Number($('jaGold').value);if(!Number.isSafeInteger(n)||n<1)return status('⚠️ 골드 금액을 입력해');submit('coins_add',n)};
 $('jaTakeGold').onclick=()=>{const n=Number($('jaGold').value);if(!Number.isSafeInteger(n)||n<1)return status('⚠️ 골드 금액을 입력해');submit('coins_take',n)};
-$('jaSetLevel').onclick=()=>{const n=Number($('jaLevel').value);if(!Number.isInteger(n)||n<1||n>1000)return status('⚠️ 레벨 1~1000 입력');submit('level',n)};
+$('jaSetLevel').onclick=()=>{const n=Number($('jaLevel').value);if(!Number.isSafeInteger(n)||n<1||n>100000000)return status('⚠️ 올바른 레벨을 입력해');submit('level',n)};
 $('jaGiveItem').onclick=()=>submit('item',0,$('jaItem').value);
 window.addEventListener('village-auth',e=>{const u=e.detail;btn.style.display=u?.username==='admin_junja2'&&u?.role==='admin'?'block':'none';if(!u)panel.classList.remove('show')});
