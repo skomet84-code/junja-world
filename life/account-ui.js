@@ -10,12 +10,12 @@ async function refresh(){
  $('accountIdentity').textContent='👤 '+r.user.nickname+' ('+r.user.username+')';
  $('accountBalance').textContent='서버 지갑 '+Number(r.balance).toLocaleString()+'G';
  $('accountAdmin').hidden=r.user.role!=='admin';
- $('accountOpen').textContent='👤 '+r.user.nickname;window.villageGateEnter?.(r.user);
+ $('accountOpen').textContent='👤 '+r.user.nickname;if(sessionStorage.getItem('village-auth-user')!==r.user.username){sessionStorage.setItem('village-auth-user',r.user.username);location.reload();return}window.villageGateEnter?.(r.user);
  }catch{$('accountGuest').hidden=false;$('accountMember').hidden=true;$('accountOpen').textContent='🔐 계정 · 송금';window.villageGateLogout?.()}
 }
 $('accountOpen').onclick=()=>{layer.classList.add('show');refresh()};
 $('accountClose').onclick=()=>layer.classList.remove('show');
-async function action(name,body){try{const r=await api(name,body);say(r.message||'처리 완료');await refresh()}catch(e){say('⚠️ '+e.message)}}
+async function action(name,body){try{const r=await api(name,body);say(r.message||'처리 완료');if(name==='logout'){sessionStorage.removeItem('village-auth-user');location.reload();return}await refresh()}catch(e){say('⚠️ '+e.message)}}
 $('accountRegister').onclick=()=>action('register',{username:$('accountUser').value,nickname:$('accountNick').value,password:$('accountPassword').value});
 $('accountLogin').onclick=()=>action('login',{username:$('accountUser').value,password:$('accountPassword').value});
 $('accountLogout').onclick=()=>action('logout',{});
