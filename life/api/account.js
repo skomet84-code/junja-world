@@ -95,10 +95,22 @@ export default async function handler(req,res){
    // Same-version edits are allowed once only. On later writes the client
    // must send the returned version; stale requests can never roll back XP.
    const nextVersion=currentVersion+1;
+   const oldLevel=Math.floor(Math.max(0,Number(saved.xp)||0)/160)+1;
+   const confirmedLevel=Math.floor(xp/160)+1;
+   const history=Array.isArray(saved.__levelHistory)?saved.__levelHistory.slice(-19):[];
+   if(!row||oldLevel!==confirmedLevel)history.push({version:nextVersion,level:confirmedLevel,at:new Date().toISOString(),source:'save'});
+   incoming.__levelHistory=history.slice(-20);
+   incoming.__confirmedLevel=confirmedLevel;
    if(row){
     await client.query('UPDATE village_saves SET profile=$2,owned=$3,version=$4,updated_at=now() WHERE user_id=$1',[user.id,incoming,owned,nextVersion]);
    }else{
-    await client.query('INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,$4,now())',[user.id,incoming,owned,nextVersion]);
+    // Two first-time sessions can start at the same version. The losing
+    // session must get a conflict, never an INSERT error or overwrite.
+    const inserted=await client.query('INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,$4,now()) ON CONFLICT(user_id) DO NOTHING RETURNING version',[user.id,incoming,owned,nextVersion]);
+    if(!inserted.rows.length){
+     await client.query('COMMIT');
+     return send(res,409,{error:'다른 접속 화면에서 먼저 저장했어요. 재접속해 주세요',reason:'initial_save_conflict'});
+    }
    }
    await client.query('COMMIT');
    return send(res,200,{ok:true,version:nextVersion});
@@ -139,9 +151,15 @@ export default async function handler(req,res){
    if(!target.rows.length){await client.query('ROLLBACK');return send(res,404,{error:'대상 계정 없음'})}
    const id=target.rows[0].id;
    await client.query("INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,'{}'::jsonb,'[]'::jsonb,1,now()) ON CONFLICT DO NOTHING",[id]);
-   const q=await client.query('SELECT profile FROM village_saves WHERE user_id=$1 FOR UPDATE',[id]);
+   const q=await client.query('SELECT profile,version FROM village_saves WHERE user_id=$1 FOR UPDATE',[id]);
    const profile=q.rows[0].profile||{};
-   if(mode==='level')profile.xp=(value-1)*160;
+   if(mode==='level'){
+    profile.xp=(value-1)*160;
+    const history=Array.isArray(profile.__levelHistory)?profile.__levelHistory.slice(-19):[];
+    history.push({version:(Number(q.rows[0].version)||0)+1,level:value,at:new Date().toISOString(),source:'admin'});
+    profile.__levelHistory=history.slice(-20);
+    profile.__confirmedLevel=value;
+   }
    if(mode==='coins')profile.coins=value;
    if(mode==='coins_add')profile.coins=Math.min(1000000000000,Math.max(0,Number(profile.coins)||0)+value);
    if(mode==='coins_take')profile.coins=Math.max(0,(Number(profile.coins)||0)-value);
