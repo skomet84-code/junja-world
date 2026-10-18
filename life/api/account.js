@@ -49,6 +49,23 @@ export default async function handler(req,res){
    const w=await client.query('SELECT balance FROM village_wallets WHERE user_id=$1',[user.id]);
    return send(res,200,{user,balance:String(w.rows[0]?.balance||0)});
   }
+  if(action==='save'&&req.method==='GET'){
+   const q=await client.query('SELECT profile,owned,version FROM village_saves WHERE user_id=$1',[user.id]);
+   return send(res,200,{save:q.rows[0]||null});
+  }
+  if(action==='save'&&req.method==='POST'){
+   const profile=body.profile,owned=body.owned;
+   if(!profile||typeof profile!=='object'||Array.isArray(profile)||JSON.stringify(profile).length>150000||!Array.isArray(owned)||owned.length>1000)return send(res,400,{error:'저장 데이터 형식 오류'});
+   await client.query("INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,1,now()) ON CONFLICT(user_id) DO UPDATE SET profile=$2,owned=$3,version=village_saves.version+1,updated_at=now()",[user.id,profile,owned]);
+   return send(res,200,{ok:true});
+  }
+  if(action==='presence'&&req.method==='POST'){
+   const x=Number(body.x),y=Number(body.y);
+   if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>10000||y<0||y>10000)return send(res,400,{error:'위치 오류'});
+   await client.query("INSERT INTO village_presence(user_id,x,y,updated_at) VALUES($1,$2,$3,now()) ON CONFLICT(user_id) DO UPDATE SET x=$2,y=$3,updated_at=now()",[user.id,x,y]);
+   const q=await client.query("SELECT u.username,u.nickname,p.x,p.y FROM village_presence p JOIN village_users u ON u.id=p.user_id WHERE p.updated_at>now()-interval '20 seconds' AND p.user_id<>$1 LIMIT 30",[user.id]);
+   return send(res,200,{players:q.rows});
+  }
   if(action==='transfer'&&req.method==='POST'){
    const recipient=String(body.recipient||'').trim().toLowerCase(),amount=Number(body.amount),key=String(body.key||'');
    if(!/^[a-z0-9_]{4,24}$/.test(recipient)||!Number.isSafeInteger(amount)||amount<1||amount>1000000000000||!/^[-a-zA-Z0-9]{16,80}$/.test(key))return send(res,400,{error:'송금 입력값을 확인해주세요'});
