@@ -91,6 +91,14 @@ export default async function handler(req,res){
     return send(res,409,{error:'다른 접속 화면에서 저장한 최신 기록이 있어요. 재접속해 주세요',reason:'version_conflict',version:currentVersion});
    }
    const saved=row?.profile||{};
+   // Normal gameplay never loses XP. Explicit admin level changes update the
+   // authoritative row/revision separately, so a stale player tab must not
+   // roll confirmed progress backwards even with a matching row version.
+   const confirmedXp=Number(saved.xp);
+   if(row&&Number.isFinite(confirmedXp)&&confirmedXp>=0&&xp<confirmedXp){
+    await client.query('COMMIT');
+    return send(res,409,{error:'서버에 더 높은 경험치 기록이 있어 낮은 레벨로 덮어쓰지 않았어요. 현재 기록을 보존하고 재접속해 주세요.',reason:'xp_rollback_blocked',version:currentVersion});
+   }
    const savedRevision=Math.max(0,Math.floor(Number(saved.__adminRevision)||0));
    const incomingRevision=Math.max(0,Math.floor(Number(incoming.__adminRevision)||0));
    if(savedRevision!==incomingRevision){
