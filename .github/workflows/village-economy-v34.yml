@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feat/village-living-economy-v34
+      - feat/village-walkable-estate-v35
   pull_request:
     branches:
       - village-progression-v30
