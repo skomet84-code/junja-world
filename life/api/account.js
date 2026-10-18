@@ -1,6 +1,6 @@
 import {randomBytes,createHash,scryptSync,timingSafeEqual} from 'node:crypto';
 import pg from 'pg';
-const pool=new pg.Pool({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false},max:3});
+const pool=new pg.Pool({connectionString:(process.env.VILLAGE_DATABASE_URL||process.env.DATABASE_URL),ssl:{rejectUnauthorized:false},max:3});
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const digest=(pw,salt)=>scryptSync(pw,Buffer.from(salt,'hex'),64).toString('hex');
 const cookie=(req,name)=>(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(name+'='))?.slice(name.length+1)||'';
