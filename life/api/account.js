@@ -90,7 +90,7 @@ export default async function handler(req,res){
    return send(res,200,{ok:true});
   }
   if(action==='online'&&req.method==='GET'){
-   const q=await client.query(`SELECT u.username,u.nickname,u.role,p.x,p.y,COALESCE(NULLIF(s.profile->>'xp','')::numeric,0) AS xp
+   const q=await client.query(`SELECT u.username,u.nickname,u.role,p.x,p.y,GREATEST(COALESCE(p.xp,0),COALESCE(NULLIF(s.profile->>'xp','')::numeric,0)) AS xp
     FROM village_presence p JOIN village_users u ON u.id=p.user_id
     LEFT JOIN village_saves s ON s.user_id=u.id
     WHERE p.updated_at>now()-interval '20 seconds'
@@ -98,8 +98,8 @@ export default async function handler(req,res){
    return send(res,200,{players:q.rows.map((p,i)=>({username:p.username,nickname:p.nickname,role:p.role,x:p.x,y:p.y,level:Math.max(1,Math.floor(Number(p.xp)/160)+1),rank:i+1}))});
   }
   if(action==='presence'&&req.method==='POST'){
-   const x=Number(body.x),y=Number(body.y);
-   if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>10000||y<0||y>10000)return send(res,400,{error:'위치 오류'});
+   const x=Number(body.x),y=Number(body.y),xp=Number(body.xp);
+   if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>10000||y<0||y>10000||!Number.isFinite(xp)||xp<0||xp>1000000000)return send(res,400,{error:'위치 오류'});
    await client.query("INSERT INTO village_presence(user_id,x,y,updated_at) VALUES($1,$2,$3,now()) ON CONFLICT(user_id) DO UPDATE SET x=$2,y=$3,updated_at=now()",[user.id,x,y]);
    const q=await client.query("SELECT u.username,u.nickname,p.x,p.y FROM village_presence p JOIN village_users u ON u.id=p.user_id WHERE p.updated_at>now()-interval '20 seconds' AND p.user_id<>$1 LIMIT 30",[user.id]);
    return send(res,200,{players:q.rows});
