@@ -2,7 +2,7 @@
 import {mkdir,copyFile} from 'node:fs/promises';
 import {join,dirname} from 'node:path';
 const assets=[
- 'index.html','game.js','world3d.js','avatar3d.js','fashion-3d.js',
+ 'index.html','account-ui.js','game.js','world3d.js','avatar3d.js','fashion-3d.js',
  'fashion-catalog.js','life-systems-v20.js','navigation.js',
  'hunt.html','hunt.js','hunt-data.js','fish-portraits.js','living-world.js',
  'economy-v28.js','inventory-v29.js','combat-potions-v29.js','combat-progression-v30.js',
