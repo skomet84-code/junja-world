@@ -20,7 +20,7 @@ export default async function handler(req,res){
  const client=await pool.connect();
  try{
   if(action==='admin_setup'&&req.method==='POST'){
-   const setup=process.env.VILLAGE_ADMIN_SETUP_CODE;
+   const setup=process.env.VILLAGE_ADMIN_SETUP_TOKEN||process.env.VILLAGE_ADMIN_SETUP_CODE;
    const supplied=String(body.setupCode||'');
    if(!setup||setup.length<16||supplied.length!==setup.length||!timingSafeEqual(Buffer.from(supplied),Buffer.from(setup)))return send(res,403,{error:'운영자 설정 코드가 일치하지 않습니다'});
    const password=String(body.password||'');
