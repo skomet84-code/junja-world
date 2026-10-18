@@ -22,6 +22,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/professions-v39.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/ws.js",
       "use": "@vercel/node"
     },
@@ -69,6 +73,10 @@
     {
       "src": "/api/market-v38",
       "dest": "/api/market-v38.js"
+    },
+    {
+      "src": "/api/professions-v39",
+      "dest": "/api/professions-v39.js"
     },
     {
       "src": "/api/ws",
