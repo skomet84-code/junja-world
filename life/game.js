@@ -1015,6 +1015,7 @@ function drawMini(){const w=mini.width,h=mini.height,sx=w/W,sy=h/H;
  mctx.strokeStyle='#fff3c7';mctx.lineWidth=1.5;if(path.length){mctx.beginPath();mctx.moveTo(player.x*sx,player.y*sy);for(const p of path)mctx.lineTo(p.x*sx,p.y*sy);mctx.stroke()}
  for(const o of stations){mctx.fillStyle=o.x>2000?'#94623f':'#5c775a';mctx.fillRect(o.x*sx-2,o.y*sy-2,4,4)}
  mctx.strokeStyle='#fff9';mctx.lineWidth=1;mctx.strokeRect((camera.x-CW/scale/2)*sx,(camera.y-CH/scale/2)*sy,CW/scale*sx,CH/scale*sy);
+ for(const peer of Object.values(peers)){const px=Number(peer.targetX??peer.x),py=Number(peer.targetY??peer.y);if(!Number.isFinite(px)||!Number.isFinite(py))continue;mctx.beginPath();mctx.fillStyle='#ec668b';mctx.strokeStyle='#fff';mctx.lineWidth=1.6;mctx.arc(px*sx,py*sy,3.5,0,Math.PI*2);mctx.fill();mctx.stroke()}
  mctx.fillStyle='#ffe48f';mctx.strokeStyle='#263e3a';mctx.lineWidth=1.5;mctx.beginPath();mctx.arc(player.x*sx,player.y*sy,3.5,0,7);mctx.fill();mctx.stroke();
 }
 function closeModal(){els.modal.classList.remove('open');}
