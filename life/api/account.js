@@ -91,9 +91,9 @@ export default async function handler(req,res){
    const mode=String(body.mode||''),value=Number(body.value),item=String(body.item||'');
    if(!/^[a-z0-9_]{4,24}$/.test(recipient))return send(res,400,{error:'대상 아이디 오류'});
    if(mode==='level'&&(!Number.isInteger(value)||value<1||value>1000))return send(res,400,{error:'레벨은 1~1000'});
-   if(mode==='coins'&&(!Number.isSafeInteger(value)||value<0||value>1000000000000))return send(res,400,{error:'골드는 0~1조'});
+   if(['coins','coins_add','coins_take'].includes(mode)&&(!Number.isSafeInteger(value)||value<0||value>1000000000000))return send(res,400,{error:'골드는 0~1조'});
    if(mode==='item'&&!/^fashion_(hair|outfit|accessory|pet)_[0-9]{2}$/.test(item))return send(res,400,{error:'아이템 ID 오류'});
-   if(!['level','coins','item'].includes(mode))return send(res,400,{error:'기능 오류'});
+   if(!['level','coins','coins_add','coins_take','item'].includes(mode))return send(res,400,{error:'기능 오류'});
    await client.query('BEGIN');
    const target=await client.query('SELECT id FROM village_users WHERE username=$1',[recipient]);
    if(!target.rows.length){await client.query('ROLLBACK');return send(res,404,{error:'대상 계정 없음'})}
@@ -103,6 +103,8 @@ export default async function handler(req,res){
    const profile=q.rows[0].profile||{};
    if(mode==='level')profile.xp=(value-1)*160;
    if(mode==='coins')profile.coins=value;
+   if(mode==='coins_add')profile.coins=Math.min(1000000000000,Math.max(0,Number(profile.coins)||0)+value);
+   if(mode==='coins_take')profile.coins=Math.max(0,(Number(profile.coins)||0)-value);
    if(mode==='item'){profile.fashion=profile.fashion||{};profile.fashion.owned=Array.isArray(profile.fashion.owned)?profile.fashion.owned:[];if(!profile.fashion.owned.includes(item))profile.fashion.owned.push(item)}
    await client.query('UPDATE village_saves SET profile=$2,version=version+1,updated_at=now() WHERE user_id=$1',[id,profile]);
    await client.query('COMMIT');
