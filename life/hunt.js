@@ -520,7 +520,7 @@ function init(){
  $('resetView').onclick=resetView;
  $('map').onclick=zoneMenu;$('craft').onclick=craftMenu;$('home').onclick=goHome;
  $('hpPotion').onclick=()=>useQuickPotion('hp');$('mpPotion').onclick=()=>useQuickPotion('mp');
- $('close').onclick=()=>{if(currentZone){$('modal').classList.remove('open');active=true}else zoneMenu()};
+ $('close').onclick=()=>{if(currentZone){$('modal').classList.remove('open');active=true}else goHome()};
  document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>skillUse(b.dataset.skill));
  window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
  let last=performance.now(),elapsed=0;
