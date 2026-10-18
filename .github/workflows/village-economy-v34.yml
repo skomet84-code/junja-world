@@ -6,6 +6,7 @@ on:
       - feat/village-walkable-estate-v35
       - feat/village-secure-economy-v36
       - feat/village-ledger-recovery-v37
+      - feat/village-player-market-v38
   pull_request:
     branches:
       - village-progression-v30

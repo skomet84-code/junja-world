@@ -4,6 +4,7 @@ import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactu
 import {createWorld} from './world3d.js';
 import {mountEstateWorld} from './estate-world-v35.js';
 import {openSecureEconomyLab} from './secure-economy-ui-v37.js';
+import {openPlayerMarket} from './player-market-ui-v38.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
 import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
@@ -1192,7 +1193,7 @@ function openPersonalEstate(){
  const recipes=ESTATE_RECIPES.map((r,i)=>'<div style="background:#f3f4e8;border-radius:14px;padding:12px"><strong>'+r.name+'</strong><p style="font-size:12px">'+Object.entries(r.needs).map(([id,n])=>ESTATE_BY_ID[id][2]+' '+n+'개').join(' · ')+'</p><button data-recipe="'+i+'" style="padding:9px 13px;border-radius:12px;background:#cde5c7;color:#23442e">'+(r.build?'건설 · '+estateFmt(r.gold):'제작·보관 · 가공비 '+estateFmt(ESTATE_PRODUCTS[i].fee))+'</button></div>').join('');
  openModal('<span class="titlebadge">MY PRIVATE FARM · JUNJA LIFE</span><h2>🌳 나만의 농장과 과수원</h2><p>내 계정 전용 공간 · 게임을 꺼도 작물은 계속 자라요.</p><div style="padding:14px;border-radius:18px;background:linear-gradient(135deg,#dceecb,#fff0d3);margin:12px 0"><strong>🏡 '+(tier?.name||'아직 내 농장이 없어요')+'</strong><p>'+(tier?'재배 공간 '+slots+'칸 · 수확해서 요리와 건물을 만들어요.':'농장을 구매하면 나만의 텃밭을 열 수 있어요.')+'</p>'+(next?'<button id="estateUpgrade" style="padding:12px 16px;background:#8ebc91;color:#183f27;border-radius:13px;font-weight:700">🌱 '+(tier?'농장 확장':'농장 구매')+' · '+estateFmt(next.cost)+'</button>':'<strong>👑 최대 확장 완료</strong>')+'</div>'+
  (slots?'<div id="estateWorldV35" style="height:320px;min-height:260px;width:100%;margin:12px 0 7px;overflow:hidden;border-radius:18px;border:2px solid #ecdfb7;background:#b4cf8d" role="group" aria-label="내 농장 3D 체험 공간"></div><p style="font-size:12px;color:#476c57;margin-bottom:12px">👆 3D 농장에서 땅을 누르면 걸어가고, 작물을 누르면 심거나 수확해요. 아래 목록으로도 관리할 수 있어요.</p><div style="display:flex;gap:8px;align-items:center;margin:12px 0"><label for="estateCrop" style="font-weight:700">심을 작물</label><select id="estateCrop" style="flex:1;min-width:0;padding:12px;border-radius:12px;background:#fff;border:1px solid #c3d3c0">'+cropOptions+'</select></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:300px;overflow:auto;padding:4px">'+plots+'</div>':'')+
- '<div style="display:grid;gap:8px;margin:14px 0;padding:13px;background:#eef3e5;border-radius:16px"><strong>🏅 '+estateRank(state).name+' · 주민 납품 명성 '+initEstateTrade(state).reputation+'점</strong><button id="estateOrdersOpen" style="padding:12px;background:#5b926e;color:white;border-radius:11px;font-weight:800">📦 오늘의 주민 주문 · 가공품 보관함 · 명예 기록</button><button id="estateSecureLab" style="padding:12px;background:#4d797c;color:white;border-radius:11px;font-weight:800">🔐 서버 경제 v37 · 복구 장부 시험장</button></div><h3 style="margin-top:20px">🧺 내 수확 창고</h3>'+inventory+'<h3 style="margin-top:20px">🍳 요리·건축 공방</h3><div style="display:grid;gap:9px">'+recipes+'</div><p style="font-size:12px;margin-top:16px">※ 농작물 판매와 제작 보상은 게임 골드로 지급됩니다. 시세는 고정이며 작물마다 성장 시간이 달라요. 농장은 계정별로 따로 저장돼요.</p>');
+ '<div style="display:grid;gap:8px;margin:14px 0;padding:13px;background:#eef3e5;border-radius:16px"><strong>🏅 '+estateRank(state).name+' · 주민 납품 명성 '+initEstateTrade(state).reputation+'점</strong><button id="estateOrdersOpen" style="padding:12px;background:#5b926e;color:white;border-radius:11px;font-weight:800">📦 오늘의 주민 주문 · 가공품 보관함 · 명예 기록</button><button id="estateSecureLab" style="padding:12px;background:#4d797c;color:white;border-radius:11px;font-weight:800">🔐 서버 경제 v37 · 복구 장부 시험장</button><button id="estatePlayerMarket" style="padding:12px;background:#9c774e;color:white;border-radius:11px;font-weight:800">🏪 주민 상점 · v38 시험 거래소</button></div><h3 style="margin-top:20px">🧺 내 수확 창고</h3>'+inventory+'<h3 style="margin-top:20px">🍳 요리·건축 공방</h3><div style="display:grid;gap:9px">'+recipes+'</div><p style="font-size:12px;margin-top:16px">※ 농작물 판매와 제작 보상은 게임 골드로 지급됩니다. 시세는 고정이며 작물마다 성장 시간이 달라요. 농장은 계정별로 따로 저장돼요.</p>');
  if(slots){
   const host=document.getElementById('estateWorldV35');
   try{
@@ -1210,6 +1211,10 @@ function openPersonalEstate(){
   }
  }
  document.getElementById('estateOrdersOpen').onclick=openEstateOrders;
+ document.getElementById('estatePlayerMarket').onclick=()=>{
+  openModal('<span class="titlebadge">JUNJA PLAYER MARKET · v38 · EXPERIMENTAL</span><div id="estatePlayerMarketContent"></div>');
+  openPlayerMarket(document.getElementById('estatePlayerMarketContent'),{back:openPersonalEstate});
+ };
  document.getElementById('estateSecureLab').onclick=()=>{
   openModal('<span class="titlebadge">JUNJA SERVER ECONOMY · V37 · RECOVERY LAB</span><div id="estateEconomyLab"></div>');
   openSecureEconomyLab(document.getElementById('estateEconomyLab'),{back:openPersonalEstate});
