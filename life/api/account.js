@@ -1,3 +1,4 @@
+import {CATALOG_BY_ID} from '../fashion-catalog.js';
 import {randomBytes,createHash,scryptSync,timingSafeEqual} from 'node:crypto';
 import pg from 'pg';
 const pool=new pg.Pool({connectionString:(process.env.VILLAGE_DATABASE_URL||process.env.DATABASE_URL),ssl:{rejectUnauthorized:false},max:3});
@@ -80,6 +81,14 @@ export default async function handler(req,res){
    await client.query('COMMIT');
    return send(res,200,{ok:true});
   }
+  if(action==='online'&&req.method==='GET'){
+   const q=await client.query(`SELECT u.username,u.nickname,u.role,p.x,p.y,COALESCE(NULLIF(s.profile->>'xp','')::numeric,0) AS xp
+    FROM village_presence p JOIN village_users u ON u.id=p.user_id
+    LEFT JOIN village_saves s ON s.user_id=u.id
+    WHERE p.updated_at>now()-interval '20 seconds'
+    ORDER BY xp DESC,u.username ASC LIMIT 100`);
+   return send(res,200,{players:q.rows.map((p,i)=>({username:p.username,nickname:p.nickname,role:p.role,x:p.x,y:p.y,level:Math.max(1,Math.floor(Number(p.xp)/160)+1),rank:i+1}))});
+  }
   if(action==='presence'&&req.method==='POST'){
    const x=Number(body.x),y=Number(body.y);
    if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>10000||y<0||y>10000)return send(res,400,{error:'위치 오류'});
@@ -101,7 +110,7 @@ export default async function handler(req,res){
    if(!/^[a-z0-9_]{4,24}$/.test(recipient))return send(res,400,{error:'대상 아이디 오류'});
    if(mode==='level'&&(!Number.isSafeInteger(value)||value<1||value>100000000))return send(res,400,{error:'레벨 값 오류'});
    if(['coins','coins_add','coins_take'].includes(mode)&&(!Number.isSafeInteger(value)||value<0||value>1000000000000))return send(res,400,{error:'골드는 0~1조'});
-   if(mode==='item'&&!/^fashion_(hair|outfit|accessory|pet)_[0-9]{2,3}$/.test(item))return send(res,400,{error:'아이템 ID 오류'});
+   if(mode==='item'&&!CATALOG_BY_ID[item])return send(res,400,{error:'아이템 ID 오류'});
    if(!['level','coins','coins_add','coins_take','item'].includes(mode))return send(res,400,{error:'기능 오류'});
    await client.query('BEGIN');
    const target=await client.query('SELECT id FROM village_users WHERE username=$1',[recipient]);
