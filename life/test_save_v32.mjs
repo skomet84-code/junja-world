@@ -45,6 +45,8 @@ assert.equal((await post(payload)).status,200);assert.equal(writes,1);
 assert.equal((await post(payload)).status,200);assert.equal(writes,1,'Lost-response retry must not write twice');
 assert.equal((await post({...payload,profile:{xp:0}})).status,409,'Same id with altered body is rejected');
 assert.equal((await post({...payload,requestId:crypto.randomUUID()})).status,409,'Stale tab cannot overwrite');
+assert.equal((await post({version:8,requestId:crypto.randomUUID(),profile:{xp:6500},owned:['mint']})).status,409,'Matching-version save must never regress server XP');
+assert.equal(row.profile.xp,6760,'Rejected lower XP must preserve the authoritative level');
 assert.equal((await post({profile:{xp:0},owned:[]})).status,428,'Unversioned legacy hunt saves rejected');
 assert.equal(row.profile.xp,6760);
 assert.deepEqual(row.owned,['mint']);
