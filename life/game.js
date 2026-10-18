@@ -441,9 +441,30 @@ function openDelivery(){
 function hud(){els.coins.textContent=Math.floor(state.coins).toLocaleString('ko-KR');const lv=lifeLevel();els.level.textContent='Lv.'+lv+' · '+(lv>=18?'로열 마을의 주인':lv>=10?'생활 장인':lv>3?'하버 주민':'새싹 주민');els.xp.style.width=((state.xp%160)/160*100)+'%';updateJourney(true)}
 hud();setInterval(save,5500);
 if(accountScope){
+ let lastAdminRevision=Number(state.__adminRevision)||0;
+ async function pullAdminChanges(){
+  try{
+   const response=await fetch('/api/account?action=save',{credentials:'same-origin',cache:'no-store'});
+   if(!response.ok)return;
+   const remote=(await response.json()).save?.profile;
+   if(!remote)return;
+   const revision=Number(remote.__adminRevision)||0;
+   if(revision<=lastAdminRevision)return;
+   lastAdminRevision=revision;
+   for(const key of ['coins','xp','fashion'])if(Object.prototype.hasOwnProperty.call(remote,key))state[key]=remote[key];
+   state.__adminRevision=revision;
+   hud();
+   try{localStorage.setItem(scopedSaveKey,JSON.stringify(state))}catch{}
+   toast('🎁 운영자 지급·변경 사항이 반영됐어요');
+  }catch{}
+ }
+ setInterval(pullAdminChanges,8000);
+ pullAdminChanges();
+}
+if(accountScope){
  const onlinePanel=document.createElement('div');
- onlinePanel.style.cssText='position:fixed;top:160px;right:10px;z-index:75;background:#fffaf0f5;color:#284c34;border:1px solid #d9cfae;border-radius:16px;padding:10px;max-width:min(300px,85vw);width:235px;font:600 13px sans-serif;box-shadow:0 5px 20px #0002';
- onlinePanel.innerHTML='<button id="onlineToggle" style="width:100%;background:#d5e9d5;border:0;border-radius:10px;padding:9px;font-weight:800;color:#264b36">🟢 접속 주민 보기</button><div id="onlineBody" hidden style="max-height:340px;overflow:auto;margin-top:8px">접속자 확인 중…</div>';
+ onlinePanel.style.cssText='position:fixed;top:160px;right:10px;z-index:75;background:transparent;color:#284c34;border:0;border-radius:16px;padding:0;max-width:min(300px,85vw);width:auto;font:600 13px sans-serif;box-shadow:none';
+ onlinePanel.innerHTML='<button id="onlineToggle" style="background:#d5e9d5;border:1px solid #b9d4bc;border-radius:30px;padding:7px 11px;font-weight:800;color:#264b36;box-shadow:0 2px 8px #0002">🟢 접속자</button><div id="onlineBody" hidden style="max-height:340px;overflow:auto;margin-top:8px;background:#fffaf0f7;border:1px solid #d9cfae;border-radius:14px;padding:8px;width:min(290px,80vw);box-shadow:0 5px 20px #0002">접속자 확인 중…</div>';
  document.body.appendChild(onlinePanel);
  const onlineToggle=onlinePanel.querySelector('#onlineToggle'),onlineBody=onlinePanel.querySelector('#onlineBody');
  onlineToggle.onclick=()=>{onlineBody.hidden=!onlineBody.hidden;if(!onlineBody.hidden)refreshOnline()};
@@ -452,7 +473,7 @@ if(accountScope){
    const response=await fetch('/api/account?action=online',{credentials:'same-origin',cache:'no-store'});
    if(!response.ok)throw Error('접속 정보 조회 실패');
    const data=await response.json(),people=data.players||[];
-   onlineToggle.textContent='🟢 접속 '+people.length+'명 · 순위 보기';
+   onlineToggle.textContent='🟢 '+people.length+'명';
    onlineBody.replaceChildren();
    if(!people.length){onlineBody.textContent='현재 접속 중인 주민이 없어요';return}
    for(const p of people){
