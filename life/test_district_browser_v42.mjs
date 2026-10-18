@@ -30,7 +30,8 @@ try{
   status:200,contentType:'application/json',body:JSON.stringify({ok:true,readOnly:true,visitable:[]})
  }));
  await page.goto(host+'index.html',{waitUntil:'domcontentloaded'});
- await page.evaluate(()=>window.startVillageGame());
+ // Simulate the normal completed account-login UI transition; don't leave its welcome overlay on top.
+ await page.evaluate(()=>window.villageGateEnter({nickname:'QA 주민'}));
  await page.waitForFunction(()=>window.__JUNJA_TEST__?.getRenderer()?.frames>5,null,{timeout:60000});
  const initial=await page.evaluate(()=>window.__JUNJA_TEST__.getState());
  assert.equal(initial.player.x,1050,'Baseline player at known safe village spawn');
