@@ -6,7 +6,7 @@ const add=(parent,tag,text)=>{const e=mk(tag,text);parent.append(e);return e};
 const btnStyle='border:0;border-radius:11px;padding:10px 12px;margin:4px 5px 4px 0;background:#598873;color:#fff;font-weight:700';
 const roleNames={farmer:'🌿 프리미엄 온실',chef:'🥧 수제 베이커리',merchant:'🏪 유통 공방'};
 const currency=n=>Number(n).toLocaleString('ko-KR')+'G';
-export function openWorkshopPlaza(host,{back}={}){
+export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 돌아가기',look={}}={}){
  if(!host)throw Error('사업장 구역 화면을 찾지 못했습니다');
  host.replaceChildren();
  add(host,'h2','🏘️ 준자마을 3D 사업장 거리 · v41');
@@ -22,12 +22,12 @@ export function openWorkshopPlaza(host,{back}={}){
   const b=mk('button',label);b.type='button';b.style.cssText=btnStyle;b.disabled=disabled||busy;b.onclick=fn;return b;
  };
  const warning=msg=>{note.textContent='⚠️ '+msg};
- if(back)host.append(button('← 개인 농장으로 돌아가기',back));
+ if(back)host.append(button(backLabel,back));
  const keepScene=()=>{scene?.dispose();scene=null};
  function safeScene(buildings,readOnly,who){
   keepScene();
   try{
-   scene=mountWorkshopVillage({host:viewport,buildings,readOnly,ownerName:who,
+   scene=mountWorkshopVillage({host:viewport,buildings,readOnly,ownerName:who,look,
     onArrival:({role})=>facilityPanel(role,readOnly,who),
     onInteriorChange:({inside,role})=>{
      if(inside)facilityPanel(role,readOnly,who,true);
