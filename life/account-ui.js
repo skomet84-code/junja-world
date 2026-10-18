@@ -24,7 +24,7 @@ $('accountTransfer').onclick=async()=>{
  if(!recipient||!Number.isSafeInteger(amount)||amount<=0)return say('받는 친구의 닉네임과 금액을 확인해줘');
  try{
   const found=await api('resolve_recipient&nickname='+encodeURIComponent(recipient));
-  if(!confirm('받는 친구: '+found.nickname+'\\n송금 금액: '+amount.toLocaleString()+'G\\n정말 송금할까요?'.replaceAll('\\n','\n')))return;
+  if(!confirm(`받는 친구: ${found.nickname}\n송금 금액: ${amount.toLocaleString()}G\n정말 송금할까요?`))return;
   await action('transfer',{recipient:found.nickname,confirmedNickname:found.nickname,amount,key:crypto.randomUUID()});
  }catch(e){say(e.message)}
 };
