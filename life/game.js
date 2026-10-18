@@ -222,8 +222,41 @@ function openSeasons(){
  openModal(`<span class="titlebadge">LIVING SEASONS</span><h2>🌿 마을의 네 계절</h2><p>계절마다 꽃잎과 낙엽, 눈의 움직임과 햇빛이 달라져요.</p><div class="pill-row">${buttons}</div><p>마을은 그대로 유지되고 꾸미기와 농사 진행 상황도 사라지지 않아요.</p>`);
  els.panelBody.querySelectorAll('[data-season]').forEach(b=>b.onclick=()=>{state.season=b.dataset.season;save();toast(seasonLabels[state.season]+' 풍경으로 바뀌었어요');openSeasons()});
 }
+// v32: finite daily villager requests, randomized across animal residents.
+const QUEST_TEMPLATES=[
+ {kind:'fish',need:3,label:'물고기 3마리 낚기',reward:1400,xp:65},
+ {kind:'fish',need:6,label:'물고기 6마리 낚기',reward:2400,xp:100},
+ {kind:'gather',need:6,label:'나무·돌·꽃 6개 채집하기',reward:1250,xp:55},
+ {kind:'gather',need:12,label:'나무·돌·꽃 12개 채집하기',reward:2200,xp:85}
+];
+function villagerQuestState(){
+ const day=nowDay(),q=state.villagerRequests;
+ if(q&&q.day===day)return q;
+ const ids=animalFriends.map(a=>a.id),seed=day.split('-').join('')*1+(Math.floor(Math.random()*9999));
+ const shuffled=[...ids].sort((a,b)=>((seed+a.charCodeAt(0)*37)%101)-((seed+b.charCodeAt(0)*37)%101));
+ const count=2+seed%3;
+ const requests=shuffled.slice(0,count).map((id,i)=>({...QUEST_TEMPLATES[(seed+i*3)%QUEST_TEMPLATES.length],id,status:'available',start:0}));
+ state.villagerRequests={day,requests};return state.villagerRequests;
+}
+function questCounter(kind){return kind==='fish'?Number(state.fish)||0:Number(state.gathered)||0}
+function villagerQuestFor(id){return villagerQuestState().requests.find(q=>q.id===id)}
+function villagerQuestHtml(a){
+ const q=villagerQuestFor(a.id);if(!q)return '';
+ const done=q.status==='done',active=q.status==='active',progress=active?Math.max(0,questCounter(q.kind)-q.start):0;
+ return '<div class="mini-card"><h3>❗ 오늘의 주민 의뢰</h3><p>'+q.label+'</p><p>보상 '+q.reward.toLocaleString()+'G · 경험치 '+q.xp+' · '+(done?'완료':active?Math.min(progress,q.need)+'/'+q.need:'수락 전')+'</p><button id="villagerQuestAction" '+(done?'disabled':'')+'>'+(done?'오늘 의뢰 완료':active?progress>=q.need?'보상 받기':'진행 중':'의뢰 수락')+'</button></div>';
+}
+function villagerQuestAction(a){
+ const q=villagerQuestFor(a.id);if(!q||q.status==='done')return;
+ if(q.status==='available'){q.status='active';q.start=questCounter(q.kind);toast('❗ '+a.name+'의 의뢰를 받았어요');}
+ else if(questCounter(q.kind)-q.start>=q.need){
+  const credited=earn(q.reward,'quest','주민 의뢰 · '+a.name);
+  state.xp+=q.xp;q.status='done';toast('🎉 주민 의뢰 완료! +'+credited.toLocaleString()+'G');
+ }else{toast('아직 의뢰 목표를 달성하지 못했어요');}
+ save();hud();openAnimal(a);
+}
 function openAnimal(a){const v=state.animalBonds[a.id]||{love:0,day:''};const repeat=v.day===nowDay();const heart='💗'.repeat(Math.min(5,Math.floor(v.love/2)+1));
- openModal(`<span class="titlebadge">VILLAGE NEIGHBORS</span><h2>🐾 ${a.name}와 이야기</h2><p style="font-size:14px;line-height:1.8">${a.mood}</p><h3>친밀도 ${heart}</h3><p>${repeat?'오늘 이미 인사했어요. 내일 또 만나요!':'처음 인사하면 친밀도가 오르고 작은 선물도 받아요.'}</p><button class="pill-btn" id="greetAnimal" ${repeat?'disabled':''}>🌷 ${repeat?'오늘 인사 완료':'인사하고 선물 받기'}</button>`);
+ openModal(`<span class="titlebadge">VILLAGE NEIGHBORS</span><h2>🐾 ${a.name}와 이야기</h2><p style="font-size:14px;line-height:1.8">${a.mood}</p>${villagerQuestHtml(a)}<h3>친밀도 ${heart}</h3><p>${repeat?'오늘 이미 인사했어요. 내일 또 만나요!':'처음 인사하면 친밀도가 오르고 작은 선물도 받아요.'}</p><button class="pill-btn" id="greetAnimal" ${repeat?'disabled':''}>🌷 ${repeat?'오늘 인사 완료':'인사하고 선물 받기'}</button>`);
+ const questBtn=document.getElementById('villagerQuestAction');if(questBtn)questBtn.onclick=()=>villagerQuestAction(a);
  const btn=document.getElementById('greetAnimal');if(btn)btn.onclick=()=>{if(repeat)return;state.dailyTalk++;completeDaily();v.love++;v.day=nowDay();state.animalBonds[a.id]=v;earn(25,'social','동물 주민 인사');addXp(8);party(a.x,a.y-60,13);toast('💗 '+a.name+'와 친해졌어요! +25G');save();hud();openAnimal(a)};
 }
 
@@ -387,7 +420,7 @@ for(const coat of Object.keys(AVATAR_SPRITES)) AVATAR_IMAGES[coat]=AVATAR_SPRITE
 const AVATAR_PREVIEWS={};
 for(const [coat,urls] of Object.entries(AVATAR_SPRITES)) AVATAR_PREVIEWS[coat]='data:image/webp;base64,'+urls[0];
 
-function drawWorld(dt){if(world3D)world3D.render({state,actor:player,npcs,animals:animalFriends,peers,time:t,dt,goal,path});}
+function drawWorld(dt){if(world3D){const q=villagerQuestState();world3D.render({state,actor:player,npcs,animals:animalFriends.map(a=>({...a,questMark:q.requests.some(r=>r.id===a.id&&r.status!=='done')})),peers,time:t,dt,goal,path});}}
 function party(x,y,n=12){for(let i=0;i<n;i++){fx.push({x,y,v:rand(22,64),vx:rand(-56,56),life:rand(.7,1.3),total:1.3,r:rand(2,5),col:['#fff7b5','#ffe1f1','#f3f7fb','#8de3dc'][Math.floor(rand(0,4))]})}}
 function walkable(x,y){
  if(world3D?.blocked(x,y))return false;
@@ -1002,7 +1035,8 @@ function openFishingGear(){
     <button data-rod="${rod.id}" ${!unlocked?'disabled':''}>${state.fishingGear.equipped===rod.id?'사용 중':owned?'장착하기':unlocked?'구매하기':'레벨 부족'}</button>
    </div>`;
   }).join('')}</div>
-  <button class="pill-btn ghost" id="openAquariumFromGear">🐠 내 어항 보기</button>`);
+  <button class="pill-btn" id="autoFishShop">🎣 자동낚시 이용권 상점</button><button class="pill-btn ghost" id="openAquariumFromGear">🐠 내 어항 보기</button>`);
+ document.getElementById('autoFishShop').onclick=autoFishPanel;
  els.panelBody.querySelectorAll('[data-rod]').forEach(btn=>btn.onclick=()=>{
   const rod=RODS.find(r=>r.id===btn.dataset.rod);
   if(!rod||lifeLevel()<rod.level)return;
@@ -1215,9 +1249,8 @@ function autoFishTick(){
 }
 setInterval(autoFishTick,500);
 
-els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing;
+els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing; // 이용권은 낚시 장비 상점에서만 판매합니다.
  const gearShortcut=document.getElementById('fishGear');
- const autoFishButton=document.createElement('button');autoFishButton.textContent='🎣 자동낚시권';autoFishButton.className='pill-btn';autoFishButton.style.cssText='position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:12px;z-index:24;font-size:12px;padding:9px';autoFishButton.onclick=autoFishPanel;document.body.appendChild(autoFishButton);
  if(gearShortcut)gearShortcut.onclick=()=>{els.fishing.classList.remove('open');fishPhase='idle';openFishingGear()};document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 준자마을 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
 function showRenderError(error){
  const panel=document.getElementById('renderError');panel.hidden=false;
