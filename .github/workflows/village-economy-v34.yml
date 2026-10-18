@@ -26,6 +26,9 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+      - name: Install declared backend test dependencies
+        working-directory: life
+        run: npm install --no-package-lock --ignore-scripts
       - name: Existing village and economy regression tests
         working-directory: life
         run: npm test
