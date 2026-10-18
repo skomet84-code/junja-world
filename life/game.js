@@ -16,7 +16,7 @@ const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint'
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
 const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
 let cloudSave=null;
-if(accountScope){try{const response=await fetch('/api/account?action=save',{credentials:'same-origin',cache:'no-store'});if(response.ok)cloudSave=(await response.json()).save}catch{}}
+// Avoid top-level await: older iOS embedded Safari parsers fail before rendering.
 let saved={};try{saved=cloudSave?.profile||(accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{})}catch{}
 const state={...seedData,...saved};
 initEconomy(state);initializeFishStock(state);initBag(state);
