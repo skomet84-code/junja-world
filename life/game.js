@@ -439,7 +439,24 @@ function openDelivery(){
 }
 
 function hud(){els.coins.textContent=Math.floor(state.coins).toLocaleString('ko-KR');const lv=lifeLevel();els.level.textContent='Lv.'+lv+' · '+(lv>=18?'로열 마을의 주인':lv>=10?'생활 장인':lv>3?'하버 주민':'새싹 주민');els.xp.style.width=((state.xp%160)/160*100)+'%';updateJourney(true)}
-hud();setInterval(save,5500);ensureFestival();
+hud();setInterval(save,5500);
+if(accountScope){
+ const onlinePanel=document.createElement('div');
+ onlinePanel.style.cssText='position:fixed;top:160px;right:12px;z-index:15;background:#fffbe8e8;color:#284c34;border-radius:14px;padding:8px 12px;font:600 12px sans-serif;max-width:170px;pointer-events:none';
+ onlinePanel.textContent='🌳 접속 주민 확인 중';
+ document.body.appendChild(onlinePanel);
+ async function syncVillagePresence(){
+  try{
+   const response=await fetch('/api/account?action=presence',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:player.x,y:player.y})});
+   if(!response.ok)return;
+   const data=await response.json();
+   const names=(data.players||[]).map(p=>String(p.nickname).slice(0,12));
+   onlinePanel.textContent='🟢 함께 접속 '+(names.length+1)+'명'+(names.length?' · '+names.slice(0,5).join(', '):'');
+  }catch{onlinePanel.textContent='🌳 접속 확인 대기 중'}
+ }
+ setInterval(syncVillagePresence,3000);syncVillagePresence();
+}
+ensureFestival();
 const festivalBtn=document.getElementById('festivalBtn');if(festivalBtn)festivalBtn.onclick=openFestival;
 const huntPortal=document.getElementById('huntPortal');if(huntPortal)huntPortal.onclick=goToHunting;
 let toastTimer;function toast(s){els.toast.textContent=s;els.toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>els.toast.classList.remove('show'),2200)}
