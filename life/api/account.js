@@ -77,13 +77,29 @@ export default async function handler(req,res){
    // Otherwise a level-1 snapshot can overwrite a level-3 character on relogin.
    const oldTimestamp=Number(saved.savedAt)||0;
    const newTimestamp=Number(incoming.savedAt)||0;
+   const savedRevision=Math.max(0,Math.floor(Number(saved.__adminRevision)||0));
+   const incomingRevision=Math.max(0,Math.floor(Number(incoming.__adminRevision)||0));
+   const oldXp=Math.max(0,Number(saved.xp)||0),newXp=Math.max(0,Number(incoming.xp)||0);
    if(oldTimestamp>newTimestamp){
+    // Older tabs must not roll back other progress, but can still contribute
+    // earned XP for the same administrator revision.
+    if(savedRevision===incomingRevision&&newXp>oldXp){
+     const merged={...saved,xp:newXp};
+     await client.query('UPDATE village_saves SET profile=$2,version=version+1,updated_at=now() WHERE user_id=$1',[user.id,merged]);
+     await client.query('COMMIT');
+     return send(res,200,{ok:true,merged:true,reason:'experience_recovered'});
+    }
     await client.query('COMMIT');
     return send(res,200,{ok:true,skipped:true,reason:'older_save'});
    }
-   if((Number(saved.__adminRevision)||0)>(Number(incoming.__adminRevision)||0)){
-    for(const field of ['coins','xp','fashion'])if(Object.prototype.hasOwnProperty.call(saved,field))incoming[field]=saved[field];
-    incoming.__adminRevision=saved.__adminRevision;
+   if(savedRevision>incomingRevision){
+    // Server-side admin grants/level changes override stale client values.
+    for(const field of ['coins','xp','fashion','autoFishing'])if(Object.prototype.hasOwnProperty.call(saved,field))incoming[field]=saved[field];
+    incoming.__adminRevision=savedRevision;
+   }else if(savedRevision===incomingRevision){
+    // Timestamp alone is not proof of progression. Never lose earned levels
+    // to a newer but lower-XP save from another tab or an old device.
+    incoming.xp=Math.max(oldXp,newXp);
    }
    await client.query("INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,1,now()) ON CONFLICT(user_id) DO UPDATE SET profile=$2,owned=$3,version=village_saves.version+1,updated_at=now()",[user.id,incoming,owned]);
    await client.query('COMMIT');
