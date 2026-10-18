@@ -497,7 +497,7 @@ if(accountScope){
  }
  async function syncVillagePresence(){
   try{
-   await fetch('/api/account?action=presence',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:player.x,y:player.y})});
+   await fetch('/api/account?action=presence',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:player.x,y:player.y,xp:Math.max(0,Number(state.xp)||0)})});
   }catch{}
   await refreshOnline();
  }
