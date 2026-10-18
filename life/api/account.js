@@ -75,7 +75,7 @@ export default async function handler(req,res){
    if(!Number.isSafeInteger(expectedVersion)||expectedVersion<0)return send(res,428,{error:'저장 버전 확인이 필요해요. 새로고침 후 다시 접속해 주세요',reason:'update_required'});
    const incoming={...profile};
    const xp=Number(incoming.xp);
-   if(!Number.isSafeInteger(xp)||xp<0||xp>16000000000)return send(res,400,{error:'경험치 저장값을 확인해 주세요'});
+   if(!Number.isFinite(xp)||xp<0||xp>16000000000)return send(res,400,{error:'경험치 저장값을 확인해 주세요'});
    await client.query('BEGIN');
    const current=await client.query('SELECT profile,owned,version FROM village_saves WHERE user_id=$1 FOR UPDATE',[user.id]);
    const row=current.rows[0];
