@@ -78,6 +78,27 @@ export default async function handler(req,res){
    const q=await client.query("SELECT u.username,u.nickname,p.x,p.y FROM village_presence p JOIN village_users u ON u.id=p.user_id WHERE p.updated_at>now()-interval '20 seconds' AND p.user_id<>$1 LIMIT 30",[user.id]);
    return send(res,200,{players:q.rows});
   }
+  // Owner-only administration: all permissions are enforced on the server.
+  const owner=user.username==='admin_junja2'&&user.role==='admin';
+  if(action==='admin_users'&&req.method==='GET'){
+   if(!owner)return send(res,403,{error:'최고관리자 전용'});
+   const q=await client.query("SELECT u.username,u.nickname,u.role,u.created_at,u.last_login_at,COALESCE(w.balance,0)::text AS balance,s.version FROM village_users u LEFT JOIN village_wallets w ON w.user_id=u.id LEFT JOIN village_saves s ON s.user_id=u.id ORDER BY u.created_at DESC LIMIT 200");
+   return send(res,200,{users:q.rows});
+  }
+  if(action==='admin_reclaim'&&req.method==='POST'){
+   if(!owner)return send(res,403,{error:'최고관리자 전용'});
+   const recipient=String(body.recipient||'').trim().toLowerCase(),amount=Number(body.amount),key=String(body.key||'');
+   if(!Number.isSafeInteger(amount)||amount<1||amount>1000000000000||!/^[-a-zA-Z0-9]{16,80}$/.test(key))return send(res,400,{error:'회수 입력값 오류'});
+   await client.query('BEGIN');
+   const target=await client.query('SELECT id FROM village_users WHERE username=$1',[recipient]);
+   if(!target.rows.length){await client.query('ROLLBACK');return send(res,404,{error:'유저 없음'})}
+   const dup=await client.query('SELECT id FROM village_wallet_transfers WHERE idempotency_key=$1',[key]);
+   if(dup.rows.length){await client.query('ROLLBACK');return send(res,409,{error:'이미 처리된 요청'})}
+   const debit=await client.query('UPDATE village_wallets SET balance=balance-$1,updated_at=now() WHERE user_id=$2 AND balance >= $1 RETURNING balance',[amount,target.rows[0].id]);
+   if(!debit.rows.length){await client.query('ROLLBACK');return send(res,400,{error:'회수할 서버 지갑 잔액 부족'})}
+   await client.query("INSERT INTO village_wallet_transfers(sender_id,recipient_id,amount,kind,idempotency_key) VALUES($1,$2,$3,'admin_reclaim',$4)",[user.id,target.rows[0].id,amount,key]);
+   await client.query('COMMIT');return send(res,200,{ok:true,message:'서버 지갑 회수 완료'});
+  }
   if(action==='transfer'&&req.method==='POST'){
    const recipient=String(body.recipient||'').trim().toLowerCase(),amount=Number(body.amount),key=String(body.key||'');
    if(!/^[a-z0-9_]{4,24}$/.test(recipient)||!Number.isSafeInteger(amount)||amount<1||amount>1000000000000||!/^[-a-zA-Z0-9]{16,80}$/.test(key))return send(res,400,{error:'송금 입력값을 확인해주세요'});
@@ -94,7 +115,7 @@ export default async function handler(req,res){
    await client.query('COMMIT');return send(res,200,{ok:true,balance:String(debit.rows[0].balance)});
   }
   if(action==='admin_grant'&&req.method==='POST'){
-   if(user.role!=='admin')return send(res,403,{error:'운영자 전용'});
+   if(!owner)return send(res,403,{error:'최고관리자 전용'});
    const recipient=String(body.recipient||'').trim().toLowerCase(),amount=Number(body.amount),key=String(body.key||'');
    if(!Number.isSafeInteger(amount)||amount<1||amount>1000000000000||!/^[-a-zA-Z0-9]{16,80}$/.test(key))return send(res,400,{error:'지급 입력값 오류'});
    await client.query('BEGIN');
