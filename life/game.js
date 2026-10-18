@@ -1074,8 +1074,9 @@ function openShop(section=wardrobeTab){
   const price=legacy?o.cost*12:o.price;
   const color=legacy?(o.col||'#e8dac2'):'#'+o.color.toString(16).padStart(6,'0');
   const grade=legacy?null:GRADES[o.grade];
+  const garmentPreview=section==='outfit'&&!legacy?`<svg class="garment-preview" viewBox="0 0 100 108" role="img" aria-label="${o.name} 의상 모양"><defs><linearGradient id="cloth-${id}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${color}"/><stop offset="1" stop-color="#ffffff" stop-opacity=".38"/></linearGradient></defs><path d="M30 14 L41 8 Q50 18 59 8 L70 14 L91 32 L78 48 L70 40 L${['dress','robe','royal'].includes(o.shape)?'82 91 Q50 104 18 91':'69 89 L31 89'} L${['dress','robe','royal'].includes(o.shape)?'30 40':'30 40'} L22 48 L9 32 Z" fill="url(#cloth-${id})" stroke="#766c62" stroke-width="1.8"/><path d="M41 8 L50 28 L59 8 M50 28 L50 70" stroke="${'#'+(o.accent??0xffffff).toString(16).padStart(6,'0')}" stroke-width="4" fill="none"/><circle cx="50" cy="42" r="2.4" fill="#f9e5ac"/><circle cx="50" cy="54" r="2.4" fill="#f9e5ac"/></svg>`:null;
   return `<div class="item fashion-item" data-catalog="${id}">
-    <div class="fashion-color" style="background:${color}">${legacy?o.emoji:(section==='hair'?'✂️':section==='outfit'?'✦':section==='pet'?'🐾':'◆')}</div>
+    ${garmentPreview||`<div class="fashion-color" style="background:${color}">${legacy?o.emoji:(section==='hair'?'✂️':section==='outfit'?'✦':section==='pet'?'🐾':'◆')}</div>`}
     <strong>${o.name}</strong>
     <span class="fashion-grade" style="color:${grade?.color||'#7b8b79'}">${grade?.label||'클래식'}</span>
     <span>${have?'보유 중':o.craftOnly?'제작 전용':price.toLocaleString('ko-KR')+' G'}</span>
@@ -1085,9 +1086,9 @@ function openShop(section=wardrobeTab){
  }).join('');
  const buttons=[{id:'sets',label:'코디 세트',icon:'👑'},{id:'classic',label:'기존 옷·모자',icon:'👒'},...CATEGORIES].map(x=>`<button type="button" id="tab-${x.id}" data-tab="${x.id}" aria-pressed="${section===x.id}" class="fashion-tab ${section===x.id?'selected':''}">${x.icon} ${x.label}</button>`).join('');
  openModal(`<span class="titlebadge">JUNJA ATELIER · PREMIUM 3D</span>
-  <h2>나만의 스타일 부티크</h2>
-  <p>헤어·의상·장신구·펫 100종 + 테마 세트 5종. 수집과 코디의 즐거움을 찾아보세요.</p>
-  <div id="fittingHost"></div>
+  <h2>👗 의상 구매 · 코디 상점</h2>
+  <p>마음에 드는 옷을 고르고 입어보기 → 구매·착용하세요.</p>
+  <div class="wardrobe-list-hint">👇 아래에서 의상 선택 · 가격 확인 · 구매하기</div><div id="fittingHost"></div>
   <p class="fitting-tip">👟 머리부터 신발까지 전신 확인 · 캐릭터를 좌우로 드래그해 돌려보세요</p>
   <div class="pill-row fitting-controls"><button class="pill-btn ghost" id="turnFitting">↻ 돌려보기</button>
    <button class="pill-btn ghost" id="walkFitting">걷는 모습</button><button class="pill-btn ghost" id="resetFitting">현재 착용</button></div>
