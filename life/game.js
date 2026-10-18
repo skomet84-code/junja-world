@@ -17,7 +17,13 @@ const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')|
 const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
 let cloudSave=window.__villageCloudSave||null;
 // Cloud data is loaded before module import, without top-level await.
-let saved={};try{saved=cloudSave?.profile||(accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{})}catch{}
+let saved={};try{
+ const local=accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{};
+ const remote=cloudSave?.profile;
+ saved=remote&&typeof remote==='object'&&!Array.isArray(remote)&&
+ (Number(remote.savedAt)||0)>(Number(local.savedAt)||0)&&
+ !((Number(local.xp)||0)>=320&&(Number(remote.xp)||0)<320)?remote:local;
+}catch{}
 const state={...seedData,...saved};
 initEconomy(state);initializeFishStock(state);initBag(state);
 state.baitInventory=state.baitInventory&&typeof state.baitInventory==='object'?state.baitInventory:{};
