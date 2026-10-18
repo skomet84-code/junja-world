@@ -18,7 +18,7 @@ const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-har
 let cloudSave=window.__villageCloudSave||null;
 // Cloud data is loaded before module import, without top-level await.
 const initialCloudVersion=Number.isSafeInteger(Number(cloudSave?.version))?Number(cloudSave.version):0;
-let saved={},resumeUnsynced=false;try{
+let saved={},resumeUnsynced=false,resumeUnsyncedOwned=null;try{
  const local=accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{};
  const remote=cloudSave?.profile;
  const valid=o=>o&&typeof o==='object'&&!Array.isArray(o);
@@ -31,6 +31,7 @@ let saved={},resumeUnsynced=false;try{
   if(valid(pending?.profile)&&pending.baseVersion===initialCloudVersion){
    // Only a draft made against the exact current server version can resume.
    saved={...pending.profile};resumeUnsynced=true;
+   if(Array.isArray(pending.owned))resumeUnsyncedOwned=pending.owned;
   }
  }
 }catch{}
@@ -311,7 +312,7 @@ const outfits=[{id:'mint',name:'민트 피크닉룩',cost:0,emoji:'🌿',col:'#5
 outfits.push(...[{id:'lavender',name:'라벤더 원피스',cost:380,emoji:'💜',col:'#a897dc',type:'coat'},{id:'coral',name:'산호빛 데이트룩',cost:450,emoji:'🧡',col:'#f0a07a',type:'coat'},{id:'navy',name:'밤바다 정장',cost:540,emoji:'🌙',col:'#375d83',type:'coat'},{id:'cream',name:'크림 니트',cost:240,emoji:'🤍',col:'#e6d5b5',type:'coat'},{id:'forest',name:'숲속 탐험룩',cost:410,emoji:'🍃',col:'#568a60',type:'coat'},{id:'pink',name:'벚꽃 드레스',cost:610,emoji:'🎀',col:'#ee9ac7',type:'coat'},{id:'flower',name:'봄꽃 밀짚모자',cost:340,emoji:'🌸',type:'hat'},{id:'navycap',name:'청량 선장 모자',cost:480,emoji:'⚓',type:'hat'},{id:'beanie',name:'카페 비니',cost:190,emoji:'🧶',type:'hat'},{id:'cat',name:'고양이 귀',cost:600,emoji:'🐈',type:'hat'},{id:'ribbon',name:'왕리본 머리띠',cost:280,emoji:'🎀',type:'hat'},{id:'captain',name:'바다의 선장 모자',cost:420,emoji:'🧢',type:'hat'}]);
 
 outfits.push({id:'linen',name:'공방 린넨 셔츠',cost:0,emoji:'🧵',col:'#d8c7a6',type:'coat',craftOnly:true});
-let owned=['mint','none'];try{const o=cloudSave?.owned||(accountScope?JSON.parse(localStorage.getItem('junja-harbor-owned-'+accountScope)||'[]'):[]);if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
+let owned=['mint','none'];try{const o=resumeUnsyncedOwned||cloudSave?.owned||(accountScope?JSON.parse(localStorage.getItem('junja-harbor-owned-'+accountScope)||'[]'):[]);if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
 // Migrate in place; never discard existing coins, fish, legacy costumes or quests.
 const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashion:{};
 const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
@@ -347,7 +348,12 @@ async function queueCloudSave(){
    throw Error(result.error||'서버 저장 확인 실패');
   }else{
    cloudVersion=result.version;
-   if(!cloudSavePending)try{localStorage.removeItem(unsyncedKey)}catch{}
+   try{
+    if(cloudSavePending){
+     // The latest unsent draft is now based on this newly accepted server version.
+     localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:cloudVersion,profile:state,owned:[...owned],savedAt:state.savedAt}));
+    }else localStorage.removeItem(unsyncedKey);
+   }catch{}
   }
  }catch(e){
   cloudSavePending=true;
@@ -358,14 +364,14 @@ async function queueCloudSave(){
 }
 function save(){
  state.x=player.x;state.y=player.y;state.dir=player.dir;
- const fingerprint=JSON.stringify({...state,savedAt:0});
+ const fingerprint=JSON.stringify({profile:{...state,savedAt:0},owned});
  if(fingerprint===lastLocalFingerprint)return;
  lastLocalFingerprint=fingerprint;
  state.savedAt=Date.now();
  try{
   if(accountScope){
    localStorage.setItem(scopedSaveKey,JSON.stringify(state));
-   if(!saveBlocked)localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:cloudVersion,profile:state,savedAt:state.savedAt}));
+   if(!saveBlocked)localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:cloudVersion,profile:state,owned:[...owned],savedAt:state.savedAt}));
    queueCloudSave();
   }
   if(accountScope)localStorage.setItem('junja-harbor-owned-'+accountScope,JSON.stringify(owned));
