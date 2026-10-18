@@ -125,10 +125,11 @@ export function makePlayerMarketHandler({pool=livePool,now=()=>new Date()}={}){
     if(!locked.rows.length)fail('상품을 찾을 수 없어요',404);
     listing=locked.rows[0];
     if(String(listing.seller_key)!==seller)fail('판매자 정보가 변경됐어요');
-    if(listing.status!=='active')fail('이미 판매되었거나 등록 취소된 상품이에요');
+
    }
    if(kind==='buy'&&seller===actor)fail('본인 상점의 상품은 구매할 수 없어요',400);
    if(kind==='cancel'&&seller!==actor)fail('본인 상점의 판매만 취소할 수 있어요',403);
+   if(listing&&listing.status!=='active')fail('이미 판매되었거나 등록 취소된 상품이에요');
    if(kind==='list'){
     const active=await client.query("SELECT count(*)::int AS n FROM village_market_v38_listings WHERE seller_key=$1 AND status='active'",[actor]);
     if(Number(active.rows[0].n)>=MARKET_MAX_LISTINGS)fail('동시 판매 등록은 12개까지 가능합니다');
