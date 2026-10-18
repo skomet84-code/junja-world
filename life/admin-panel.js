@@ -1,7 +1,7 @@
 import {CATALOG} from './fashion-catalog.js';
 const style=document.createElement('style');style.textContent=`
-#junjaAdminBtn{display:none;position:fixed;top:calc(120px + env(safe-area-inset-top));right:10px;z-index:96;background:linear-gradient(120deg,#f9d878,#fff4c5);color:#513a15;border:2px solid #b89542;border-radius:18px;padding:12px 15px;font-size:16px;font-weight:900;box-shadow:0 4px 18px #0004}
-#junjaAdminPanel{display:none;position:fixed;inset:0;z-index:210;background:#102b24d9;padding:calc(18px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));overflow:auto}
+#junjaAdminBtn{display:none;position:fixed;bottom:calc(106px + env(safe-area-inset-bottom));left:13px;top:auto;right:auto;z-index:96;background:linear-gradient(120deg,#f9d878,#fff4c5);color:#513a15;border:2px solid #b89542;border-radius:50%;width:43px;height:43px;padding:0;font-size:22px;display:none;align-items:center;justify-content:center;font-weight:900;box-shadow:0 4px 18px #0004}
+#junjaAdminBtn[style*="block"]{display:flex!important}#junjaAdminPanel{display:none;position:fixed;inset:0;z-index:210;background:#102b24d9;padding:calc(18px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));overflow:auto}
 #junjaAdminPanel.show{display:block}
 #junjaAdminBox{max-width:510px;margin:auto;background:#fffaf0;color:#294934;border:3px solid #ddbd66;border-radius:22px;padding:17px;box-shadow:0 16px 50px #0005}
 #junjaAdminBox h2{margin:3px 0 12px}#junjaAdminBox input,#junjaAdminBox select{width:100%;padding:13px;border:1px solid #a8c1ae;border-radius:12px;background:white;font-size:16px;margin:5px 0 12px}
@@ -11,7 +11,7 @@ const style=document.createElement('style');style.textContent=`
 #junjaAdminMembers{max-height:180px;overflow:auto;background:#f5f4e9;border-radius:12px;padding:6px}
 #junjaAdminMembers button{display:block;width:100%;text-align:left;background:white;border:1px solid #dae3d7;margin:4px 0;font-size:13px}
 `;document.head.append(style);
-const btn=document.createElement('button');btn.id='junjaAdminBtn';btn.textContent='👑 관리자';document.body.append(btn);
+const btn=document.createElement('button');btn.id='junjaAdminBtn';btn.textContent='👑';btn.setAttribute('aria-label','관리자 메뉴');btn.title='관리자 메뉴';document.body.append(btn);
 const panel=document.createElement('div');panel.id='junjaAdminPanel';panel.innerHTML=`
 <div id="junjaAdminBox">
 <button id="jaClose" style="float:right">✕ 닫기</button><h2>👑 준자 관리자</h2>
