@@ -1049,14 +1049,14 @@ const STYLE_SETS=[
 ];
 const neededStyleItems=set=>Object.values(set.items).map(id=>CATALOG_BY_ID[id]).filter(item=>item&&!state.fashion.owned.includes(item.id));
 const setPrice=set=>Math.round(neededStyleItems(set).reduce((n,item)=>n+item.price,0)*.88);
-let fittingLook=null,wardrobeTab='outfit';
+let fittingLook=null,wardrobeTab='outfit',wardrobeGender='전체';
 function fashionSnapshot(){return {coat:state.coat,hat:state.hat,fashion:{...state.fashion.equipped}}}
 function openShop(section=wardrobeTab){
  if(typeof section!=='string')section=wardrobeTab;
  if(!['sets','classic',...CATEGORIES.map(x=>x.id)].includes(section))section='outfit';
  wardrobeTab=section;
  if(!fittingLook)fittingLook=fashionSnapshot();
- const selected=section==='classic'?outfits:section==='sets'?[]:CATALOG.filter(o=>o.type===section);
+ const selected=section==='classic'?outfits:section==='sets'?[]:CATALOG.filter(o=>o.type===section&&(section!=='outfit'||wardrobeGender==='전체'||!o.gender||o.gender===wardrobeGender||o.gender==='공용'));
  const cards=section==='sets'?STYLE_SETS.map(set=>{
   const needed=neededStyleItems(set),price=setPrice(set);
   return `<div class="premium-set">
@@ -1092,11 +1092,13 @@ function openShop(section=wardrobeTab){
   <div class="pill-row fitting-controls"><button class="pill-btn ghost" id="turnFitting">↻ 돌려보기</button>
    <button class="pill-btn ghost" id="walkFitting">걷는 모습</button><button class="pill-btn ghost" id="resetFitting">현재 착용</button></div>
   <nav class="fashion-tabs" aria-label="꾸미기 상점 분류">${buttons}</nav>
+  ${section==='outfit'?`<div class="pill-row" aria-label="의상 성별 필터">${['전체','남','여'].map(g=>`<button type="button" data-gender="${g}" class="pill-btn ${wardrobeGender===g?'':'ghost'}">${g==='남'?'👦 남자 의상':g==='여'?'👧 여자 의상':'🌈 전체 의상'}</button>`).join('')}</div>`:''}
   ${section!=='classic'&&fittingLook.fashion[section]?`<button type="button" class="pill-btn ghost" id="unequipFashion">↩ ${CATEGORIES.find(c=>c.id===section).label} 해제</button>`:''}
   <p class="fashion-total">${section==='sets'?STYLE_SETS.length:selected.length}종 · 보유 코인 ${Math.floor(state.coins).toLocaleString('ko-KR')}G</p>
   <div class="goods">${cards}</div>`);
  world3D?.fitting(document.getElementById('fittingHost'),fittingLook.coat,fittingLook.hat,fittingLook.fashion);
  els.panelBody.querySelectorAll('[data-tab]').forEach(btn=>btn.onclick=()=>openShop(btn.dataset.tab));
+ els.panelBody.querySelectorAll('[data-gender]').forEach(btn=>btn.onclick=()=>{wardrobeGender=btn.dataset.gender;openShop('outfit')});
  els.panelBody.querySelectorAll('[data-preview-set]').forEach(btn=>btn.onclick=()=>{
   const set=STYLE_SETS.find(s=>s.id===btn.dataset.previewSet);if(!set)return;
   fittingLook.fashion={...fittingLook.fashion,...set.items};openShop('sets');
