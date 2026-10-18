@@ -140,4 +140,23 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 <div id="accountGuest"><input id="accountUser" placeholder="아이디 (영문·숫자·밑줄)" autocomplete="username"/><input id="accountNick" placeholder="닉네임 (회원가입할 때)" maxlength="12"/><input id="accountPassword" type="password" placeholder="비밀번호 (10자 이상)" autocomplete="current-password"/><button id="accountLogin">로그인</button><button id="accountRegister">회원가입</button></div>
 <div id="accountMember" hidden><p id="accountIdentity"></p><p id="accountBalance"></p><input id="accountRecipient" placeholder="받는 친구의 로그인 아이디"/><input id="accountAmount" type="number" min="1" step="1" placeholder="보낼 골드"/><button id="accountTransfer">친구에게 송금</button><button id="accountLogout">로그아웃</button><div id="accountAdmin" hidden><h3>👑 운영자 골드 지급</h3><p>운영자 권한이 서버에서 확인된 계정만 사용 가능</p><button id="accountGrant">위 친구에게 골드 지급</button></div></div>
 <p>⚠️ 현재 게임 속 골드와 서버 지갑은 별도로 관리돼요. 기존 골드를 이전하기 전에는 송금할 수 없어요.</p>
-</div></div><script type="module" src="account-ui.js"></script></body></html>
+</div></div><script type="module" src="account-ui.js"></script><style>
+#villageGate{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#193c35ee,#456b50f2),radial-gradient(circle at 45% 15%,#d4f1b8,#537b58);display:flex;align-items:center;justify-content:center;padding:18px;color:#294c37}
+#villageGate[hidden]{display:none}
+#villageGateCard{width:min(440px,100%);background:#fff8e9;border:3px solid #f2dc9e;border-radius:28px;padding:25px 20px;text-align:center;box-shadow:0 20px 80px #0007}
+#villageGateCard h1{font-size:clamp(25px,7vw,36px);color:#377047;margin:8px 0}
+#villageGateCard p{line-height:1.5;font-size:14px}
+#villageGateCard button{border:0;border-radius:13px;padding:12px 18px;background:#8fca9c;color:#173e27;font-weight:800;margin:5px}
+#villageGateCard button.secondary{background:#e4e5d1}
+</style>
+<div id="villageGate"><div id="villageGateCard"><div style="font-size:58px">🌳🐰🏡</div><h1>모여봐요<br>반말방숲</h1><p>친구들과 함께 살아가는 우리들의 마을</p><button id="villageGateLogin">🔐 로그인</button><button id="villageGateRegister" class="secondary">🌱 회원가입</button><p id="villageGateStatus">계정으로 로그인하면 입장할 수 있어요.</p></div></div>
+<script>
+(function(){
+const gate=document.getElementById('villageGate'),status=document.getElementById('villageGateStatus');
+function openAccount(register){document.getElementById('accountLayer').classList.add('show');if(register){document.getElementById('accountNick').focus()}else{document.getElementById('accountUser').focus()}}
+document.getElementById('villageGateLogin').onclick=()=>openAccount(false);
+document.getElementById('villageGateRegister').onclick=()=>openAccount(true);
+window.villageGateEnter=function(user){if(!user)return;status.textContent='환영해요, '+user.nickname+'!';gate.hidden=true};
+window.villageGateLogout=function(){gate.hidden=false;status.textContent='계정으로 로그인하면 입장할 수 있어요.'};
+})();
+</script></body></html>
