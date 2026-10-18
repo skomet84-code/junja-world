@@ -2,6 +2,10 @@
   "version": 2,
   "builds": [
     {
+      "src": "api/share-image.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/account.js",
       "use": "@vercel/node"
     },
@@ -27,6 +31,10 @@
     }
   ],
   "routes": [
+    {
+      "src": "/api/share-image",
+      "dest": "/api/share-image.js"
+    },
     {
       "src": "/api/account",
       "dest": "/api/account.js"
