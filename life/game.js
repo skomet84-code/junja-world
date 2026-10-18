@@ -17,20 +17,21 @@ const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')|
 const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
 let cloudSave=window.__villageCloudSave||null;
 // Cloud data is loaded before module import, without top-level await.
-let saved={};try{
+const initialCloudVersion=Number.isSafeInteger(Number(cloudSave?.version))?Number(cloudSave.version):0;
+let saved={},resumeUnsynced=false;try{
  const local=accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{};
  const remote=cloudSave?.profile;
  const valid=o=>o&&typeof o==='object'&&!Array.isArray(o);
  const localProfile=valid(local)?local:{},serverProfile=valid(remote)?remote:null;
- const localRevision=Math.max(0,Math.floor(Number(localProfile.__adminRevision)||0));
- const remoteRevision=Math.max(0,Math.floor(Number(serverProfile?.__adminRevision)||0));
- const remoteNewer=!!serverProfile&&(remoteRevision>localRevision||
-  (remoteRevision===localRevision&&(Number(serverProfile.savedAt)||0)>(Number(localProfile.savedAt)||0)));
- saved=remoteNewer?{...serverProfile}:{...localProfile};
- // Ordinary auto-saves may never lower XP. Only an explicit higher admin revision
- // is allowed to change an existing character's level downwards.
- if(serverProfile&&remoteRevision===localRevision){
-  saved.xp=Math.max(0,Number(localProfile.xp)||0,Number(serverProfile.xp)||0);
+ // The server snapshot is authoritative. Never restore the biggest XP
+ // or let timestamps from unrelated tabs select the level.
+ saved=serverProfile?{...serverProfile}:{...localProfile};
+ if(accountScope){
+  const pending=JSON.parse(localStorage.getItem(scopedSaveKey+'-unsynced')||'null');
+  if(valid(pending?.profile)&&pending.baseVersion===initialCloudVersion){
+   // Only a draft made against the exact current server version can resume.
+   saved={...pending.profile};resumeUnsynced=true;
+  }
  }
 }catch{}
 const state={...seedData,...saved};
@@ -316,18 +317,57 @@ const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashi
 const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
 state.fashion={owned:[...fashionOwned],equipped:validFashion(originalFashion.equipped)};
 for(const type of ['hair','outfit','accessory','pet'])if(state.fashion.equipped[type]&&!fashionOwned.has(state.fashion.equipped[type]))state.fashion.equipped[type]=null;
-let cloudSaving=false,cloudSavePending=false;
+let cloudSaving=false,cloudSavePending=false,saveBlocked=false;
+let cloudVersion=initialCloudVersion,lastLocalFingerprint='';
+const unsyncedKey=scopedSaveKey+'-unsynced';
+function showSaveConflict(message){
+ saveBlocked=true;
+ let notice=document.getElementById('villageSaveConflict');
+ if(!notice){
+  notice=document.createElement('div');notice.id='villageSaveConflict';
+  notice.style.cssText='position:fixed;z-index:260;bottom:calc(95px + env(safe-area-inset-bottom));left:12px;right:12px;max-width:520px;margin:auto;background:#fff4d6;color:#66471f;border:2px solid #c89949;border-radius:15px;box-shadow:0 6px 24px #0005;padding:12px;font-size:13px;font-weight:750;text-align:center;pointer-events:auto';
+  const text=document.createElement('div');text.id='villageSaveConflictMessage';notice.append(text);
+  const button=document.createElement('button');button.type='button';button.textContent='↻ 최신 서버 기록으로 다시 접속';button.style.cssText='margin-top:8px;padding:9px 13px;background:#7ca78a;border-radius:11px;color:white;font-weight:800';
+  button.onclick=()=>location.reload();notice.append(button);document.body.append(notice);
+ }
+ document.getElementById('villageSaveConflictMessage').textContent=message;
+}
 async function queueCloudSave(){
- if(!accountScope||cloudSaving){cloudSavePending=true;return}
- cloudSaving=true;
- try{await fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:state,owned:[...owned]})})}catch{}
+ if(!accountScope||saveBlocked)return;
+ if(cloudSaving){cloudSavePending=true;return}
+ cloudSaving=true;cloudSavePending=false;
+ const version=cloudVersion;
+ const payload={version,profile:JSON.parse(JSON.stringify(state)),owned:[...owned]};
+ try{
+  const response=await fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
+  const result=await response.json().catch(()=>({}));
+  if(response.status===409||response.status===428){
+   showSaveConflict('⚠️ '+(result.error||'서버 저장 기록이 변경됐어요.')+' 현재 화면에서 서버 덮어쓰기를 중지했어요.');
+  }else if(!response.ok||!Number.isSafeInteger(result.version)){
+   throw Error(result.error||'서버 저장 확인 실패');
+  }else{
+   cloudVersion=result.version;
+   if(!cloudSavePending)try{localStorage.removeItem(unsyncedKey)}catch{}
+  }
+ }catch(e){
+  cloudSavePending=true;
+  console.warn('Village save will retry',e);
+ }
  cloudSaving=false;
- if(cloudSavePending){cloudSavePending=false;setTimeout(queueCloudSave,1200)}
+ if(cloudSavePending&&!saveBlocked){cloudSavePending=false;setTimeout(queueCloudSave,5000)}
 }
 function save(){
- state.x=player.x;state.y=player.y;state.dir=player.dir;state.savedAt=Date.now();
+ state.x=player.x;state.y=player.y;state.dir=player.dir;
+ const fingerprint=JSON.stringify({...state,savedAt:0});
+ if(fingerprint===lastLocalFingerprint)return;
+ lastLocalFingerprint=fingerprint;
+ state.savedAt=Date.now();
  try{
-  if(accountScope){localStorage.setItem(scopedSaveKey,JSON.stringify(state));queueCloudSave()}
+  if(accountScope){
+   localStorage.setItem(scopedSaveKey,JSON.stringify(state));
+   if(!saveBlocked)localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:cloudVersion,profile:state,savedAt:state.savedAt}));
+   queueCloudSave();
+  }
   if(accountScope)localStorage.setItem('junja-harbor-owned-'+accountScope,JSON.stringify(owned));
   // Retain up to seven daily restore points, not every five-second save.
   const day=nowDay(),key='junja-village-snapshots-v27';
@@ -458,33 +498,23 @@ function openDelivery(){
 function hud(){els.coins.textContent=Math.floor(state.coins).toLocaleString('ko-KR');const lv=lifeLevel();els.level.textContent='Lv.'+lv+' · '+(lv>=18?'로열 마을의 주인':lv>=10?'생활 장인':lv>3?'하버 주민':'새싹 주민');els.xp.style.width=((state.xp%160)/160*100)+'%';updateJourney(true)}
 hud();setInterval(save,5500);
 if(accountScope){
- let lastAdminRevision=Number(state.__adminRevision)||0;
+ const lastAdminRevision=Number(state.__adminRevision)||0;
  async function pullAdminChanges(){
+  if(saveBlocked)return;
   try{
    const response=await fetch('/api/account?action=save',{credentials:'same-origin',cache:'no-store'});
    if(!response.ok)return;
    const remote=(await response.json()).save?.profile;
    if(!remote)return;
    const revision=Math.max(0,Math.floor(Number(remote.__adminRevision)||0));
-   const remoteXp=Math.max(0,Number(remote.xp)||0);
-   if(revision<lastAdminRevision)return;
-   if(revision===lastAdminRevision){
-    // Another tab or device may have gained experience since this client loaded.
-    if(remoteXp<=Math.max(0,Number(state.xp)||0))return;
-    state.xp=remoteXp;
-    save();hud();
-    toast('⭐ 다른 접속 화면에서 획득한 경험치를 동기화했어요');
-    return;
+   // An admin action changes the server version. Never mix that updated
+   // snapshot into this old client and overwrite other saved fields.
+   if(revision!==lastAdminRevision){
+    showSaveConflict('👑 관리자 변경 사항이 서버에 저장됐어요. 최신 기록으로 재접속해야 안전하게 적용돼요.');
    }
-   // An admin change is authoritative even when the new level is lower.
-   lastAdminRevision=revision;
-   for(const key of ['coins','xp','fashion','autoFishing'])if(Object.prototype.hasOwnProperty.call(remote,key))state[key]=remote[key];
-   state.__adminRevision=revision;
-   save();hud();
-   toast('🎁 운영자 지급·변경 사항이 반영됐어요');
   }catch{}
  }
- setInterval(pullAdminChanges,8000);
+ setInterval(pullAdminChanges,12000);
  pullAdminChanges();
 }
 if(accountScope){
