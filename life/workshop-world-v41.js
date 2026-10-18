@@ -39,7 +39,7 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
  function mat(color,transparent=false){
   const key=color+'-'+transparent;
   if(!materials.has(key))materials.set(key,new THREE.MeshStandardMaterial({color,roughness:.91,
-   transparent,opacity:transparent?.025:1,depthWrite:!transparent}));
+   transparent,opacity:transparent ? .025 : 1,depthWrite:!transparent}));
   return materials.get(key);
  }
  function mesh(parent,geo,color,x,y,z,w,h,d){
@@ -172,8 +172,9 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
  }
  function exit(){
   if(disposed||!inside)return false;
+  const oldRoom=inside;
   inside=null;outdoor.visible=true;indoor.visible=false;scene.background.set(0xdbe9d6);
-  onInteriorChange({inside:false,readOnly});return true;
+  onInteriorChange({inside:false,role:oldRoom,readOnly});return true;
  }
  function onTap(e){
   if(disposed||inside)return;
