@@ -9,6 +9,7 @@ on:
       - feat/village-player-market-v38
       - feat/village-professions-v39
       - feat/village-business-workshops-v40
+      - feat/village-walkable-workshops-v41
   pull_request:
     branches:
       - village-progression-v30
