@@ -5,6 +5,7 @@ import {startingEconomy} from '../secure-economy-v36.js';
 import {currentProfession} from '../professions-v39.js';
 import {buildWorkshop,upgradeWorkshop,manufactureWorkshopItem,workshopView,businessWeekBeginning,WORKSHOP_TYPES} from '../business-v40.js';
 import {makeCheckpoint,validateCheckpointChain} from '../economy-integrity-v37.js';
+import {relocateWorkshop} from '../workshop-plots-v41.js';
 
 const livePool=new pg.Pool({connectionString:process.env.VILLAGE_DATABASE_URL||process.env.DATABASE_URL,ssl:{rejectUnauthorized:false},max:3});
 const hash=s=>createHash('sha256').update(s).digest('hex');
@@ -77,11 +78,13 @@ export function makeBusinessHandler({pool=livePool,now=()=>new Date()}={}){
     return send(res,200,{ok:true,trial:true,coins:account.state.coins,version:Number(account.version),
      business:workshopView(account.state,proof,time),rankings:ranking,audit:checked.audit});
    }
-   const {requestId,action,role}=req.body||{};
+   const {requestId,action,role,site}=req.body||{};
    if(typeof requestId!=='string'||!uuid.test(requestId))return send(res,400,{error:'중복 거래 방지 요청번호가 필요해요'});
-   if(!['build','upgrade','produce'].includes(action)||typeof role!=='string'||!Object.hasOwn(WORKSHOP_TYPES,role))
+   if(!['build','upgrade','produce','place'].includes(action)||typeof role!=='string'||!Object.hasOwn(WORKSHOP_TYPES,role))
     return send(res,400,{error:'올바른 사업장과 행동을 선택해 주세요'});
-   const requestHash=hash(JSON.stringify({action,role}));
+   if(action==='place'&&process.env.ENABLE_VILLAGE_WORKSHOPS_V41!=='true')
+    return send(res,503,{error:'3D 사업장 배치는 아직 비활성화 상태예요'});
+   const requestHash=hash(JSON.stringify(action==='place'?{action,role,site}:{action,role}));
    await c.query('BEGIN');tx=true;
    await c.query(`INSERT INTO village_economy_v36_accounts(user_key,state)
     VALUES($1,$2::jsonb) ON CONFLICT(user_key) DO NOTHING`,[key,JSON.stringify(startingEconomy())]);
@@ -97,10 +100,11 @@ export function makeBusinessHandler({pool=livePool,now=()=>new Date()}={}){
    const snapshot=await audit(c,key,record,true);
    const proof=await activity(c,key,record.state);
    const change=action==='build'?buildWorkshop(record.state,role,proof,time):
-    action==='upgrade'?upgradeWorkshop(record.state,role,proof):manufactureWorkshopItem(record.state,role,proof);
+    action==='upgrade'?upgradeWorkshop(record.state,role,proof):
+    action==='place'?relocateWorkshop(record.state,role,site,time):manufactureWorkshopItem(record.state,role,proof);
    const version=Number(record.version)+1;if(!Number.isSafeInteger(version))fail('저장 버전 한도 초과',500);
-   const receipt={action:action==='produce'?'business_produce':action==='build'?'business_build':'business_upgrade',
-    detail:change.detail,delta:change.delta,balance:change.next.coins,role,product:change.product||null,level:change.level,
+   const receipt={action:action==='produce'?'business_produce':action==='build'?'business_build':action==='place'?'business_place':'business_upgrade',
+    detail:change.detail,delta:change.delta,balance:change.next.coins,role,site:action==='place'?site:null,product:change.product||null,level:change.level,
     at:time.toISOString()};
    await c.query(`UPDATE village_economy_v36_accounts SET state=$2::jsonb,version=version+1,updated_at=now() WHERE user_key=$1`,
     [key,JSON.stringify(change.next)]);
