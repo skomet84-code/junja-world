@@ -12,6 +12,10 @@ assert.equal(restoreProfile(null,localOnly,'junja-local').profile.xp,3200,'Missi
 assert.equal(restoreProfile(cloud,localOnly,'junja-local').profile.xp,6720,'A local disk save must never replace a newer cloud record');
 const pendingOnly={getItem(key){return key==='junja-local-unsynced'?JSON.stringify({baseVersion:6,profile:{xp:3360},owned:['mint']}):null}};
 assert.equal(restoreProfile(null,pendingOnly,'junja-local').profile.xp,3360,'Server row loss must not erase unsynced local draft');
+const checkpoints={getItem(key){return key==='junja-local-checkpoints-v33'?JSON.stringify([{at:1234,level:22,profile:{xp:3360,coins:120},owned:['mint','linen']} ]):null}};
+assert.equal(restoreProfile(null,checkpoints,'junja-local').profile.xp,3360,'Cloud and primary device failure must recover last local checkpoint');
+assert.deepEqual(restoreProfile(null,checkpoints,'junja-local').owned,['mint','linen'],'Checkpoint must restore owned outfits');
+assert.equal(restoreProfile(cloud,checkpoints,'junja-local').profile.xp,6720,'An old checkpoint must never replace an existing cloud record');
 
 const sent=[];let release;
 const q=createSaveQueue({version:7,send:async payload=>{sent.push(payload);if(sent.length===1)await new Promise(r=>release=r);return {ok:true,status:200,json:async()=>({version:payload.version+1})}}});
@@ -40,9 +44,13 @@ let source=await readFile(new URL('./api/account.js',import.meta.url),'utf8');
 source=source.replace("import {CATALOG_BY_ID} from '../fashion-catalog.js';",'const CATALOG_BY_ID={};').replace("import pg from 'pg';",'const pg={Pool:class {constructor(){return globalThis.__saveTestPool}}};');
 const {default:handler}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 async function post(body){let result;const res={setHeader(){},status(status){this.code=status;return this},json(data){result={status:this.code,...data}}};await handler({method:'POST',headers:{cookie:'village_session='+'a'.repeat(64)},query:{action:'save'},body},res);return result}
+async function getCloud(){let result;const res={setHeader(){},status(status){this.code=status;return this},json(data){result={status:this.code,...data}}};await handler({method:'GET',headers:{cookie:'village_session='+'a'.repeat(64)},query:{action:'save'}},res);return result}
 const payload={version:7,requestId:crypto.randomUUID(),profile:{xp:6760},owned:['mint']};
 assert.equal((await post(payload)).status,200);assert.equal(writes,1);
 assert.equal((await post(payload)).status,200);assert.equal(writes,1,'Lost-response retry must not write twice');
+const reloaded=(await getCloud()).save;
+assert.equal(reloaded.profile.xp,6760,'Confirmed XP must reload from server');
+assert.equal(restoreProfile(reloaded,broken,'qa').profile.xp,6760,'Reloaded server XP must work even without device storage');
 assert.equal((await post({...payload,profile:{xp:0}})).status,409,'Same id with altered body is rejected');
 assert.equal((await post({...payload,requestId:crypto.randomUUID()})).status,409,'Stale tab cannot overwrite');
 assert.equal((await post({version:8,requestId:crypto.randomUUID(),profile:{xp:6500},owned:['mint']})).status,409,'Matching-version save must never regress server XP');
