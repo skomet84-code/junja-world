@@ -10,8 +10,8 @@ async function refresh(){
  $('accountIdentity').textContent='👤 '+r.user.nickname+' ('+r.user.username+')';
  $('accountBalance').textContent='서버 지갑 '+Number(r.balance).toLocaleString()+'G';
  $('accountAdmin').hidden=r.user.role!=='admin';
- $('accountOpen').textContent='👤 '+r.user.nickname;
- }catch{$('accountGuest').hidden=false;$('accountMember').hidden=true;$('accountOpen').textContent='🔐 계정 · 송금'}
+ $('accountOpen').textContent='👤 '+r.user.nickname;window.villageGateEnter?.(r.user);
+ }catch{$('accountGuest').hidden=false;$('accountMember').hidden=true;$('accountOpen').textContent='🔐 계정 · 송금';window.villageGateLogout?.()}
 }
 $('accountOpen').onclick=()=>{layer.classList.add('show');refresh()};
 $('accountClose').onclick=()=>layer.classList.remove('show');
