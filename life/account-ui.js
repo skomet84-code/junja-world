@@ -10,8 +10,8 @@ async function refresh(){
  $('accountIdentity').textContent='👤 '+r.user.nickname+' ('+r.user.username+')';
  $('accountBalance').textContent='서버 지갑 '+Number(r.balance).toLocaleString()+'G';
  $('accountAdmin').hidden=!(r.user.role==='admin'&&r.user.username==='admin_junja2');sessionStorage.setItem('village-auth-role',r.user.role);
- $('accountOpen').textContent='👤 '+r.user.nickname;sessionStorage.setItem('village-auth-nickname',r.user.nickname);if(sessionStorage.getItem('village-auth-user')!==r.user.username){sessionStorage.setItem('village-auth-user',r.user.username);location.reload();return}window.villageGateEnter?.(r.user);
- }catch{$('accountGuest').hidden=false;$('accountMember').hidden=true;$('accountOpen').textContent='🔐 계정 · 송금';window.villageGateLogout?.()}
+ $('accountOpen').textContent='👤 '+r.user.nickname;sessionStorage.setItem('village-auth-nickname',r.user.nickname);if(sessionStorage.getItem('village-auth-user')!==r.user.username){sessionStorage.setItem('village-auth-user',r.user.username);location.reload();return}window.dispatchEvent(new CustomEvent('village-auth',{detail:r.user}));window.villageGateEnter?.(r.user);
+ }catch{$('accountGuest').hidden=false;$('accountMember').hidden=true;$('accountOpen').textContent='🔐 계정 · 송금';window.dispatchEvent(new CustomEvent('village-auth',{detail:null}));window.villageGateLogout?.()}
 }
 $('accountOpen').onclick=()=>{layer.classList.add('show');refresh()};
 $('accountClose').onclick=()=>layer.classList.remove('show');
