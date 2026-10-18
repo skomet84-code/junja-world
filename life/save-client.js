@@ -6,16 +6,19 @@ export function restoreProfile(cloud,storage,key){
  const remote=valid(cloud?.profile)?cloud.profile:null;
  const draft=readJSON(storage,key+'-unsynced');
  const disk=readJSON(storage,key);
+ const checkpoints=readJSON(storage,key+'-checkpoints-v33',[]);
+ const lastCheckpoint=Array.isArray(checkpoints)?checkpoints.slice().reverse().find(item=>valid(item?.profile)):null;
  const resume=valid(draft?.profile)&&draft.baseVersion===version;
  // A fresh/missing cloud row is not proof that an account's device progress
  // disappeared. Recover only that account's own local snapshot; never let
  // a local snapshot replace an existing cloud record of a different version.
  const recoverable=!remote&&version===0;
- const local=valid(draft?.profile)?draft.profile:(valid(disk)?disk:null);
+ const local=valid(draft?.profile)?draft.profile:(valid(disk)?disk:(lastCheckpoint?.profile||null));
  const recovered=recoverable&&!!local;
  const profile=resume?draft.profile:(remote||(recovered?local:{}));
  const owned=resume&&Array.isArray(draft.owned)?draft.owned:
-    recovered&&Array.isArray(draft?.owned)?draft.owned:(cloud?.owned||[]);
+    recovered&&Array.isArray(draft?.owned)?draft.owned:
+    recovered&&Array.isArray(lastCheckpoint?.owned)?lastCheckpoint.owned:(cloud?.owned||[]);
  return {profile,owned,version,resume:resume||recovered,recovered};
 }
 export function createSaveQueue({version=0,send,onStatus=()=>{},onCommit=()=>{}}){
