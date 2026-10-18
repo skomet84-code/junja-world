@@ -126,7 +126,7 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 <div id="renderError" hidden role="alert"><h2>입체 마을을 열지 못했어요</h2><p>WebGL을 지원하는 Safari 또는 Chrome에서 다시 열어주세요.</p><p id="renderErrorReason" style="word-break:break-word;color:#93584d;font-size:12px"></p><button onclick="location.reload()">다시 열기</button></div><script src="navigation.js"></script><script type="module" src="game.js"></script><style>
 #accountDock{position:fixed;z-index:25;top:calc(72px + env(safe-area-inset-top));right:9px;max-width:90vw}
 #accountDock button{background:#fff9e8;color:#365745;border:1px solid #8da891;border-radius:16px;padding:8px 12px;font-weight:700;box-shadow:0 2px 10px #0002}
-#accountLayer{display:none;position:fixed;z-index:80;inset:0;background:#182b25bd;align-items:center;justify-content:center;padding:15px}
+#accountLayer{display:none;position:fixed;z-index:120;inset:0;background:#182b25bd;align-items:center;justify-content:center;padding:15px}
 #accountLayer.show{display:flex}
 #accountPanel{background:#fffaf0;border-radius:22px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:20px;color:#2c4937;box-shadow:0 12px 50px #0004}
 #accountPanel input{display:block;width:100%;margin:9px 0;padding:12px;border-radius:12px;border:1px solid #afc4b1;background:#fff;font-size:16px}
@@ -149,14 +149,14 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 #villageGateCard button{border:0;border-radius:13px;padding:12px 18px;background:#8fca9c;color:#173e27;font-weight:800;margin:5px}
 #villageGateCard button.secondary{background:#e4e5d1}
 </style>
-<div id="villageGate"><div id="villageGateCard"><div style="font-size:58px">🌳🐰🏡</div><h1>모여봐요<br>반말방숲</h1><p>친구들과 함께 살아가는 우리들의 마을</p><button id="villageGateLogin">🔐 로그인</button><button id="villageGateRegister" class="secondary">🌱 회원가입</button><p id="villageGateStatus">서버 계정 연결 준비 중 · 기존 기록은 안전하게 유지돼요.</p><button id="villageGateGuest" class="secondary">🎮 기존 기록으로 임시 입장</button></div></div>
+<div id="villageGate"><div id="villageGateCard"><div style="font-size:58px">🌳🐰🏡</div><h1>모여봐요<br>반말방숲</h1><p>친구들과 함께 살아가는 우리들의 마을</p><button id="villageGateLogin">🔐 로그인</button><button id="villageGateRegister" class="secondary">🌱 회원가입</button><p id="villageGateStatus">신규 회원가입 후 로그인하세요. 운영자 기록은 별도로 보호됩니다.</p></div></div>
 <script>
 (function(){
 const gate=document.getElementById('villageGate'),status=document.getElementById('villageGateStatus');
 function openAccount(register){document.getElementById('accountLayer').classList.add('show');if(register){document.getElementById('accountNick').focus()}else{document.getElementById('accountUser').focus()}}
 document.getElementById('villageGateLogin').onclick=()=>openAccount(false);
 document.getElementById('villageGateRegister').onclick=()=>openAccount(true);
-document.getElementById('villageGateGuest').onclick=()=>{gate.hidden=true};
+
 window.villageGateEnter=function(user){if(!user)return;status.textContent='환영해요, '+user.nickname+'!';gate.hidden=true};
 window.villageGateLogout=function(){gate.hidden=false;status.textContent='계정으로 로그인하면 입장할 수 있어요.'};
 })();
