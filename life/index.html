@@ -149,15 +149,13 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 #villageGateCard button{border:0;border-radius:13px;padding:12px 18px;background:#8fca9c;color:#173e27;font-weight:800;margin:5px}
 #villageGateCard button.secondary{background:#e4e5d1}
 </style>
-<div id="villageGate"><div id="villageGateCard"><div style="font-size:58px">🌳🐰🏡</div><h1>모여봐요<br>반말방숲</h1><p>친구들과 함께 살아가는 우리들의 마을</p><button id="villageGateLogin">🔐 로그인</button><button id="villageGateRegister" class="secondary">🌱 회원가입</button><div id="villageAdminSetup" hidden style="margin-top:12px"><input id="villageAdminCode" type="password" placeholder="서버에 설정한 운영자 설정 코드" style="width:95%;padding:12px;margin:5px;border-radius:10px"><input id="villageAdminPassword" type="password" placeholder="새 운영자 비밀번호 (8자 이상)" style="width:95%;padding:12px;margin:5px;border-radius:10px"><button id="villageAdminCreate">갓준자 계정 만들기</button><p id="villageAdminResult"></p></div><p id="villageGateStatus">신규 회원가입 후 로그인하세요. 운영자 기록은 별도로 보호됩니다.</p></div></div>
+<div id="villageGate"><div id="villageGateCard"><div style="font-size:58px">🌳🐰🏡</div><h1>모여봐요<br>반말방숲</h1><p>친구들과 함께 살아가는 우리들의 마을</p><button id="villageGateLogin">🔐 로그인</button><button id="villageGateRegister" class="secondary">🌱 회원가입</button><p id="villageGateStatus">신규 회원가입 후 로그인하세요. 운영자 기록은 별도로 보호됩니다.</p></div></div>
 <script>
 (function(){
 const gate=document.getElementById('villageGate'),status=document.getElementById('villageGateStatus');
 function openAccount(register){document.getElementById('accountLayer').classList.add('show');if(register){document.getElementById('accountNick').focus()}else{document.getElementById('accountUser').focus()}}
 document.getElementById('villageGateLogin').onclick=()=>openAccount(false);
 document.getElementById('villageGateRegister').onclick=()=>openAccount(true);
-document.getElementById('villageAdminSetupOpen').onclick=()=>{const e=document.getElementById('villageAdminSetup');e.hidden=!e.hidden};
-document.getElementById('villageAdminCreate').onclick=async()=>{const result=document.getElementById('villageAdminResult');try{const r=await fetch('/api/account?action=admin_setup',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({setupCode:document.getElementById('villageAdminCode').value,password:document.getElementById('villageAdminPassword').value})});const j=await r.json();result.textContent=j.message||j.error||'설정 실패';if(r.ok){document.getElementById('villageAdminCode').value='';document.getElementById('villageAdminPassword').value=''}}catch(e){result.textContent='설정 서버 연결 실패'}};
 
 window.villageGateEnter=function(user){if(!user)return;status.textContent='환영해요, '+user.nickname+'!';gate.hidden=true;window.startVillageGame?.()};
 window.villageGateLogout=function(){gate.hidden=false;status.textContent='계정으로 로그인하면 입장할 수 있어요.'};
