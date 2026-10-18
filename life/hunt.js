@@ -8,9 +8,17 @@ import {EQUIPMENT,SKILL_PRICES,initCombat,purchaseSkill,purchaseEquipment,equipI
 import {POTIONS,ensurePotions,purchasePotion,consumePotion} from './combat-potions-v29.js';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
-const saveKey='junja-harbor-v1',room=new URLSearchParams(location.search).get('room')||'SPRING';
+const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
+const saveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
+const room=new URLSearchParams(location.search).get('room')||'SPRING';
 let state={};
 try{state=JSON.parse(localStorage.getItem(saveKey)||'{}')}catch{}
+if(accountScope){
+ try{
+  const response=await fetch('/api/account?action=save',{credentials:'same-origin',cache:'no-store'});
+  if(response.ok){const payload=await response.json();if(payload.save?.profile&&typeof payload.save.profile==='object'){state=payload.save.profile;localStorage.setItem(saveKey,JSON.stringify(state));}}
+ }catch(error){console.warn('사냥터 서버 저장 불러오기 실패',error)}
+}
 if(!state||typeof state!=='object'||Array.isArray(state))state={};
 state.coins=Math.max(0,Number(state.coins)||0);state.xp=Math.max(0,Number(state.xp)||0);
 initEconomy(state);
@@ -24,11 +32,21 @@ state.hunt.kills=Math.max(0,state.hunt.kills||0);
 ensurePotions(state);initBag(state);initCombat(state);
 state.hunt.potionCooldowns=state.hunt.potionCooldowns||{};
 const level=()=>huntLevel(state.xp),stats=()=>equippedStats(state),today=()=>new Date().toLocaleDateString('en-CA');
+let cloudSaveTimer=null;
+async function syncHuntSave(){
+ if(!accountScope)return;
+ try{
+  const owned=JSON.parse(localStorage.getItem('junja-harbor-owned-'+accountScope)||'[]');
+  const response=await fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:state,owned:Array.isArray(owned)?owned:[]})});
+  if(!response.ok)console.warn('사냥터 서버 저장 실패',response.status);
+ }catch(error){console.warn('사냥터 서버 저장 실패',error)}
+}
 function save(){
  state.hunt.hp=Math.max(1,Math.ceil(hero.hp));state.hunt.mp=Math.max(0,Math.ceil(hero.mp));
  state.hunt.lastZone=currentZone?.id||state.hunt.lastZone||null;
  state.savedAt=Date.now();
  try{localStorage.setItem(saveKey,JSON.stringify(state))}catch{}
+ if(accountScope){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(syncHuntSave,1200)}
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const materialCache=new Map(),mat=c=>{const k=String(c);if(!materialCache.has(k))materialCache.set(k,new T.MeshStandardMaterial({color:c,roughness:.82,metalness:.03,flatShading:false}));return materialCache.get(k)};
@@ -332,7 +350,7 @@ function craftMenu(){
  addShopLinks();$('potionShopLink').onclick=potionShop;
  $('collectHuntOverflow').onclick=claimOverflow;
 }
-function goHome(){save();location.assign('/?room='+encodeURIComponent(room))}
+async function goHome(){save();clearTimeout(cloudSaveTimer);await syncHuntSave();location.assign('/?room='+encodeURIComponent(room))}
 function floatNumber(x,z,label,color='#ffeaa5'){
  if(!camera)return;
  const v=new T.Vector3(x,92,z).project(camera),el=document.createElement('div');
