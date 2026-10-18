@@ -1178,6 +1178,7 @@ function estateClock(seconds){
  const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60),sec=Math.floor(seconds%60);
  return (h?h+'시간 ':'')+(m?m+'분 ':'')+(!h?sec+'초':'');
 }
+let estateCropChoice='lettuce';
 function openPersonalEstate(){
  const e=estateState(),tier=ESTATE_UPGRADES[e.tier],next=ESTATE_UPGRADES[e.tier+1];
  const slots=tier?.slots||0;
@@ -1208,6 +1209,11 @@ function openPersonalEstate(){
   }
  }
  document.getElementById('estateOrdersOpen').onclick=openEstateOrders;
+ const estateCropSelect=document.getElementById('estateCrop');
+ if(estateCropSelect){
+  estateCropSelect.value=ESTATE_BY_ID[estateCropChoice]?estateCropChoice:'lettuce';
+  estateCropSelect.onchange=()=>{estateCropChoice=estateCropSelect.value};
+ }
  const upgrade=document.getElementById('estateUpgrade');
  if(upgrade)upgrade.onclick=()=>{const cost=next.cost;if(state.coins<cost){toast('농장 구매에 필요한 골드가 부족해요');return}if(!spend(cost,'개인 농장 구매·확장'))return;e.tier++;save();toast('🌿 내 농장이 확장됐어요!');openPersonalEstate()};
  els.panelBody.querySelectorAll('[data-plot]').forEach(btn=>btn.onclick=()=>{
