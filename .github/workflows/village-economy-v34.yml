@@ -10,6 +10,7 @@ on:
       - feat/village-professions-v39
       - feat/village-business-workshops-v40
       - feat/village-walkable-workshops-v41
+      - feat/village-business-portal-v42
   pull_request:
     branches:
       - village-progression-v30
