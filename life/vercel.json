@@ -10,6 +10,30 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/economy-v36.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/economy-v37.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/market-v38.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/professions-v39.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/business-v40.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/workshop-visits-v41.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/ws.js",
       "use": "@vercel/node"
     },
@@ -45,6 +69,30 @@
     {
       "src": "/api/account",
       "dest": "/api/account.js"
+    },
+    {
+      "src": "/api/economy-v36",
+      "dest": "/api/economy-v36.js"
+    },
+    {
+      "src": "/api/economy-v37",
+      "dest": "/api/economy-v37.js"
+    },
+    {
+      "src": "/api/market-v38",
+      "dest": "/api/market-v38.js"
+    },
+    {
+      "src": "/api/professions-v39",
+      "dest": "/api/professions-v39.js"
+    },
+    {
+      "src": "/api/business-v40",
+      "dest": "/api/business-v40.js"
+    },
+    {
+      "src": "/api/workshop-visits-v41",
+      "dest": "/api/workshop-visits-v41.js"
     },
     {
       "src": "/api/ws",

@@ -2,6 +2,7 @@ import * as T from './vendor/three.module.js';
 import {createAvatar,ball,tube} from './avatar3d.js';
 import {createPet} from './fashion-3d.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
+import {BUSINESS_PORTAL_V42} from './district-portal-v42.js';
 
 const materials=new Map();
 function material(color){if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:.95}));return materials.get(color)}
@@ -110,6 +111,8 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  road(scene,[[1010,785],[1050,955],[1030,1100],[1030,1350]],80);
  road(scene,[[1130,900],[1490,1020],[1464,1168]],70);
  road(scene,[[1490,1020],[1780,960],[2130,900],[2500,800],[3100,920]],78);
+ // Walkable footpath linking the existing east road to the business quarter's doorway.
+ road(scene,[[2630,835],[2680,960],[2765,1235]],52);
  road(scene,[[2130,900],[2150,1450],[2470,2140],[2910,1900],[3350,1660],[3200,1430],[3100,920]],72);
  cylinder(scene,0xe6d7b8,1010,.8,695,150,1.5).castShadow=false;
  pickRoots.push(building(scene,{x:515,y:470,w:275,d:180,roof:0x7b9b83,name:'해빛 상점',action:'shop'}));
@@ -118,6 +121,14 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  pickRoots.push(building(scene,{x:2500,y:640,w:280,d:175,roof:0x8e9eab,name:'나무결 공방',action:'workshop'}));
  pickRoots.push(building(scene,{x:3100,y:740,w:280,d:175,roof:0xbda4ba,name:'달빛 의상실',action:'boutique'}));
  pickRoots.push(building(scene,{x:2910,y:1740,w:310,d:170,roof:0x81a695,name:'숲속 교역소',action:'lodge'}));
+ // Portal is a proper island building and raycast destination, not merely a menu shortcut.
+ pickRoots.push(building(scene,{x:BUSINESS_PORTAL_V42.modelX,y:BUSINESS_PORTAL_V42.modelY,
+  w:220,d:150,roof:0x9481b0,kind:'business',name:'🏘️ 사업장 거리',action:BUSINESS_PORTAL_V42.id}));
+ const districtSign=group(scene,BUSINESS_PORTAL_V42.modelX,0,BUSINESS_PORTAL_V42.modelY+129);
+ for(const side of [-55,55]){cylinder(districtSign,0x9c7f65,side,36,0,5,72);
+  sphere(districtSign,0xf5d78b,side,77,0,11)}
+ box(districtSign,0xf6dfb6,0,80,0,127,18,11);
+ label(districtSign,'BUSINESS VILLAGE',0,128,0,140);
  pickRoots.push(fountain(scene));bench(scene,845,875);bench(scene,1160,810);bench(scene,2740,1940);
  for(const [x,z] of [[650,780],[1340,780],[760,1100],[1450,1020],[1215,605],[740,610],[2130,950],[2700,860],[3100,1000],[2830,1940]])lamp(scene,x,z);
  // Pier physically projects above the sea; fish action uses this same location.
