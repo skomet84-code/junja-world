@@ -1099,7 +1099,7 @@ function openShop(section=wardrobeTab){
   <div class="goods">${cards}</div>`);
  world3D?.fitting(document.getElementById('fittingHost'),fittingLook.coat,fittingLook.hat,fittingLook.fashion);
  els.panelBody.querySelectorAll('[data-tab]').forEach(btn=>btn.onclick=()=>openShop(btn.dataset.tab));
- els.panelBody.querySelectorAll('[data-gender]').forEach(btn=>btn.onclick=()=>{wardrobeGender=btn.dataset.gender;openShop('outfit')});
+ els.panelBody.querySelectorAll('[data-gender]').forEach(btn=>btn.onclick=()=>{wardrobeGender=btn.dataset.gender;openShop(section)});
  els.panelBody.querySelectorAll('[data-preview-set]').forEach(btn=>btn.onclick=()=>{
   const set=STYLE_SETS.find(s=>s.id===btn.dataset.previewSet);if(!set)return;
   fittingLook.fashion={...fittingLook.fashion,...set.items};openShop('sets');
