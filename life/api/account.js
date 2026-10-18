@@ -108,11 +108,11 @@ export default async function handler(req,res){
    incoming.__levelHistory=history.slice(-20);
    incoming.__confirmedLevel=confirmedLevel;
    if(row){
-    await client.query('UPDATE village_saves SET profile=$2,owned=$3,version=$4,updated_at=now() WHERE user_id=$1',[user.id,incoming,owned,nextVersion]);
+    await client.query('UPDATE village_saves SET profile=$2,owned=$3,version=$4,updated_at=now() WHERE user_id=$1',[user.id,incoming,JSON.stringify(owned),nextVersion]);
    }else{
     // Two first-time sessions can start at the same version. The losing
     // session must get a conflict, never an INSERT error or overwrite.
-    const inserted=await client.query('INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,$4,now()) ON CONFLICT(user_id) DO NOTHING RETURNING version',[user.id,incoming,owned,nextVersion]);
+    const inserted=await client.query('INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,$4,now()) ON CONFLICT(user_id) DO NOTHING RETURNING version',[user.id,incoming,JSON.stringify(owned),nextVersion]);
     if(!inserted.rows.length){
      await client.query('COMMIT');
      return send(res,409,{error:'다른 접속 화면에서 먼저 저장했어요. 재접속해 주세요',reason:'initial_save_conflict'});

@@ -20,7 +20,8 @@ process.env.VILLAGE_DATABASE_URL='test-only';let row={profile:{xp:6720},owned:['
 const db={release(){},async query(sql,args){
  if(sql.includes('FROM village_sessions'))return {rows:[{id:1,username:'qa',role:'player'}]};
  if(sql.startsWith('SELECT profile,owned,version'))return {rows:row?[structuredClone(row)]:[]};
- if(sql.startsWith('UPDATE village_saves SET profile')){row={profile:args[1],owned:args[2],version:args[3]};writes++;return {rows:[]}}
+ if(sql.startsWith('UPDATE village_saves SET profile')){row={profile:args[1],owned:JSON.parse(args[2]),version:args[3]};writes++;return {rows:[]}}
+ if(sql.startsWith('INSERT INTO village_saves')){row={profile:args[1],owned:JSON.parse(args[2]),version:args[3]};writes++;return {rows:[{version:args[3]}]}}
  if(['BEGIN','COMMIT','ROLLBACK'].includes(sql))return {rows:[]};
  throw Error('Unexpected SQL: '+sql);
 }};
@@ -36,4 +37,8 @@ assert.equal((await post({...payload,profile:{xp:0}})).status,409,'Same id with 
 assert.equal((await post({...payload,requestId:crypto.randomUUID()})).status,409,'Stale tab cannot overwrite');
 assert.equal((await post({profile:{xp:0},owned:[]})).status,428,'Unversioned legacy hunt saves rejected');
 assert.equal(row.profile.xp,6760);
+assert.deepEqual(row.owned,['mint']);
+row=null;
+const initialSave=await post({version:0,requestId:crypto.randomUUID(),profile:{xp:0},owned:['mint','none']});
+assert.equal(initialSave.status,200);assert.deepEqual(row.owned,['mint','none']);
 console.log('PASS: denied/corrupt storage, draft versions, queued writes, lost response replay, stale tab protection and legacy save rejection');
