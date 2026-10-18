@@ -118,7 +118,7 @@ export default async function handler(req,res){
    if(!/^[a-z0-9_]{4,24}$/.test(recipient))return send(res,400,{error:'대상 아이디 오류'});
    if(mode==='level'&&(!Number.isSafeInteger(value)||value<1||value>100000000))return send(res,400,{error:'레벨 값 오류'});
    if(['coins','coins_add','coins_take'].includes(mode)&&(!Number.isSafeInteger(value)||value<0||value>1000000000000))return send(res,400,{error:'골드는 0~1조'});
-   if(mode==='item'&&!CATALOG_BY_ID[item])return send(res,400,{error:'아이템 ID 오류'});
+   if(mode==='item'&&!CATALOG_BY_ID[item]&&!/^auto_fish_pass_(1|3|6|12|24)$/.test(item))return send(res,400,{error:'아이템 ID 오류'});
    if(!['level','coins','coins_add','coins_take','item'].includes(mode))return send(res,400,{error:'기능 오류'});
    await client.query('BEGIN');
    const target=await client.query('SELECT id FROM village_users WHERE username=$1',[recipient]);
@@ -131,7 +131,7 @@ export default async function handler(req,res){
    if(mode==='coins')profile.coins=value;
    if(mode==='coins_add')profile.coins=Math.min(1000000000000,Math.max(0,Number(profile.coins)||0)+value);
    if(mode==='coins_take')profile.coins=Math.max(0,(Number(profile.coins)||0)-value);
-   if(mode==='item'){profile.fashion=profile.fashion||{};profile.fashion.owned=Array.isArray(profile.fashion.owned)?profile.fashion.owned:[];if(!profile.fashion.owned.includes(item))profile.fashion.owned.push(item)}
+   if(mode==='item'){if(/^auto_fish_pass_(1|3|6|12|24)$/.test(item)){const hours=Number(item.split('_').pop());profile.autoFishing=profile.autoFishing&&typeof profile.autoFishing==='object'?profile.autoFishing:{};profile.autoFishing.remainingMs=Math.min(604800000,Math.max(0,Number(profile.autoFishing.remainingMs)||0)+hours*3600000)}else{profile.fashion=profile.fashion||{};profile.fashion.owned=Array.isArray(profile.fashion.owned)?profile.fashion.owned:[];if(!profile.fashion.owned.includes(item))profile.fashion.owned.push(item)}}
    profile.__adminRevision=(Number(profile.__adminRevision)||0)+1;
    await client.query('UPDATE village_saves SET profile=$2,version=version+1,updated_at=now() WHERE user_id=$1',[id,profile]);
    await client.query('COMMIT');
