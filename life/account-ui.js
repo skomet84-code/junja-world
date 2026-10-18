@@ -33,14 +33,4 @@ $('accountGrant').onclick=()=>{
 };
 refresh();
 
-$('accountRestoreLegacy').onclick=async()=>{
- if(sessionStorage.getItem('village-auth-role')!=='admin')return say('운영자 계정으로 로그인해야 합니다');
- let legacy;try{legacy=JSON.parse(localStorage.getItem('junja-harbor-v1')||'null')}catch{}
- if(!legacy||typeof legacy!=='object'||(!legacy.xp&&!legacy.coins))return say('이 기기에 기존 갓준자 저장 기록이 없습니다. 이전에 사용한 기기에서 진행해 주세요.');
- if(!confirm('이 기기의 기존 캐릭터 기록을 갓준자 계정에 연결할까요? 현재 갓준자 서버 기록은 덮어쓰게 됩니다.'))return;
- try{
-  const owned=JSON.parse(localStorage.getItem('junja-harbor-owned')||'[]');
-  const r=await api('save',{profile:legacy,owned:Array.isArray(owned)?owned:[]});
-  if(r.ok){say('기존 갓준자 기록을 연결했어요. 다시 입장합니다.');location.reload()}
- }catch(e){say('복구 실패: '+e.message)}
-};
+
