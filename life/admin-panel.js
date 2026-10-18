@@ -1,6 +1,6 @@
 import {CATALOG} from './fashion-catalog.js';
 const style=document.createElement('style');style.textContent=`
-#junjaAdminBtn{display:none;position:fixed;bottom:calc(106px + env(safe-area-inset-bottom));left:13px;top:auto;right:auto;z-index:96;background:linear-gradient(120deg,#f9d878,#fff4c5);color:#513a15;border:2px solid #b89542;border-radius:50%;width:43px;height:43px;padding:0;font-size:22px;display:none;align-items:center;justify-content:center;font-weight:900;box-shadow:0 4px 18px #0004}
+#junjaAdminBtn{display:none;position:fixed;top:calc(19px + env(safe-area-inset-top));left:45.5%;right:auto;bottom:auto;transform:translateX(-50%);z-index:96;background:linear-gradient(120deg,#f9d878,#fff4c5);color:#513a15;border:2px solid #b89542;border-radius:50%;width:43px;height:43px;padding:0;font-size:22px;display:none;align-items:center;justify-content:center;font-weight:900;box-shadow:0 4px 18px #0004}
 #junjaAdminBtn[style*="block"]{display:flex!important}#junjaAdminPanel{display:none;position:fixed;inset:0;z-index:210;background:#102b24d9;padding:calc(18px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));overflow:auto}
 #junjaAdminPanel.show{display:block}
 #junjaAdminBox{max-width:510px;margin:auto;background:#fffaf0;color:#294934;border:3px solid #ddbd66;border-radius:22px;padding:17px;box-shadow:0 16px 50px #0005}
