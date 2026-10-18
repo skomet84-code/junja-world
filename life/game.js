@@ -342,7 +342,9 @@ async function queueCloudSave(){
  try{
   const response=await fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
   const result=await response.json().catch(()=>({}));
-  if(response.status===409||response.status===428){
+  if(response.status===401||response.status===403){
+   showSaveConflict('🔐 로그인이 만료돼 저장할 수 없어요. 로그인 후 최신 기록을 다시 불러와 주세요.');
+  }else if(response.status===409||response.status===428){
    showSaveConflict('⚠️ '+(result.error||'서버 저장 기록이 변경됐어요.')+' 현재 화면에서 서버 덮어쓰기를 중지했어요.');
   }else if(!response.ok||!Number.isSafeInteger(result.version)){
    throw Error(result.error||'서버 저장 확인 실패');
@@ -372,7 +374,6 @@ function save(){
   if(accountScope){
    localStorage.setItem(scopedSaveKey,JSON.stringify(state));
    if(!saveBlocked)localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:cloudVersion,profile:state,owned:[...owned],savedAt:state.savedAt}));
-   queueCloudSave();
   }
   if(accountScope)localStorage.setItem('junja-harbor-owned-'+accountScope,JSON.stringify(owned));
   // Retain up to seven daily restore points, not every five-second save.
@@ -383,6 +384,8 @@ function save(){
    localStorage.setItem(key,JSON.stringify(shots.slice(-7)));
   }
  }catch(e){/* Storage can be disabled in private preview browsers. */}
+ // A blocked/quota-limited localStorage must never stop durable server writes.
+ if(accountScope)queueCloudSave();
 }window.addEventListener('beforeunload',save);
 // LIFE 1.5: an explorable east district and persistent, finite progression.
 const expansionProps=[{type:'workshop',asset:'shop',x:2500,y:640,w:320,h:320},{type:'boutique',asset:'market',x:3100,y:740,w:320,h:335},{type:'lodge',asset:'home',x:2910,y:1740,w:340,h:347}];
