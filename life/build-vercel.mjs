@@ -6,7 +6,7 @@ const assets=[
  'fashion-catalog.js','life-systems-v20.js','navigation.js',
  'hunt.html','hunt.js','hunt-data.js','fish-portraits.js','living-world.js',
  'economy-v28.js','inventory-v29.js','combat-potions-v29.js','combat-progression-v30.js',
- 'save-client.js','quality-v32.js','auto-fishing-v31.js','vendor/three.module.js','vendor/THREE-LICENSE.txt'
+ 'save-client.js','quality-v32.js','auto-fishing-v31.js','estate-trade-v34.js','vendor/three.module.js','vendor/THREE-LICENSE.txt'
 ];
 for(const src of assets){
  const dst=join('public',src);
