@@ -321,8 +321,21 @@ for(const type of ['hair','outfit','accessory','pet'])if(state.fashion.equipped[
 let cloudSaving=false,cloudSavePending=false,saveBlocked=false;
 let cloudVersion=initialCloudVersion,lastLocalFingerprint='';
 const unsyncedKey=scopedSaveKey+'-unsynced';
+const villageSaveStatus=document.createElement('div');
+villageSaveStatus.id='villageSaveStatus';
+villageSaveStatus.setAttribute('role','status');
+villageSaveStatus.setAttribute('aria-live','polite');
+villageSaveStatus.style.cssText='position:fixed;z-index:38;left:50%;bottom:calc(91px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff9e8ef;border:1px solid #b8ccac;border-radius:22px;box-shadow:0 2px 12px #253c2922;color:#3f7053;font-weight:800;font-size:11px;padding:6px 12px;max-width:92vw;white-space:nowrap;pointer-events:none';
+villageSaveStatus.textContent=cloudSave?.profile?'● 서버 기록 불러옴':'● 첫 저장 준비 중';
+document.body.append(villageSaveStatus);
+function setSaveStatus(message,isError=false){
+ villageSaveStatus.textContent=message;
+ villageSaveStatus.style.color=isError?'#a34f39':'#3f7053';
+ villageSaveStatus.style.borderColor=isError?'#dbad99':'#b8ccac';
+}
 function showSaveConflict(message){
  saveBlocked=true;
+ setSaveStatus('⚠ 서버 저장 충돌 · 재접속 필요',true);
  let notice=document.getElementById('villageSaveConflict');
  if(!notice){
   notice=document.createElement('div');notice.id='villageSaveConflict';
@@ -339,6 +352,7 @@ async function queueCloudSave(){
  cloudSaving=true;cloudSavePending=false;
  const version=cloudVersion;
  const payload={version,profile:JSON.parse(JSON.stringify(state)),owned:[...owned]};
+ setSaveStatus('⏳ 서버 저장 중 · Lv.'+(1+Math.floor((Number(state.xp)||0)/160)));
  try{
   const response=await fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
   const result=await response.json().catch(()=>({}));
@@ -350,6 +364,7 @@ async function queueCloudSave(){
    throw Error(result.error||'서버 저장 확인 실패');
   }else{
    cloudVersion=result.version;
+   setSaveStatus('✔ 서버 저장 완료 · Lv.'+(1+Math.floor((Number(payload.profile.xp)||0)/160))+' · 기록 '+result.version);
    try{
     if(cloudSavePending){
      // The latest unsent draft is now based on this newly accepted server version.
@@ -359,6 +374,7 @@ async function queueCloudSave(){
   }
  }catch(e){
   cloudSavePending=true;
+  setSaveStatus('⚠ 서버 저장 실패 · 자동 재시도',true);
   console.warn('Village save will retry',e);
  }
  cloudSaving=false;
