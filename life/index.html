@@ -123,4 +123,21 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 <div class="hud actions"><button class="act" id="shopBtn"><span class="em">👒</span><small>옷장</small></button><button class="act" id="farmBtn"><span class="em">🌱</span><small>농사</small></button><button class="act primary" id="fishBtn"><span class="em">🎣</span><small>낚시</small></button><button class="act" id="craftBtn"><span class="em">🪵</span><small>제작</small></button><button class="act" id="decorBtn"><span class="em">🏡</span><small>꾸미기</small></button><button class="act" id="bagBtn"><span class="em">🎒</span><small>가방</small></button><button class="act" id="guideBtn"><span class="em">📜</span><small>안내</small></button></div><button class="hunt-shortcut" id="huntPortal" type="button">⚔️ 사냥터 입장</button><button class="festival-shortcut" id="festivalBtn" type="button">🎪 축제·주간 의뢰</button><button class="social-status" id="socialStatus" type="button">👫 친구 · 혼자 플레이 중</button><div class="toast" id="toast"></div>
 <div class="modal" id="modal"><div class="panel" id="panel"><button class="close" id="close" aria-label="닫기">×</button><div id="panelBody"></div></div></div>
 <div class="fishingUI" id="fishing"><div class="fish-title" id="fishTitle">🎣 물고기가 오기를 기다리는 중…</div><div class="fish-desc" id="fishDesc">수면의 찌를 잘 살펴봐요</div><div class="gauge" id="gauge"><div class="needle" id="needle"></div></div><button class="fishbtn" id="fishAction">낚싯대 던지기</button><button class="fishbtn" id="fishGear" style="margin-top:7px;background:#d2e6dc;border-color:#bed7ca;font-size:12px">🎣 낚시 장비 확인·업그레이드</button></div>
-<div id="renderError" hidden role="alert"><h2>입체 마을을 열지 못했어요</h2><p>WebGL을 지원하는 Safari 또는 Chrome에서 다시 열어주세요.</p><p id="renderErrorReason" style="word-break:break-word;color:#93584d;font-size:12px"></p><button onclick="location.reload()">다시 열기</button></div><script src="navigation.js"></script><script type="module" src="game.js"></script></body></html>
+<div id="renderError" hidden role="alert"><h2>입체 마을을 열지 못했어요</h2><p>WebGL을 지원하는 Safari 또는 Chrome에서 다시 열어주세요.</p><p id="renderErrorReason" style="word-break:break-word;color:#93584d;font-size:12px"></p><button onclick="location.reload()">다시 열기</button></div><script src="navigation.js"></script><script type="module" src="game.js"></script><style>
+#accountDock{position:fixed;z-index:25;top:calc(72px + env(safe-area-inset-top));right:9px;max-width:90vw}
+#accountDock button{background:#fff9e8;color:#365745;border:1px solid #8da891;border-radius:16px;padding:8px 12px;font-weight:700;box-shadow:0 2px 10px #0002}
+#accountLayer{display:none;position:fixed;z-index:80;inset:0;background:#182b25bd;align-items:center;justify-content:center;padding:15px}
+#accountLayer.show{display:flex}
+#accountPanel{background:#fffaf0;border-radius:22px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:20px;color:#2c4937;box-shadow:0 12px 50px #0004}
+#accountPanel input{display:block;width:100%;margin:9px 0;padding:12px;border-radius:12px;border:1px solid #afc4b1;background:#fff;font-size:16px}
+#accountPanel button{padding:10px 14px;margin:5px;border-radius:12px;background:#bfe1c5;border:0;color:#234531;font-weight:700}
+#accountPanel p{line-height:1.55;font-size:13px}
+</style>
+<div id="accountDock"><button id="accountOpen" type="button">🔐 계정 · 송금</button></div>
+<div id="accountLayer" role="dialog" aria-modal="true" aria-label="계정 관리"><div id="accountPanel">
+<button id="accountClose" type="button" style="float:right">✕ 닫기</button><h2>🌳 모여봐요 반말방숲</h2>
+<p id="accountMessage">친구 계정을 만들거나 로그인하세요. 기존 브라우저 게임 기록은 삭제되지 않습니다.</p>
+<div id="accountGuest"><input id="accountUser" placeholder="아이디 (영문·숫자·밑줄)" autocomplete="username"/><input id="accountNick" placeholder="닉네임 (회원가입할 때)" maxlength="12"/><input id="accountPassword" type="password" placeholder="비밀번호 (10자 이상)" autocomplete="current-password"/><button id="accountLogin">로그인</button><button id="accountRegister">회원가입</button></div>
+<div id="accountMember" hidden><p id="accountIdentity"></p><p id="accountBalance"></p><input id="accountRecipient" placeholder="받는 친구의 로그인 아이디"/><input id="accountAmount" type="number" min="1" step="1" placeholder="보낼 골드"/><button id="accountTransfer">친구에게 송금</button><button id="accountLogout">로그아웃</button><div id="accountAdmin" hidden><h3>👑 운영자 골드 지급</h3><p>운영자 권한이 서버에서 확인된 계정만 사용 가능</p><button id="accountGrant">위 친구에게 골드 지급</button></div></div>
+<p>⚠️ 현재 게임 속 골드와 서버 지갑은 별도로 관리돼요. 기존 골드를 이전하기 전에는 송금할 수 없어요.</p>
+</div></div><script type="module" src="account-ui.js"></script></body></html>
