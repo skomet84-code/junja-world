@@ -33,8 +33,9 @@ function label(parent,text,x,y,z,width=150,own=false){
   ctx.strokeStyle=own?'#b58b31':'#72977d';ctx.lineWidth=4;ctx.stroke();
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
   ctx.fillStyle='#183a2b';ctx.fillText(title,256,64,pillWidth-35);
-  const scaledWidth=width*(pillWidth/512)*1.1;
-  sprite.scale.set(scaledWidth, width*1.1/4,1);
+  // Keep the sprite canvas at its full world width. The pill is already compact inside it;
+  // scaling by pillWidth again made short names nearly invisible on mobile.
+  sprite.scale.set(width*1.15,width*1.15/4,1);
   tex.needsUpdate=true;
  };
  renderName(text);sprite.userData.setLabel=renderName;parent.add(sprite);return sprite;
