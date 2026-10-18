@@ -371,7 +371,7 @@ function initJourney(){
   const fixed=navigation.nearest(player,288)||navigation.nearest({x:1050,y:955},288);
   if(fixed){player.x=fixed.x;player.y=fixed.y;player.vx=player.vy=0;save()}
  }camera.x=player.x;camera.y=player.y;
- els.welcome.textContent='준자마을 · 작고 다정한 하루';
+ els.welcome.textContent='모여봐요 반말방숲 · 작고 다정한 하루';
  els.hint.textContent='터치: 목적지 이동 · 꾹 누르고 드래그: 방향 변경';
  document.querySelector('.eyebrow').textContent='✦ 나의 생활 목표';
  const quest=document.querySelector('.quest');quest.style.cursor='pointer';quest.setAttribute('role','button');quest.tabIndex=0;quest.setAttribute('aria-label','현재 생활 목표와 이동 안내 열기');quest.onclick=openJourney;quest.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openJourney()}};
@@ -585,7 +585,7 @@ function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class
 function openEconomyDashboard(){
  const stats=initEconomy(state),ledger=moneyHistory(state),cash=Math.floor(state.coins);
  const major=[['harvest','농사'],['fish','어시장'],['hunt','사냥'],['deliver','납품'],['quest','의뢰'],['festival','축제'],['social','생활 보상']];
- openModal('<span class="titlebadge">JUNJA ECONOMY · '+stats.day+'</span><h2>🏦 준자마을 경제 수첩</h2>'+
+ openModal('<span class="titlebadge">JUNJA ECONOMY · '+stats.day+'</span><h2>🏦 모여봐요 반말방숲 경제 수첩</h2>'+
  '<div class="mini-card"><strong>💰 내 자산 · '+cash.toLocaleString('ko-KR')+'G</strong><p>오늘 새로 얻은 돈 '+stats.earned.toLocaleString('ko-KR')+'G · 상점 등에 쓴 돈 '+stats.spent.toLocaleString('ko-KR')+'G</p>'+
  '<p>경제 개편 이후 내 계정 통계: 게임 보상 발행 '+stats.totalMinted.toLocaleString('ko-KR')+'G · 소비·제작 회수 '+stats.totalBurned.toLocaleString('ko-KR')+'G</p></div>'+
  '<p>경제 가치가 유지되도록 하루 동안 활동별 보상이 점차 줄어들 수 있어요. 메인 스토리·영구 업적 보상은 별도예요.</p>'+
@@ -773,8 +773,8 @@ function openSaveVault(){
   '<p>현재 진행 기록은 이 브라우저에 저장돼요. 휴대폰을 바꾸거나 데이터를 삭제할 때 잃지 않도록 저장파일을 직접 보관할 수 있어요.</p>'+
   '<div class="mini-card"><strong>📥 직접 백업</strong><p>돈, 의상, 집, 레벨, 사냥 전리품, 도감, 월간 기록을 한 개의 파일로 저장해요.</p>'+
   '<button id="vaultExport">내 게임 데이터 백업 파일 받기</button></div>'+
-  '<div class="mini-card"><strong>📤 백업 복원</strong><p>내가 직접 저장한 준자마을 JSON 파일을 불러옵니다. 현재 기록을 덮어쓰니 먼저 백업하세요.</p>'+
-  '<input id="vaultImport" type="file" accept=".json,application/json" aria-label="준자마을 백업 불러오기" /></div>'+
+  '<div class="mini-card"><strong>📤 백업 복원</strong><p>내가 직접 저장한 모여봐요 반말방숲 JSON 파일을 불러옵니다. 현재 기록을 덮어쓰니 먼저 백업하세요.</p>'+
+  '<input id="vaultImport" type="file" accept=".json,application/json" aria-label="모여봐요 반말방숲 백업 불러오기" /></div>'+
   '<div class="mini-card"><strong>🕰 최근 자동 저장 기록</strong><p>이 기기 내에서만 보관 · 최대 7일</p>'+
   (snaps.length?snaps.slice().reverse().map(shot=>'<p>🗓 '+shot.day+'</p>').join(''):'<p>아직 이전 날짜의 기록이 없어요.</p>')+
   '<button id="vaultRestore" '+(snaps.length<2?'disabled':'')+'>이전 날짜 복원하기</button></div>'+
@@ -787,7 +787,7 @@ function openSaveVault(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);toast('✅ 백업 파일을 저장했어요');
  };
  function restore(data){
-  if(data?.format!=='junja-village-backup'||data.version!==1||!data.state||typeof data.state!=='object')throw Error('준자마을 백업 파일이 아니에요');
+  if(data?.format!=='junja-village-backup'||data.version!==1||!data.state||typeof data.state!=='object')throw Error('모여봐요 반말방숲 백업 파일이 아니에요');
   if(!Number.isFinite(data.state.coins)||data.state.coins<0||!Number.isFinite(data.state.xp)||data.state.xp<0)throw Error('저장된 레벨 또는 금액이 올바르지 않아요');
   if(!Array.isArray(data.state.collection)||data.state.collection.length>200000)throw Error('물고기 도감 데이터가 손상됐어요');
   if(!confirm('현재 이 브라우저의 게임 진행 기록을 백업 파일로 교체할까요?'))return;
@@ -1182,7 +1182,7 @@ function openBag(){
   save();hud();toast('🎟️ '+result.sold+'마리 판매 · +'+result.earnings.toLocaleString('ko-KR')+'G');openBag();
  };
 }
-function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 준자마을 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
+function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 모여봐요 반말방숲 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
 function beginFishing(){
  if(!canStore(state,1)){closeModal();toast('🎒 가방이 가득 찼어요! 수산시장에서 판매하거나 확장해요');return}
  closeModal();stopWalking();
@@ -1276,7 +1276,7 @@ setInterval(autoFishTick,500);
 
 els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing; // 이용권은 낚시 장비 상점에서만 판매합니다.
  const gearShortcut=document.getElementById('fishGear');
- if(gearShortcut)gearShortcut.onclick=()=>{els.fishing.classList.remove('open');fishPhase='idle';openFishingGear()};document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 준자마을 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
+ if(gearShortcut)gearShortcut.onclick=()=>{els.fishing.classList.remove('open');fishPhase='idle';openFishingGear()};document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 모여봐요 반말방숲 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
 function showRenderError(error){
  const panel=document.getElementById('renderError');panel.hidden=false;
  const reason=document.getElementById('renderErrorReason');
