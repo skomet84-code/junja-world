@@ -442,19 +442,39 @@ function hud(){els.coins.textContent=Math.floor(state.coins).toLocaleString('ko-
 hud();setInterval(save,5500);
 if(accountScope){
  const onlinePanel=document.createElement('div');
- onlinePanel.style.cssText='position:fixed;top:160px;right:12px;z-index:15;background:#fffbe8e8;color:#284c34;border-radius:14px;padding:8px 12px;font:600 12px sans-serif;max-width:170px;pointer-events:none';
- onlinePanel.textContent='🌳 접속 주민 확인 중';
+ onlinePanel.style.cssText='position:fixed;top:160px;right:10px;z-index:75;background:#fffaf0f5;color:#284c34;border:1px solid #d9cfae;border-radius:16px;padding:10px;max-width:min(300px,85vw);width:235px;font:600 13px sans-serif;box-shadow:0 5px 20px #0002';
+ onlinePanel.innerHTML='<button id="onlineToggle" style="width:100%;background:#d5e9d5;border:0;border-radius:10px;padding:9px;font-weight:800;color:#264b36">🟢 접속 주민 보기</button><div id="onlineBody" hidden style="max-height:340px;overflow:auto;margin-top:8px">접속자 확인 중…</div>';
  document.body.appendChild(onlinePanel);
+ const onlineToggle=onlinePanel.querySelector('#onlineToggle'),onlineBody=onlinePanel.querySelector('#onlineBody');
+ onlineToggle.onclick=()=>{onlineBody.hidden=!onlineBody.hidden;if(!onlineBody.hidden)refreshOnline()};
+ async function refreshOnline(){
+  try{
+   const response=await fetch('/api/account?action=online',{credentials:'same-origin',cache:'no-store'});
+   if(!response.ok)throw Error('접속 정보 조회 실패');
+   const data=await response.json(),people=data.players||[];
+   onlineToggle.textContent='🟢 접속 '+people.length+'명 · 순위 보기';
+   onlineBody.replaceChildren();
+   if(!people.length){onlineBody.textContent='현재 접속 중인 주민이 없어요';return}
+   for(const p of people){
+    const line=document.createElement('div');line.style.cssText='padding:8px 0;border-bottom:1px solid #e5e1d4;display:flex;align-items:center;gap:7px';
+    const info=document.createElement('span');info.style.cssText='flex:1;min-width:0;overflow-wrap:anywhere';info.textContent=(p.rank===1?'🥇 ':p.rank===2?'🥈 ':p.rank===3?'🥉 ':'#'+p.rank+' ')+p.nickname+' · Lv.'+p.level;
+    line.append(info);
+    if(p.username!==accountScope){
+     const follow=document.createElement('button');follow.textContent='따라가기';follow.style.cssText='border:0;border-radius:9px;background:#c8e4cf;padding:8px 7px;font-weight:700;color:#245038;white-space:nowrap';
+     follow.onclick=()=>{const x=Number(p.x),y=Number(p.y);if(Number.isFinite(x)&&Number.isFinite(y)){if(moveTo(x,y,{type:'follow',username:p.username}))toast('👣 '+p.nickname+' 위치로 이동해요');else toast('해당 위치로 이동할 수 없어요')}else toast('위치를 확인할 수 없어요')};
+     line.append(follow);
+    }
+    onlineBody.append(line);
+   }
+  }catch{onlineToggle.textContent='🌳 접속 확인 대기 중';if(!onlineBody.hidden)onlineBody.textContent='접속자 정보를 가져올 수 없어요'}
+ }
  async function syncVillagePresence(){
   try{
-   const response=await fetch('/api/account?action=presence',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:player.x,y:player.y})});
-   if(!response.ok)return;
-   const data=await response.json();
-   const names=(data.players||[]).map(p=>String(p.nickname).slice(0,12));
-   onlinePanel.textContent='🟢 함께 접속 '+(names.length+1)+'명'+(names.length?' · '+names.slice(0,5).join(', '):'');
-  }catch{onlinePanel.textContent='🌳 접속 확인 대기 중'}
+   await fetch('/api/account?action=presence',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:player.x,y:player.y})});
+  }catch{}
+  await refreshOnline();
  }
- setInterval(syncVillagePresence,3000);syncVillagePresence();
+ setInterval(syncVillagePresence,10000);syncVillagePresence();
 }
 ensureFestival();
 const festivalBtn=document.getElementById('festivalBtn');if(festivalBtn)festivalBtn.onclick=openFestival;
