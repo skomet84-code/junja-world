@@ -587,7 +587,7 @@ function showOperatorNickname(){
  els.name.textContent=socialNickname;
  world3D?.setNickname(socialNickname);
  // The relay stores the nickname at join, so reconnect with the updated name.
- if(socialSocket?.readyState===WebSocket.OPEN)socialSocket.close(1000,'operator name refresh');
+ if(typeof pollLive==='function')pollLive();
 }
 const VILLAGE_CLIENT_KEY='junja-village-client-id';
 let villageClientId='';
@@ -601,10 +601,10 @@ try{
 let effectiveDisplayNick=socialNickname,oldSocketReplaced=false;
 let socialSocket=null,socialRoom='SPRING',socialId=null,lastPositionSent=0,retryCount=0;
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function socialSend(o){if(socialSocket?.readyState===1)socialSocket.send(JSON.stringify(o))}
-function updateSocialBadge(){const b=document.getElementById('socialStatus');if(!b)return;b.textContent=socialSocket?.readyState===1&&socialId?'🟢 친구 '+(Object.keys(peers).length+1)+'/8명 · '+socialRoom:'👫 친구 · 오프라인';}
+function socialSend(o){if(o?.type==='say')livePendingPhrase=o.phrase}
+function updateSocialBadge(){const b=document.getElementById('socialStatus');if(!b)return;b.textContent=socialId?'🟢 친구 '+(Object.keys(peers).length+1)+'/8명 · '+socialRoom:'👫 친구 · 오프라인';}
 function openSocial(){
- const connected=socialSocket?.readyState===1&&socialId;
+ const connected=Boolean(socialId);
  const url=(location.origin==='null'?null:location.origin)+'/?room='+encodeURIComponent(socialRoom);
  openModal(`<span class="titlebadge">VILLAGE FRIENDS · 8명/방</span><h2>👫 친구와 말풍선</h2>
   <p>${connected?'🟢 같은 마을 '+(Object.keys(peers).length+1)+'명':'⚪ 혼자 미리보기'} · 자유 채팅은 지원하지 않아요.</p>
@@ -624,7 +624,7 @@ function openSocial(){
   if(!nick){toast('이름을 입력해주세요');return}
   socialNickname=nick;try{localStorage.setItem(PLAYER_NICK_KEY,nick)}catch{}
   els.name.textContent=nick;world3D?.setNickname(nick);
-  if(socialSocket?.readyState===1)socialSocket.close(1000,'nickname update');
+  pollLive();
   toast('🌸 캐릭터 이름을 저장했어요');
  };
  const copy=document.getElementById('copyInvite');
@@ -635,15 +635,28 @@ function openSocial(){
  });
  document.getElementById('roomPlayers').onclick=()=>toast(connected?'같은 방에 '+(Object.keys(peers).length+1)+'명 접속':'현재 혼자 플레이 중');
 }
-function connectSocial(){if(!document.querySelector('meta[name="junja-relay"][content="yes"]')){updateSocialBadge();return}
+let livePolling=false,livePendingPhrase=null,liveTimer=null;
+async function pollLive(){
+ if(livePolling)return;
+ livePolling=true;
+ try{
+ const payload={room:socialRoom,x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped};
+ if(livePendingPhrase){payload.phrase=livePendingPhrase;livePendingPhrase=null}
+ const response=await fetch('/api/live',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
+ if(!response.ok)throw Error('presence '+response.status);
+ const data=await response.json();socialId=data.id;
+ const seen=new Set();
+ for(const o of data.players||[]){if(!o||!o.id)continue;seen.add(o.id);const prev=peers[o.id];if(prev){Object.assign(prev,{...o,targetX:o.x,targetY:o.y})}else peers[o.id]={...o,targetX:o.x,targetY:o.y};if(o.phrase&&Number(o.phrase_at)>Date.now()-3500){peers[o.id].phrase=o.phrase;peers[o.id].phraseUntil=Number(o.phrase_at)+3200}}
+ for(const id of Object.keys(peers))if(!seen.has(id))delete peers[id];
+ updateSocialBadge();
+ }catch(e){socialId=null;for(const id of Object.keys(peers))delete peers[id];updateSocialBadge()}
+ finally{livePolling=false}
+}
+function connectSocial(){
  socialRoom=(new URLSearchParams(location.search).get('room')||'SPRING').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,12)||'SPRING';
- try{socialSocket=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+(document.querySelector('meta[name="junja-socket-path"]')?.content||'/ws'));socialSocket.addEventListener('open',()=>{socialId=null;retryCount=0;socialSend({type:'join',room:socialRoom,nick:socialNickname,clientId:villageClientId,x:player.x,y:player.y,coat:state.coat,hat:state.hat,dir:player.dir,fashion:state.fashion.equipped});updateSocialBadge()});
- socialSocket.addEventListener('message',e=>{let msg;try{msg=JSON.parse(e.data)}catch{return}if(msg.type==='welcome'){socialId=msg.id;effectiveDisplayNick=msg.nick||socialNickname;els.name.textContent=effectiveDisplayNick;world3D?.setNickname(effectiveDisplayNick);for(const id of Object.keys(peers))delete peers[id];for(const o of msg.players||[])peers[o.id]={...o,targetX:o.x,targetY:o.y};updateSocialBadge()}else if(msg.type==='join'){const o=msg.player;if(o&&o.id!==socialId){peers[o.id]={...o,targetX:o.x,targetY:o.y};toast('🌸 '+o.nick+'님이 놀러왔어요!');updateSocialBadge()}}else if(msg.type==='pos'&&peers[msg.id]){Object.assign(peers[msg.id],{targetX:msg.x,targetY:msg.y,dir:msg.dir,coat:msg.coat,hat:msg.hat,fashion:msg.fashion||{}})}else if(msg.type==='leave'){delete peers[msg.id];updateSocialBadge()}else if(msg.type==='speech'&&peers[msg.id]&&PHRASES.includes(msg.phrase)){
- peers[msg.id].phrase=msg.phrase;peers[msg.id].phraseUntil=Date.now()+3200;
-}else if(msg.type==='replaced'){oldSocketReplaced=true;toast('이 브라우저의 다른 탭에서 접속했어요')}else if(msg.type==='error'){toast('⚠️ '+msg.message)}});
- socialSocket.addEventListener('close',()=>{socialId=null;for(const id of Object.keys(peers))delete peers[id];updateSocialBadge();if(!oldSocketReplaced&&retryCount++<6)setTimeout(connectSocial,Math.min(16000,2000*retryCount))});
- socialSocket.addEventListener('error',()=>{updateSocialBadge()});
- }catch{updateSocialBadge()}}
+ if(liveTimer)clearInterval(liveTimer);
+ pollLive();liveTimer=setInterval(()=>{if(!document.hidden)pollLive()},1500);
+}
 
 function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
  const cards=Object.entries(crops).map(([k,v])=>`<div class="mini-card"><span class="emoji">${v.icon}</span><strong>${v.name}</strong><p>성장 ${v.seconds}초 · 수확 ${v.price+lifeBonus('harvest')}G</p><p>보유 씨앗 ${state.seeds[k]||0}개</p><button data-seed="${k}">${state.seeds[k]>0?'씨앗 선택 · 심기':'씨앗 부족'}</button></div>`).join('');
@@ -967,7 +980,7 @@ window.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(
 window.addEventListener('keyup',e=>{delete keys[e.key]});
 window.addEventListener('blur',()=>{keys={};pointer=null;stopWalking()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){keys={};pointer=null;stopWalking();save()}last=performance.now()});
-function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers)){let k=1-Math.exp(-dt*9);o.x+=(o.targetX-o.x)*k;o.y+=(o.targetY-o.y)*k}if(socialId&&t-lastPositionSent>.13){lastPositionSent=t;socialSend({type:'pos',x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped})}if(Math.floor(t)%4===0&&Math.floor(t)!==lastClock){lastClock=Math.floor(t);const clock=document.getElementById('worldClock');const hour=new Date().getHours();clock.textContent=seasonLabels[state.season]+' · '+(hour<11?'산뜻한 아침':hour<17?'따스한 낮':'노을빛 저녁')+' · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});} if(fishPhase==='wait'&&performance.now()>castUntil){
+function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers)){let k=1-Math.exp(-dt*9);o.x+=(o.targetX-o.x)*k;o.y+=(o.targetY-o.y)*k}if(Math.floor(t)%4===0&&Math.floor(t)!==lastClock){lastClock=Math.floor(t);const clock=document.getElementById('worldClock');const hour=new Date().getHours();clock.textContent=seasonLabels[state.season]+' · '+(hour<11?'산뜻한 아침':hour<17?'따스한 낮':'노을빛 저녁')+' · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});} if(fishPhase==='wait'&&performance.now()>castUntil){
   const baitUsed=useBait(state);
   hookedFish=FISH[fishRoll(adjustCatchRoll(Math.random(),baitUsed),state.fishingGear.equipped,lifeLevel())];
   reelProfile=reelChallenge(hookedFish,state.fishingGear.equipped);
