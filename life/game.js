@@ -314,7 +314,7 @@ villageSaveStatus.id='villageSaveStatus';
 villageSaveStatus.setAttribute('role','status');
 villageSaveStatus.setAttribute('aria-live','polite');
 villageSaveStatus.style.cssText='position:fixed;z-index:38;left:50%;bottom:calc(91px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff9e8ef;border:1px solid #b8ccac;border-radius:22px;box-shadow:0 2px 12px #253c2922;color:#3f7053;font-weight:800;font-size:11px;padding:6px 12px;max-width:92vw;white-space:nowrap;pointer-events:none';
-villageSaveStatus.textContent=cloudSave?.profile?'● 서버 기록 불러옴':'● 첫 저장 준비 중';
+villageSaveStatus.textContent=cloudSave?.profile?'● 서버 기록 불러옴':(restored.recovered?'● 이 기기의 마지막 기록 복구 · 서버 저장 대기':'● 첫 저장 준비 중');
 document.body.append(villageSaveStatus);
 function setSaveStatus(message,isError=false){
  villageSaveStatus.textContent=message;
@@ -338,8 +338,8 @@ const saveQueue=createSaveQueue({version:initialCloudVersion,
  send:payload=>fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store',signal:AbortSignal.timeout(12000)}),
  onCommit:(version,latest)=>{cloudVersion=version;try{if(latest)localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:version,...latest}));else localStorage.removeItem(unsyncedKey)}catch{}},
  onStatus:(status,data)=>{
-  if(status==='blocked')showSaveConflict(data.error||'다른 화면에서 기록이 변경됐어요. 최신 기록으로 다시 접속해 주세요.');
-  else if(status==='retry')setSaveStatus('⚠ 서버 저장 실패 · 자동 재시도',true);
+  if(status==='blocked')showSaveConflict((data?.status?'HTTP '+data.status+' · ':'')+(data?.error||'저장 요청이 거부됐어요. 새로고침 전 기기의 기록을 보존해주세요.'));
+  else if(status==='retry')setSaveStatus('⚠ 서버 저장 실패 · 자동 재시도 · '+String(data?.message||'연결 오류').slice(0,75),true);
   else setSaveStatus((status==='saved'?'✔ 서버 저장 완료':'⏳ 서버 저장 중')+' · Lv.'+(1+Math.floor((Number(data.profile.xp)||0)/160)));
  }
 });
@@ -485,7 +485,12 @@ function openDelivery(){
 }
 
 function hud(){els.coins.textContent=Math.floor(state.coins).toLocaleString('ko-KR');const lv=lifeLevel();els.level.textContent='Lv.'+lv+' · '+(lv>=18?'로열 마을의 주인':lv>=10?'생활 장인':lv>3?'하버 주민':'새싹 주민');els.xp.style.width=((state.xp%160)/160*100)+'%';updateJourney(true)}
-hud();setInterval(save,5500);
+hud();
+// Persist the very first account snapshot immediately, including recovered
+// browser progress. Otherwise brand-new accounts have no cloud save until
+// a state change and can reappear at Lv.1 on another device.
+if(accountScope)queueCloudSave();
+setInterval(save,5500);
 if(accountScope){
  const lastAdminRevision=Number(state.__adminRevision)||0;
  async function pullAdminChanges(){
