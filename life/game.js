@@ -15,8 +15,8 @@ const A={};
 const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
 const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
-let cloudSave=null;
-// Avoid top-level await: older iOS embedded Safari parsers fail before rendering.
+let cloudSave=window.__villageCloudSave||null;
+// Cloud data is loaded before module import, without top-level await.
 let saved={};try{saved=cloudSave?.profile||(accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{})}catch{}
 const state={...seedData,...saved};
 initEconomy(state);initializeFishStock(state);initBag(state);
