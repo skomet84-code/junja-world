@@ -463,11 +463,11 @@ if(accountScope){
 }
 if(accountScope){
  const onlinePanel=document.createElement('div');
- onlinePanel.style.cssText='position:fixed;top:160px;right:10px;z-index:75;background:transparent;color:#284c34;border:0;border-radius:16px;padding:0;max-width:min(300px,85vw);width:auto;font:600 13px sans-serif;box-shadow:none';
- onlinePanel.innerHTML='<button id="onlineToggle" style="background:#d5e9d5;border:1px solid #b9d4bc;border-radius:30px;padding:7px 11px;font-weight:800;color:#264b36;box-shadow:0 2px 8px #0002">🟢 접속자</button><div id="onlineBody" hidden style="max-height:340px;overflow:auto;margin-top:8px;background:#fffaf0f7;border:1px solid #d9cfae;border-radius:14px;padding:8px;width:min(290px,80vw);box-shadow:0 5px 20px #0002">접속자 확인 중…</div>';
+ onlinePanel.style.cssText='position:fixed;top:calc(210px + env(safe-area-inset-top));right:12px;z-index:75;background:transparent;color:#284c34;border:0;border-radius:16px;padding:0;max-width:min(300px,85vw);width:auto;font:600 13px sans-serif;box-shadow:none';
+ onlinePanel.innerHTML='<button id="onlineToggle" style="background:#d5e9d5;border:1px solid #b9d4bc;border-radius:30px;padding:6px 10px;font-size:12px;line-height:1.25;white-space:nowrap;font-weight:800;color:#264b36;box-shadow:0 2px 8px #0002">🟢 접속자</button><div id="onlineBody" hidden style="max-height:340px;overflow:auto;margin-top:8px;background:#fffaf0f7;border:1px solid #d9cfae;border-radius:14px;padding:8px;width:min(290px,80vw);box-shadow:0 5px 20px #0002">접속자 확인 중…</div>';
  document.body.appendChild(onlinePanel);
  const onlineToggle=onlinePanel.querySelector('#onlineToggle'),onlineBody=onlinePanel.querySelector('#onlineBody');
- onlineToggle.onclick=()=>{onlineBody.hidden=!onlineBody.hidden;if(!onlineBody.hidden)refreshOnline()};
+ onlineToggle.onclick=()=>{onlineBody.hidden=!onlineBody.hidden;onlineToggle.setAttribute('aria-expanded',String(!onlineBody.hidden));if(!onlineBody.hidden)refreshOnline()};onlineToggle.setAttribute('aria-expanded','false');
  async function refreshOnline(){
   try{
    const response=await fetch('/api/account?action=online',{credentials:'same-origin',cache:'no-store'});
