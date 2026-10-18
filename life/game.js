@@ -20,9 +20,18 @@ let cloudSave=window.__villageCloudSave||null;
 let saved={};try{
  const local=accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{};
  const remote=cloudSave?.profile;
- saved=remote&&typeof remote==='object'&&!Array.isArray(remote)&&
- (Number(remote.savedAt)||0)>(Number(local.savedAt)||0)&&
- !((Number(local.xp)||0)>=320&&(Number(remote.xp)||0)<320)?remote:local;
+ const valid=o=>o&&typeof o==='object'&&!Array.isArray(o);
+ const localProfile=valid(local)?local:{},serverProfile=valid(remote)?remote:null;
+ const localRevision=Math.max(0,Math.floor(Number(localProfile.__adminRevision)||0));
+ const remoteRevision=Math.max(0,Math.floor(Number(serverProfile?.__adminRevision)||0));
+ const remoteNewer=!!serverProfile&&(remoteRevision>localRevision||
+  (remoteRevision===localRevision&&(Number(serverProfile.savedAt)||0)>(Number(localProfile.savedAt)||0)));
+ saved=remoteNewer?{...serverProfile}:{...localProfile};
+ // Ordinary auto-saves may never lower XP. Only an explicit higher admin revision
+ // is allowed to change an existing character's level downwards.
+ if(serverProfile&&remoteRevision===localRevision){
+  saved.xp=Math.max(0,Number(localProfile.xp)||0,Number(serverProfile.xp)||0);
+ }
 }catch{}
 const state={...seedData,...saved};
 initEconomy(state);initializeFishStock(state);initBag(state);
@@ -456,13 +465,22 @@ if(accountScope){
    if(!response.ok)return;
    const remote=(await response.json()).save?.profile;
    if(!remote)return;
-   const revision=Number(remote.__adminRevision)||0;
-   if(revision<=lastAdminRevision)return;
+   const revision=Math.max(0,Math.floor(Number(remote.__adminRevision)||0));
+   const remoteXp=Math.max(0,Number(remote.xp)||0);
+   if(revision<lastAdminRevision)return;
+   if(revision===lastAdminRevision){
+    // Another tab or device may have gained experience since this client loaded.
+    if(remoteXp<=Math.max(0,Number(state.xp)||0))return;
+    state.xp=remoteXp;
+    save();hud();
+    toast('⭐ 다른 접속 화면에서 획득한 경험치를 동기화했어요');
+    return;
+   }
+   // An admin change is authoritative even when the new level is lower.
    lastAdminRevision=revision;
    for(const key of ['coins','xp','fashion','autoFishing'])if(Object.prototype.hasOwnProperty.call(remote,key))state[key]=remote[key];
    state.__adminRevision=revision;
-   hud();
-   try{localStorage.setItem(scopedSaveKey,JSON.stringify(state))}catch{}
+   save();hud();
    toast('🎁 운영자 지급·변경 사항이 반영됐어요');
   }catch{}
  }
