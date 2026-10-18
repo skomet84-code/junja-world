@@ -85,6 +85,29 @@ export default async function handler(req,res){
    const q=await client.query("SELECT u.username,u.nickname,u.role,u.created_at,u.last_login_at,COALESCE(w.balance,0)::text AS balance,s.version FROM village_users u LEFT JOIN village_wallets w ON w.user_id=u.id LEFT JOIN village_saves s ON s.user_id=u.id ORDER BY u.created_at DESC LIMIT 200");
    return send(res,200,{users:q.rows});
   }
+  if(action==='admin_character'&&req.method==='POST'){
+   if(!owner)return send(res,403,{error:'최고관리자 전용'});
+   const recipient=String(body.recipient||'').trim().toLowerCase();
+   const mode=String(body.mode||''),value=Number(body.value),item=String(body.item||'');
+   if(!/^[a-z0-9_]{4,24}$/.test(recipient))return send(res,400,{error:'대상 아이디 오류'});
+   if(mode==='level'&&(!Number.isInteger(value)||value<1||value>1000))return send(res,400,{error:'레벨은 1~1000'});
+   if(mode==='coins'&&(!Number.isSafeInteger(value)||value<0||value>1000000000000))return send(res,400,{error:'골드는 0~1조'});
+   if(mode==='item'&&!/^fashion_(hair|outfit|accessory|pet)_[0-9]{2}$/.test(item))return send(res,400,{error:'아이템 ID 오류'});
+   if(!['level','coins','item'].includes(mode))return send(res,400,{error:'기능 오류'});
+   await client.query('BEGIN');
+   const target=await client.query('SELECT id FROM village_users WHERE username=$1',[recipient]);
+   if(!target.rows.length){await client.query('ROLLBACK');return send(res,404,{error:'대상 계정 없음'})}
+   const id=target.rows[0].id;
+   await client.query("INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,'{}'::jsonb,'[]'::jsonb,1,now()) ON CONFLICT DO NOTHING",[id]);
+   const q=await client.query('SELECT profile FROM village_saves WHERE user_id=$1 FOR UPDATE',[id]);
+   const profile=q.rows[0].profile||{};
+   if(mode==='level')profile.xp=(value-1)*160;
+   if(mode==='coins')profile.coins=value;
+   if(mode==='item'){profile.fashion=profile.fashion||{};profile.fashion.owned=Array.isArray(profile.fashion.owned)?profile.fashion.owned:[];if(!profile.fashion.owned.includes(item))profile.fashion.owned.push(item)}
+   await client.query('UPDATE village_saves SET profile=$2,version=version+1,updated_at=now() WHERE user_id=$1',[id,profile]);
+   await client.query('COMMIT');
+   return send(res,200,{ok:true,message:'캐릭터 서버 저장 완료. 대상 유저가 다시 로그인하면 반영됩니다.'});
+  }
   if(action==='admin_reclaim'&&req.method==='POST'){
    if(!owner)return send(res,403,{error:'최고관리자 전용'});
    const recipient=String(body.recipient||'').trim().toLowerCase(),amount=Number(body.amount),key=String(body.key||'');
