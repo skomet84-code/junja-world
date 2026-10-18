@@ -43,7 +43,7 @@ export function openPlayerMarket(host,{back}={}){
    if(refreshed.ok){data=await refreshed.json();}
   }catch(e){
    // A network timeout may have committed. Retry only using the same ID.
-   if(e.status)pending=null;
+   if(e.status&&e.status<500&&![408,429].includes(e.status))pending=null;
    status.textContent='⚠️ '+e.message+(e.status?'':' · 같은 거래 요청으로 다시 시도할 수 있어요');
   }finally{busy=false;if(host.isConnected)render()}
  }
