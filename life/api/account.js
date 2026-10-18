@@ -69,41 +69,39 @@ export default async function handler(req,res){
   if(action==='save'&&req.method==='POST'){
    const profile=body.profile,owned=body.owned;
    if(!profile||typeof profile!=='object'||Array.isArray(profile)||JSON.stringify(profile).length>150000||!Array.isArray(owned)||owned.length>1000)return send(res,400,{error:'저장 데이터 형식 오류'});
-   await client.query('BEGIN');
-   const current=await client.query('SELECT profile FROM village_saves WHERE user_id=$1 FOR UPDATE',[user.id]);
+   // Client must prove which server snapshot it edited. Wall clocks and
+   // historical maximum XP are never valid ordering mechanisms.
+   const expectedVersion=body.version;
+   if(!Number.isSafeInteger(expectedVersion)||expectedVersion<0)return send(res,428,{error:'저장 버전 확인이 필요해요. 새로고침 후 다시 접속해 주세요',reason:'update_required'});
    const incoming={...profile};
-   const saved=current.rows[0]?.profile||{};
-   // Ignore delayed requests from an older tab or an earlier game session.
-   // Otherwise a level-1 snapshot can overwrite a level-3 character on relogin.
-   const oldTimestamp=Number(saved.savedAt)||0;
-   const newTimestamp=Number(incoming.savedAt)||0;
+   const xp=Number(incoming.xp);
+   if(!Number.isSafeInteger(xp)||xp<0||xp>16000000000)return send(res,400,{error:'경험치 저장값을 확인해 주세요'});
+   await client.query('BEGIN');
+   const current=await client.query('SELECT profile,owned,version FROM village_saves WHERE user_id=$1 FOR UPDATE',[user.id]);
+   const row=current.rows[0];
+   const currentVersion=row?.version||0;
+   if(currentVersion!==expectedVersion){
+    await client.query('COMMIT');
+    // Never mix unrelated snapshots or auto-raise XP from an older tab.
+    return send(res,409,{error:'다른 접속 화면에서 저장한 최신 기록이 있어요. 재접속해 주세요',reason:'version_conflict',version:currentVersion});
+   }
+   const saved=row?.profile||{};
    const savedRevision=Math.max(0,Math.floor(Number(saved.__adminRevision)||0));
    const incomingRevision=Math.max(0,Math.floor(Number(incoming.__adminRevision)||0));
-   const oldXp=Math.max(0,Number(saved.xp)||0),newXp=Math.max(0,Number(incoming.xp)||0);
-   if(oldTimestamp>newTimestamp){
-    // Older tabs must not roll back other progress, but can still contribute
-    // earned XP for the same administrator revision.
-    if(savedRevision===incomingRevision&&newXp>oldXp){
-     const merged={...saved,xp:newXp};
-     await client.query('UPDATE village_saves SET profile=$2,version=version+1,updated_at=now() WHERE user_id=$1',[user.id,merged]);
-     await client.query('COMMIT');
-     return send(res,200,{ok:true,merged:true,reason:'experience_recovered'});
-    }
+   if(savedRevision!==incomingRevision){
     await client.query('COMMIT');
-    return send(res,200,{ok:true,skipped:true,reason:'older_save'});
+    return send(res,409,{error:'관리자 변경 사항이 먼저 저장됐어요. 재접속해 주세요',reason:'admin_revision_conflict',version:currentVersion});
    }
-   if(savedRevision>incomingRevision){
-    // Server-side admin grants/level changes override stale client values.
-    for(const field of ['coins','xp','fashion','autoFishing'])if(Object.prototype.hasOwnProperty.call(saved,field))incoming[field]=saved[field];
-    incoming.__adminRevision=savedRevision;
-   }else if(savedRevision===incomingRevision){
-    // Timestamp alone is not proof of progression. Never lose earned levels
-    // to a newer but lower-XP save from another tab or an old device.
-    incoming.xp=Math.max(oldXp,newXp);
+   // Same-version edits are allowed once only. On later writes the client
+   // must send the returned version; stale requests can never roll back XP.
+   const nextVersion=currentVersion+1;
+   if(row){
+    await client.query('UPDATE village_saves SET profile=$2,owned=$3,version=$4,updated_at=now() WHERE user_id=$1',[user.id,incoming,owned,nextVersion]);
+   }else{
+    await client.query('INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,$4,now())',[user.id,incoming,owned,nextVersion]);
    }
-   await client.query("INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,1,now()) ON CONFLICT(user_id) DO UPDATE SET profile=$2,owned=$3,version=village_saves.version+1,updated_at=now()",[user.id,incoming,owned]);
    await client.query('COMMIT');
-   return send(res,200,{ok:true});
+   return send(res,200,{ok:true,version:nextVersion});
   }
   if(action==='online'&&req.method==='GET'){
    const q=await client.query(`SELECT u.username,u.nickname,u.role,p.x,p.y,GREATEST(COALESCE(p.xp,0),COALESCE(NULLIF(s.profile->>'xp','')::numeric,0)) AS xp
