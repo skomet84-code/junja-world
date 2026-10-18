@@ -155,6 +155,17 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
  .minimap span{display:block!important;font-size:9px;color:#42614c;max-width:94px;text-align:center;white-space:normal}
  #junjaAdminBtn{left:12px!important;right:auto!important;top:auto!important;bottom:calc(110px + env(safe-area-inset-bottom))!important;width:43px!important;height:43px!important;padding:0!important;border-radius:50%!important;font-size:22px!important}
 }
+
+/* Wardrobe mobile storefront: purchase options visible on opening */
+#fittingHost{height:145px!important;margin-top:5px!important;border-radius:15px!important}
+#fitting3D{height:145px!important;max-height:145px!important;object-fit:contain}
+.wardrobe-list-hint{font-size:13px;font-weight:900;color:#355f48;background:#e4efdf;border:1px solid #c2d9bd;padding:9px 11px;border-radius:12px;margin-top:7px}
+.fitting-tip{font-size:10px!important;margin:2px 0!important}
+.fitting-controls{position:relative!important;top:auto!important;padding:3px 0!important}
+.fashion-tabs{margin-bottom:2px!important;padding:4px 0!important}
+.garment-preview{width:88px;height:100px;max-width:100%;display:block;filter:drop-shadow(0 4px 5px #304a3828);background:radial-gradient(ellipse,#faf8f1,#e8eee4);border-radius:14px}
+.fashion-item .garment-preview{margin:0 auto}
+@media(max-width:550px){.panel:has(#fittingHost){padding-top:11px}.panel:has(#fittingHost) h2{font-size:20px}.panel:has(#fittingHost)>.titlebadge{font-size:9px}.panel:has(#fittingHost) .goods{margin-top:4px}}
 </style></head><body><canvas id="game" aria-label="모여봐요 반말방숲 입체 게임 필드"></canvas><div id="shade"></div>
 <div class="hud top"><div class="profile"><div class="portrait">🌿</div><div><div class="name" id="name">새싹</div><div class="rank" id="level">Lv. 1 · 초보 낚시꾼</div><div class="xp"><i id="xp"></i></div></div></div><div class="wallet"><i class="gold">★</i><span id="coins">800</span><span style="font-size:10px;color:#fff6">G</span></div></div>
 <div class="hud left"><div class="quest"><div class="eyebrow">✦ 오늘의 의뢰</div><strong id="questText">첫 생활 목표 확인하기</strong><span id="questNext">수첩을 눌러 다음 활동을 확인해요</span><div class="questbar"><i id="questProgress"></i></div><em id="questCount">0 / 1</em></div></div>
