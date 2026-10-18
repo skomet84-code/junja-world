@@ -1,5 +1,6 @@
 import {installQualityHUD} from './quality-v32.js';
 import {restoreProfile,createSaveQueue} from './save-client.js';
+import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactureEstateProduct,sellEstateProduct,estateOrderProgress,fulfillEstateOrder} from './estate-trade-v34.js';
 import {createWorld} from './world3d.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
 import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
@@ -1183,24 +1184,67 @@ function openPersonalEstate(){
   return '<button class="estate-plot" data-plot="'+i+'" style="min-height:82px;border:1px solid #c7d6b9;border-radius:16px;background:'+(c?'#e3edce':'#f5eee0')+';color:#34513d;padding:8px;font:600 13px sans-serif">'+(c?'<span style="font-size:27px">'+c[1]+'</span><br>'+c[2]+'<br><small>'+(remain?'⏳ '+estateClock(remain):'✨ 수확하기')+'</small>':'🌱<br>빈 밭<br><small>심기</small>')+'</button>';
  }).join('');
  const inventory=ESTATE_CROPS.filter(c=>(e.stock[c[0]]||0)>0).map(c=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #e5e9da"><span>'+c[1]+' '+c[2]+' ×'+e.stock[c[0]]+'</span><button data-sell="'+c[0]+'" style="padding:9px;border-radius:10px;background:#d3e5ca;color:#26432d">판매 '+estateFmt(c[5])+'</button></div>').join('')||'<p>수확한 농작물이 아직 없어요.</p>';
- const recipes=ESTATE_RECIPES.map((r,i)=>'<div style="background:#f3f4e8;border-radius:14px;padding:12px"><strong>'+r.name+'</strong><p style="font-size:12px">'+Object.entries(r.needs).map(([id,n])=>ESTATE_BY_ID[id][2]+' '+n+'개').join(' · ')+'</p><button data-recipe="'+i+'" style="padding:9px 13px;border-radius:12px;background:#cde5c7;color:#23442e">'+(r.build?'건설':'제작·판매')+' · '+estateFmt(r.gold)+'</button></div>').join('');
+ const recipes=ESTATE_RECIPES.map((r,i)=>'<div style="background:#f3f4e8;border-radius:14px;padding:12px"><strong>'+r.name+'</strong><p style="font-size:12px">'+Object.entries(r.needs).map(([id,n])=>ESTATE_BY_ID[id][2]+' '+n+'개').join(' · ')+'</p><button data-recipe="'+i+'" style="padding:9px 13px;border-radius:12px;background:#cde5c7;color:#23442e">'+(r.build?'건설 · '+estateFmt(r.gold):'제작·보관 · 가공비 '+estateFmt(ESTATE_PRODUCTS[i].fee))+'</button></div>').join('');
  openModal('<span class="titlebadge">MY PRIVATE FARM · JUNJA LIFE</span><h2>🌳 나만의 농장과 과수원</h2><p>내 계정 전용 공간 · 게임을 꺼도 작물은 계속 자라요.</p><div style="padding:14px;border-radius:18px;background:linear-gradient(135deg,#dceecb,#fff0d3);margin:12px 0"><strong>🏡 '+(tier?.name||'아직 내 농장이 없어요')+'</strong><p>'+(tier?'재배 공간 '+slots+'칸 · 수확해서 요리와 건물을 만들어요.':'농장을 구매하면 나만의 텃밭을 열 수 있어요.')+'</p>'+(next?'<button id="estateUpgrade" style="padding:12px 16px;background:#8ebc91;color:#183f27;border-radius:13px;font-weight:700">🌱 '+(tier?'농장 확장':'농장 구매')+' · '+estateFmt(next.cost)+'</button>':'<strong>👑 최대 확장 완료</strong>')+'</div>'+
  (slots?'<div style="position:relative;overflow:hidden;min-height:165px;border-radius:22px;margin:12px 0;padding:18px;background:linear-gradient(180deg,#b9e6e5 0%,#e5f4ce 45%,#8cbd74 46%,#a5cf87 100%);border:3px solid #f4e8b8;box-shadow:inset 0 -12px 0 #84ae71"><div style="font-size:28px;text-align:right">☀️ ☁️ 🦋</div><div style="position:absolute;left:10%;top:39%;font-size:55px">'+(e.buildings.some(x=>x.includes('온실'))?'🏡':'🏠')+'</div><div style="position:absolute;right:10%;top:35%;font-size:45px">🌳</div><div style="position:absolute;left:20%;bottom:12px;font-size:25px">🌼 🌿 🍓 🌱</div><div style="position:absolute;right:10%;bottom:10px;font-size:21px">'+(e.buildings.some(x=>x.includes('카페'))?'☕ 🍰':'🍎 🍑')+'</div><div style="position:absolute;left:45%;top:48%;font-size:12px;color:#315e34;background:#fff8dfcc;padding:7px;border-radius:12px;font-weight:700">나의 전용 농장</div></div><div style="display:flex;gap:8px;align-items:center;margin:12px 0"><label for="estateCrop" style="font-weight:700">심을 작물</label><select id="estateCrop" style="flex:1;min-width:0;padding:12px;border-radius:12px;background:#fff;border:1px solid #c3d3c0">'+cropOptions+'</select></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:300px;overflow:auto;padding:4px">'+plots+'</div>':'')+
- '<h3 style="margin-top:20px">🧺 내 수확 창고</h3>'+inventory+'<h3 style="margin-top:20px">🍳 요리·건축 공방</h3><div style="display:grid;gap:9px">'+recipes+'</div><p style="font-size:12px;margin-top:16px">※ 농작물 판매와 제작 보상은 게임 골드로 지급됩니다. 시세는 고정이며 작물마다 성장 시간이 달라요. 농장은 계정별로 따로 저장돼요.</p>');
+ '<div style="display:grid;gap:8px;margin:14px 0;padding:13px;background:#eef3e5;border-radius:16px"><strong>🏅 '+estateRank(state).name+' · 주민 납품 명성 '+initEstateTrade(state).reputation+'점</strong><button id="estateOrdersOpen" style="padding:12px;background:#5b926e;color:white;border-radius:11px;font-weight:800">📦 오늘의 주민 주문 · 가공품 보관함 · 명예 기록</button></div><h3 style="margin-top:20px">🧺 내 수확 창고</h3>'+inventory+'<h3 style="margin-top:20px">🍳 요리·건축 공방</h3><div style="display:grid;gap:9px">'+recipes+'</div><p style="font-size:12px;margin-top:16px">※ 농작물 판매와 제작 보상은 게임 골드로 지급됩니다. 시세는 고정이며 작물마다 성장 시간이 달라요. 농장은 계정별로 따로 저장돼요.</p>');
+ document.getElementById('estateOrdersOpen').onclick=openEstateOrders;
  const upgrade=document.getElementById('estateUpgrade');
  if(upgrade)upgrade.onclick=()=>{const cost=next.cost;if(state.coins<cost){toast('농장 구매에 필요한 골드가 부족해요');return}if(!spend(cost,'개인 농장 구매·확장'))return;e.tier++;save();toast('🌿 내 농장이 확장됐어요!');openPersonalEstate()};
  els.panelBody.querySelectorAll('[data-plot]').forEach(btn=>btn.onclick=()=>{
   const i=Number(btn.dataset.plot),p=e.plots[i],c=p&&ESTATE_BY_ID[p.id];
   if(c){if(Date.now()<p.at+c[3]*1000){toast('⏳ '+estateClock(Math.ceil((p.at+c[3]*1000-Date.now())/1000))+' 남았어요');return}
-   e.stock[c[0]]=(Number(e.stock[c[0]])||0)+1;e.plots[i]=null;state.xp+=Math.max(1,Math.floor(c[3]/90));save();toast(c[1]+' '+c[2]+' 수확!');openPersonalEstate();return}
+   e.stock[c[0]]=(Number(e.stock[c[0]])||0)+1;e.plots[i]=null;recordEstateHarvest(state);state.xp+=Math.max(1,Math.floor(c[3]/90));save();toast(c[1]+' '+c[2]+' 수확!');openPersonalEstate();return}
   const selected=document.getElementById('estateCrop')?.value,crop=ESTATE_BY_ID[selected];
   if(!crop)return;if(state.coins<crop[4]){toast('씨앗 구매 골드가 부족해요');return}
   if(!spend(crop[4],crop[2]+' 씨앗'))return;
   e.plots[i]={id:selected,at:Date.now()};save();toast(crop[1]+' 심기 완료');openPersonalEstate();
  });
  els.panelBody.querySelectorAll('[data-sell]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.sell,c=ESTATE_BY_ID[id];if(!c||!(e.stock[id]>0))return;e.stock[id]--;earn(c[5],'farm',c[2]+' 판매');save();openPersonalEstate()});
- els.panelBody.querySelectorAll('[data-recipe]').forEach(btn=>btn.onclick=()=>{const r=ESTATE_RECIPES[Number(btn.dataset.recipe)];if(!r)return;if(r.build&&e.buildings.includes(r.name)){toast('이미 건설한 건물이에요');return}if(Object.entries(r.needs).some(([id,n])=>(e.stock[id]||0)<n)){toast('필요한 농작물이 부족해요');return}for(const [id,n] of Object.entries(r.needs))e.stock[id]-=n;if(r.build){e.buildings.push(r.name);toast(r.name+' 건설 완료!')}else{earn(r.gold,'craft',r.name+' 판매');toast(r.name+' 제작·판매 완료!')}save();openPersonalEstate()});
+ els.panelBody.querySelectorAll('[data-recipe]').forEach(btn=>btn.onclick=()=>{const i=Number(btn.dataset.recipe),r=ESTATE_RECIPES[i];if(!r)return;if(!r.build){const result=manufactureEstateProduct(state,ESTATE_PRODUCTS[i]?.id);if(!result.ok){toast(result.error);return}save();hud();toast(result.product.name+' 제작 완료! 주문 납품이나 판매에 이용해요');openPersonalEstate();return}if(e.buildings.includes(r.name)){toast('이미 건설한 건물이에요');return}if(Object.entries(r.needs).some(([id,n])=>(e.stock[id]||0)<n)){toast('필요한 농작물이 부족해요');return}for(const [id,n] of Object.entries(r.needs))e.stock[id]-=n;e.buildings.push(r.name);save();toast(r.name+' 건설 완료!');openPersonalEstate()});
 }
+
+function openEstateOrders(){
+ const e=estateState(),t=initEstateTrade(state),board=estateOrderProgress(state);
+ const rank=estateRank(state);
+ const requirement=(id,n,goods=false)=>{
+  const title=goods?(ESTATE_PRODUCTS.find(p=>p.id===id)?.name||id):(ESTATE_BY_ID[id]?.[1]+' '+ESTATE_BY_ID[id]?.[2]||id);
+  const have=goods?(t.goods[id]||0):(e.stock[id]||0);
+  return '<span style="color:'+(have>=n?'#37764d':'#ad6644')+'">'+title+' '+have+'/'+n+'</span>';
+ };
+ const goodsHtml=ESTATE_PRODUCTS.map(p=>{
+  const count=t.goods[p.id]||0;
+  return '<div class="mini-card" style="margin:5px 0"><strong>'+p.name+' · '+count+'개 보관</strong><p>만들기: '+Object.entries(p.needs).map(([id,n])=>requirement(id,n)).join(' · ')+' · 가공비 '+estateFmt(p.fee)+'</p><p>NPC 판매 기준가 '+estateFmt(p.price)+' (실수령액은 하루 수입 한도에 따라 달라져요)</p><button data-estate-make="'+p.id+'">가공품 제작</button> <button data-estate-sell="'+p.id+'" '+(count?'':'disabled')+'>1개 판매</button></div>';
+ }).join('');
+ const ordersHtml=board.orders.map(o=>{
+  const has=Object.entries(o.needs).map(([id,n])=>requirement(id,n)).concat(Object.entries(o.goods).map(([id,n])=>requirement(id,n,true)));
+  return '<div class="mini-card" style="margin:6px 0"><strong>'+o.name+'</strong><p>필요 재료: '+has.join(' · ')+'</p><p>기준 보상 '+estateFmt(o.reward)+' · 명성 +'+o.rep+' · 경험치 +'+o.xp+'</p><button data-estate-order="'+o.id+'" '+(o.complete||!o.ready?'disabled':'')+'>'+(o.complete?'✅ 오늘 납품 완료':o.ready?'📦 주문 납품하기':'재료 준비 중')+'</button></div>';
+ }).join('');
+ openModal('<span class="titlebadge">JUNJA VILLAGE · LIVING ECONOMY v34</span><h2>📦 주민 주문과 가공품 상점</h2><p>개인 농장에서 재배한 작물 → 가공품 제작 → 주문 납품 → 명성 상승</p>'+
+ '<div class="mini-card"><strong>🏅 '+rank.name+' · 명성 '+t.reputation+'점</strong><p>다음 직업 단계 '+(rank.next===null?'최고 단계 달성':rank.next+'점 · '+Math.max(0,rank.next-t.reputation)+'점 남음')+'</p><p>총 수확 '+t.stats.harvested+'회 · 가공 '+t.stats.made+'회 · 판매 '+t.stats.sold+'회 · 납품 '+t.stats.fulfilled+'회</p></div>'+
+ '<h3>📅 오늘의 주민 주문 · '+board.day+'</h3><p>오늘 '+board.completed+'/'+board.limit+'건 완료 · 주문은 매일 변경돼요. 시즌 경쟁을 위한 명성은 누적됩니다.</p>'+ordersHtml+
+ '<h3>🍳 가공품 창고</h3>'+goodsHtml+
+ '<p style="font-size:11px">현재는 개인 계정 저장을 사용하는 경제 시험판입니다. 금액은 활동별 하루 보상 조정 규칙이 적용됩니다. 사용자 간 거래는 서버 정산 구축 후 개방할 예정입니다.</p>'+
+ '<button id="estateBackToFarm" class="pill-btn ghost">🌳 개인 농장으로 돌아가기</button>');
+ document.getElementById('estateBackToFarm').onclick=openPersonalEstate;
+ els.panelBody.querySelectorAll('[data-estate-make]').forEach(btn=>btn.onclick=()=>{
+  const r=manufactureEstateProduct(state,btn.dataset.estateMake);
+  if(!r.ok){toast(r.error);return}
+  save();hud();toast(r.product.name+' 제작 완료');openEstateOrders();
+ });
+ els.panelBody.querySelectorAll('[data-estate-sell]').forEach(btn=>btn.onclick=()=>{
+  const r=sellEstateProduct(state,btn.dataset.estateSell,lifeLevel());
+  if(!r.ok){toast(r.error);return}
+  save();hud();toast(r.product.name+' 판매 · +'+estateFmt(r.amount)+(r.softCapped?' (하루 수입 조정)':''));openEstateOrders();
+ });
+ els.panelBody.querySelectorAll('[data-estate-order]').forEach(btn=>btn.onclick=()=>{
+  const r=fulfillEstateOrder(state,btn.dataset.estateOrder,lifeLevel());
+  if(!r.ok){toast(r.error);return}
+  save();hud();toast('📦 납품 완료! '+estateFmt(r.amount)+' · 명성 +'+r.order.rep+(r.softCapped?' · 수익 한도 적용':''));
+  openEstateOrders();
+ });
+}
+
 (function installEstateButton(){
  const farm=document.getElementById('farmBtn');if(!farm)return;
  const button=document.createElement('button');button.type='button';button.className='act';button.id='estateBtn';button.innerHTML='<span class="em">🌳</span><small>내 농장</small>';button.setAttribute('aria-label','나만의 개인 농장과 과수원 열기');
