@@ -68,7 +68,16 @@ export default async function handler(req,res){
   if(action==='save'&&req.method==='POST'){
    const profile=body.profile,owned=body.owned;
    if(!profile||typeof profile!=='object'||Array.isArray(profile)||JSON.stringify(profile).length>150000||!Array.isArray(owned)||owned.length>1000)return send(res,400,{error:'저장 데이터 형식 오류'});
-   await client.query("INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,1,now()) ON CONFLICT(user_id) DO UPDATE SET profile=$2,owned=$3,version=village_saves.version+1,updated_at=now()",[user.id,profile,owned]);
+   await client.query('BEGIN');
+   const current=await client.query('SELECT profile FROM village_saves WHERE user_id=$1 FOR UPDATE',[user.id]);
+   const incoming={...profile};
+   const saved=current.rows[0]?.profile||{};
+   if((Number(saved.__adminRevision)||0)>(Number(incoming.__adminRevision)||0)){
+    for(const field of ['coins','xp','fashion'])if(Object.prototype.hasOwnProperty.call(saved,field))incoming[field]=saved[field];
+    incoming.__adminRevision=saved.__adminRevision;
+   }
+   await client.query("INSERT INTO village_saves(user_id,profile,owned,version,updated_at) VALUES($1,$2,$3,1,now()) ON CONFLICT(user_id) DO UPDATE SET profile=$2,owned=$3,version=village_saves.version+1,updated_at=now()",[user.id,incoming,owned]);
+   await client.query('COMMIT');
    return send(res,200,{ok:true});
   }
   if(action==='presence'&&req.method==='POST'){
@@ -90,9 +99,9 @@ export default async function handler(req,res){
    const recipient=String(body.recipient||'').trim().toLowerCase();
    const mode=String(body.mode||''),value=Number(body.value),item=String(body.item||'');
    if(!/^[a-z0-9_]{4,24}$/.test(recipient))return send(res,400,{error:'대상 아이디 오류'});
-   if(mode==='level'&&(!Number.isInteger(value)||value<1||value>1000))return send(res,400,{error:'레벨은 1~1000'});
+   if(mode==='level'&&(!Number.isSafeInteger(value)||value<1||value>100000000))return send(res,400,{error:'레벨 값 오류'});
    if(['coins','coins_add','coins_take'].includes(mode)&&(!Number.isSafeInteger(value)||value<0||value>1000000000000))return send(res,400,{error:'골드는 0~1조'});
-   if(mode==='item'&&!/^fashion_(hair|outfit|accessory|pet)_[0-9]{2}$/.test(item))return send(res,400,{error:'아이템 ID 오류'});
+   if(mode==='item'&&!/^fashion_(hair|outfit|accessory|pet)_[0-9]{2,3}$/.test(item))return send(res,400,{error:'아이템 ID 오류'});
    if(!['level','coins','coins_add','coins_take','item'].includes(mode))return send(res,400,{error:'기능 오류'});
    await client.query('BEGIN');
    const target=await client.query('SELECT id FROM village_users WHERE username=$1',[recipient]);
@@ -106,6 +115,7 @@ export default async function handler(req,res){
    if(mode==='coins_add')profile.coins=Math.min(1000000000000,Math.max(0,Number(profile.coins)||0)+value);
    if(mode==='coins_take')profile.coins=Math.max(0,(Number(profile.coins)||0)-value);
    if(mode==='item'){profile.fashion=profile.fashion||{};profile.fashion.owned=Array.isArray(profile.fashion.owned)?profile.fashion.owned:[];if(!profile.fashion.owned.includes(item))profile.fashion.owned.push(item)}
+   profile.__adminRevision=(Number(profile.__adminRevision)||0)+1;
    await client.query('UPDATE village_saves SET profile=$2,version=version+1,updated_at=now() WHERE user_id=$1',[id,profile]);
    await client.query('COMMIT');
    return send(res,200,{ok:true,message:'캐릭터 서버 저장 완료. 대상 유저가 다시 로그인하면 반영됩니다.'});
