@@ -15,7 +15,9 @@ const A={};
 const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
 const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
-let saved={};try{saved=accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{} }catch{}
+let cloudSave=null;
+if(accountScope){try{const response=await fetch('/api/account?action=save',{credentials:'same-origin',cache:'no-store'});if(response.ok)cloudSave=(await response.json()).save}catch{}}
+let saved={};try{saved=cloudSave?.profile||(accountScope?JSON.parse(localStorage.getItem(scopedSaveKey)||'{}'):{})}catch{}
 const state={...seedData,...saved};
 initEconomy(state);initializeFishStock(state);initBag(state);
 state.baitInventory=state.baitInventory&&typeof state.baitInventory==='object'?state.baitInventory:{};
@@ -299,10 +301,18 @@ const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashi
 const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
 state.fashion={owned:[...fashionOwned],equipped:validFashion(originalFashion.equipped)};
 for(const type of ['hair','outfit','accessory','pet'])if(state.fashion.equipped[type]&&!fashionOwned.has(state.fashion.equipped[type]))state.fashion.equipped[type]=null;
+let cloudSaving=false,cloudSavePending=false;
+async function queueCloudSave(){
+ if(!accountScope||cloudSaving){cloudSavePending=true;return}
+ cloudSaving=true;
+ try{await fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:state,owned:[...owned]})})}catch{}
+ cloudSaving=false;
+ if(cloudSavePending){cloudSavePending=false;setTimeout(queueCloudSave,1200)}
+}
 function save(){
  state.x=player.x;state.y=player.y;state.dir=player.dir;state.savedAt=Date.now();
  try{
-  if(accountScope)localStorage.setItem(scopedSaveKey,JSON.stringify(state));
+  if(accountScope){localStorage.setItem(scopedSaveKey,JSON.stringify(state));queueCloudSave()}
   localStorage.setItem('junja-harbor-owned',JSON.stringify(owned));
   // Retain up to seven daily restore points, not every five-second save.
   const day=nowDay(),key='junja-village-snapshots-v27';
