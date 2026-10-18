@@ -15,7 +15,7 @@ export function makeCheckpoint(userKey,version,state,previousHash=null,requestId
  if(typeof userKey!=='string'||!userKey||!Number.isSafeInteger(version)||version<0)throw Error('Invalid checkpoint identity');
  if(previousHash!==null&&!/^[a-f0-9]{64}$/.test(previousHash))throw Error('Invalid checkpoint parent');
  const fingerprint=stateFingerprint(state);
- const stateHash=createHash('sha256').update(['junja-v37',userKey,version,previousHash||'GENESIS',fingerprint].join('\n')).digest('hex');
+ const stateHash=createHash('sha256').update(['junja-v37',userKey,version,previousHash||'GENESIS',requestId||'BASELINE',fingerprint].join('\n')).digest('hex');
  return {user_key:userKey,version,state:structuredClone(state),previous_hash:previousHash,state_hash:stateHash,request_id:requestId};
 }
 export function validateCheckpointChain(userKey,account,rows,maxCheck=25){
