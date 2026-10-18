@@ -1231,6 +1231,22 @@ export const CATALOG=Object.freeze([
 {"id":"fashion_outfit_collection_23","type":"outfit","name":"보랏빛 마녀","color":7029134,"accent":15186548,"shape":"robe","grade":"legend","price":15500,"bonus":0,"index":62,"gender":"여","collection":true},
 {"id":"fashion_outfit_collection_24","type":"outfit","name":"달빛 마법사","color":3428731,"accent":13153266,"shape":"robe","grade":"legend","price":16150,"bonus":0,"index":63,"gender":"남","collection":true},
 {"id":"fashion_outfit_collection_25","type":"outfit","name":"별빛 마녀","color":3420509,"accent":16111500,"shape":"robe","grade":"legend","price":16800,"bonus":0,"index":64,"gender":"여","collection":true}
+,{"id":"fashion_extra_202610_01","type":"hair","name":"별빛 리본 웨이브","shape":"wave","gender":"여","color":7095869,"accent":15382220,"grade":"fine","price":1100,"bonus":0,"index":100,"collection":true},
+{"id":"fashion_extra_202610_02","type":"hair","name":"로열 댄디컷","shape":"part","gender":"남","color":4534573,"accent":14071161,"grade":"fine","price":1220,"bonus":0,"index":101,"collection":true},
+{"id":"fashion_extra_202610_03","type":"hair","name":"구름 솜사탕 트윈","shape":"twin","gender":"여","color":13212800,"accent":16110559,"grade":"fine","price":1340,"bonus":0,"index":102,"collection":true},
+{"id":"fashion_extra_202610_04","type":"hair","name":"은빛 아이돌 울프","shape":"wolf","gender":"남","color":7830684,"accent":11848166,"grade":"fine","price":1460,"bonus":0,"index":103,"collection":true},
+{"id":"fashion_extra_202610_05","type":"hair","name":"벚꽃 하프업","shape":"wave","gender":"여","color":9132366,"accent":15906757,"grade":"fine","price":1580,"bonus":0,"index":104,"collection":true},
+{"id":"fashion_extra_202610_06","type":"hair","name":"시크 블랙 포마드","shape":"slick","gender":"남","color":2565420,"accent":12952939,"grade":"fine","price":1700,"bonus":0,"index":105,"collection":true},
+{"id":"fashion_extra_202610_07","type":"accessory","name":"신부 진주 티아라","shape":"crown","gender":"여","color":15193790,"accent":16777215,"grade":"fine","price":1820,"bonus":0,"index":106,"collection":true},
+{"id":"fashion_extra_202610_08","type":"accessory","name":"신랑 금빛 브로치","shape":"star","gender":"남","color":12885078,"accent":16310161,"grade":"fine","price":1940,"bonus":0,"index":107,"collection":true},
+{"id":"fashion_extra_202610_09","type":"accessory","name":"마법사 별 모자","shape":"star","gender":"공용","color":5523317,"accent":15257852,"grade":"fine","price":2060,"bonus":0,"index":108,"collection":true},
+{"id":"fashion_extra_202610_10","type":"accessory","name":"로봇 네온 바이저","shape":"visor","gender":"공용","color":6130587,"accent":9893119,"grade":"fine","price":2180,"bonus":0,"index":109,"collection":true},
+{"id":"fashion_extra_202610_11","type":"pet","name":"솜구름 아기양","shape":"round","gender":"공용","color":15986148,"accent":14002341,"grade":"fine","price":2300,"bonus":0,"index":110,"collection":true},
+{"id":"fashion_extra_202610_12","type":"pet","name":"별빛 아기여우","shape":"fox","gender":"공용","color":13213294,"accent":15981470,"grade":"fine","price":2420,"bonus":0,"index":111,"collection":true},
+{"id":"fashion_extra_202610_13","type":"outfit","name":"핑크 웨딩드레스","shape":"dress","gender":"여","color":16108503,"accent":16775667,"grade":"rare","price":2540,"bonus":0,"index":112,"collection":true},
+{"id":"fashion_extra_202610_14","type":"outfit","name":"화이트 로열 턱시도","shape":"suit","gender":"남","color":15986402,"accent":14136685,"grade":"rare","price":2660,"bonus":0,"index":113,"collection":true},
+{"id":"fashion_extra_202610_15","type":"outfit","name":"하늘빛 세일러 교복","shape":"dress","gender":"여","color":11063525,"accent":16777215,"grade":"rare","price":2780,"bonus":0,"index":114,"collection":true},
+{"id":"fashion_extra_202610_16","type":"outfit","name":"네이비 프레피 교복","shape":"suit","gender":"남","color":3558512,"accent":15325091,"grade":"rare","price":2900,"bonus":0,"index":115,"collection":true}
 ].map(item=>Object.freeze({...item,price:Math.round(item.price*({common:8,fine:7,rare:6,hero:5,legend:4,mythic:3}[item.grade]||5))})));
 export const CATALOG_BY_ID=Object.freeze(Object.fromEntries(CATALOG.map(item=>[item.id,item])));
 export const CATEGORIES=Object.freeze([
