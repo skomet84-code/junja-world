@@ -16,7 +16,17 @@ try{state=JSON.parse(localStorage.getItem(saveKey)||'{}')}catch{}
 if(accountScope){
  try{
   const response=await fetch('/api/account?action=save',{credentials:'same-origin',cache:'no-store'});
-  if(response.ok){const payload=await response.json();if(payload.save?.profile&&typeof payload.save.profile==='object'){state=payload.save.profile;localStorage.setItem(saveKey,JSON.stringify(state));}}
+  if(response.ok){
+   const payload=await response.json(),remote=payload.save?.profile;
+   if(remote&&typeof remote==='object'&&!Array.isArray(remote)){
+    const localTime=Number(state.savedAt)||0,remoteTime=Number(remote.savedAt)||0;
+    // Never replace a newer level-3+ character with a stale level-1 cloud snapshot.
+    const localXp=Number(state.xp)||0,remoteXp=Number(remote.xp)||0;
+    if(remoteTime>localTime&&!(localXp>=320&&remoteXp<320)){
+     state=remote;localStorage.setItem(saveKey,JSON.stringify(state));
+    }
+   }
+  }
  }catch(error){console.warn('사냥터 서버 저장 불러오기 실패',error)}
 }
 if(!state||typeof state!=='object'||Array.isArray(state))state={};
