@@ -295,7 +295,7 @@ const outfits=[{id:'mint',name:'민트 피크닉룩',cost:0,emoji:'🌿',col:'#5
 outfits.push(...[{id:'lavender',name:'라벤더 원피스',cost:380,emoji:'💜',col:'#a897dc',type:'coat'},{id:'coral',name:'산호빛 데이트룩',cost:450,emoji:'🧡',col:'#f0a07a',type:'coat'},{id:'navy',name:'밤바다 정장',cost:540,emoji:'🌙',col:'#375d83',type:'coat'},{id:'cream',name:'크림 니트',cost:240,emoji:'🤍',col:'#e6d5b5',type:'coat'},{id:'forest',name:'숲속 탐험룩',cost:410,emoji:'🍃',col:'#568a60',type:'coat'},{id:'pink',name:'벚꽃 드레스',cost:610,emoji:'🎀',col:'#ee9ac7',type:'coat'},{id:'flower',name:'봄꽃 밀짚모자',cost:340,emoji:'🌸',type:'hat'},{id:'navycap',name:'청량 선장 모자',cost:480,emoji:'⚓',type:'hat'},{id:'beanie',name:'카페 비니',cost:190,emoji:'🧶',type:'hat'},{id:'cat',name:'고양이 귀',cost:600,emoji:'🐈',type:'hat'},{id:'ribbon',name:'왕리본 머리띠',cost:280,emoji:'🎀',type:'hat'},{id:'captain',name:'바다의 선장 모자',cost:420,emoji:'🧢',type:'hat'}]);
 
 outfits.push({id:'linen',name:'공방 린넨 셔츠',cost:0,emoji:'🧵',col:'#d8c7a6',type:'coat',craftOnly:true});
-let owned=['mint','none'];try{const o=JSON.parse(localStorage.getItem('junja-harbor-owned')||'[]');if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
+let owned=['mint','none'];try{const o=cloudSave?.owned||(accountScope?JSON.parse(localStorage.getItem('junja-harbor-owned-'+accountScope)||'[]'):[]);if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
 // Migrate in place; never discard existing coins, fish, legacy costumes or quests.
 const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashion:{};
 const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
@@ -313,7 +313,7 @@ function save(){
  state.x=player.x;state.y=player.y;state.dir=player.dir;state.savedAt=Date.now();
  try{
   if(accountScope){localStorage.setItem(scopedSaveKey,JSON.stringify(state));queueCloudSave()}
-  localStorage.setItem('junja-harbor-owned',JSON.stringify(owned));
+  if(accountScope)localStorage.setItem('junja-harbor-owned-'+accountScope,JSON.stringify(owned));
   // Retain up to seven daily restore points, not every five-second save.
   const day=nowDay(),key='junja-village-snapshots-v27';
   const shots=JSON.parse(localStorage.getItem(key)||'[]');
@@ -519,9 +519,9 @@ const newVisitorNick=()=>('새싹'+Math.floor(1000+Math.random()*9000));
 let socialNickname='';
 try{
  const oldName=String(localStorage.getItem(PLAYER_NICK_KEY)||'').replace(/[<>\x00-\x1f\x7f]/g,'').trim().slice(0,12);
- socialNickname=state.operatorGiftV21?OPERATOR_NICK:(oldName&&!isLegacyPlaceholder(oldName)?oldName:newVisitorNick());
+ socialNickname=accountScope?(sessionStorage.getItem('village-auth-nickname')||accountScope):state.operatorGiftV21?OPERATOR_NICK:(oldName&&!isLegacyPlaceholder(oldName)?oldName:newVisitorNick());
  localStorage.setItem(PLAYER_NICK_KEY,socialNickname);
-}catch{socialNickname=state.operatorGiftV21?OPERATOR_NICK:newVisitorNick()}
+}catch{socialNickname=accountScope?(sessionStorage.getItem('village-auth-nickname')||accountScope):state.operatorGiftV21?OPERATOR_NICK:newVisitorNick()}
 function showOperatorNickname(){
  socialNickname=OPERATOR_NICK;
  effectiveDisplayNick=OPERATOR_NICK;
