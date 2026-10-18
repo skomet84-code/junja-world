@@ -11,23 +11,30 @@ function box(p,color,x,y,z,w,h,d){return mesh(p,boxGeo,color,x,y,z,w,h,d)}
 function sphere(p,color,x,y,z,w,h=w,d=w){return mesh(p,sphereGeo,color,x,y,z,w,h,d)}
 function cylinder(p,color,x,y,z,r,h){return mesh(p,cylinderGeo,color,x,y,z,r,h,r)}
 function group(p,x=0,y=0,z=0){const g=new T.Group();g.position.set(x,y,z);p.add(g);return g}
-function label(parent,text,x,y,z,width=150){
- const canvas=document.createElement('canvas');canvas.width=640;canvas.height=160;
+function label(parent,text,x,y,z,width=150,own=false){
+ const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
  const ctx=canvas.getContext('2d');
  const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;
  const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,depthWrite:false,depthTest:false,transparent:true}));
- sprite.renderOrder=500;sprite.position.set(x,y,z);sprite.scale.set(width*1.09,width*1.09/4,1);
+ sprite.renderOrder=500;sprite.position.set(x,y,z);
  const renderName=(name)=>{
-  ctx.clearRect(0,0,640,160);
-  ctx.shadowColor='rgba(30,58,42,.22)';ctx.shadowBlur=10;ctx.shadowOffsetY=5;
-  ctx.fillStyle='rgba(255,253,239,.97)';ctx.beginPath();ctx.roundRect(8,13,624,132,30);ctx.fill();
+  ctx.clearRect(0,0,512,128);
+  const title=(own?'★ ':'')+String(name||'마을 친구').slice(0,12);
+  const isSpeech=width>=160;
+  const fontSize=isSpeech?43:51;
+  ctx.font='900 '+fontSize+'px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  const measured=ctx.measureText(title).width;
+  const pillWidth=Math.min(490,Math.max(112,Math.ceil(measured+52)));
+  const left=(512-pillWidth)/2;
+  ctx.shadowColor='rgba(24,45,31,.22)';ctx.shadowBlur=6;ctx.shadowOffsetY=3;
+  ctx.fillStyle=own?'#fff0b8':'rgba(255,253,242,.97)';
+  ctx.beginPath();ctx.roundRect(left,15,pillWidth,98,35);ctx.fill();
   ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-  ctx.strokeStyle='#80ab91';ctx.lineWidth=5;ctx.stroke();
-  ctx.font='900 57px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  ctx.strokeStyle=own?'#b58b31':'#72977d';ctx.lineWidth=4;ctx.stroke();
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
-  ctx.strokeStyle='#f9fff6';ctx.lineWidth=4;
-  const title=String(name||'마을 친구').slice(0,12);
-  ctx.strokeText(title,320,78,580);ctx.fillStyle='#1c513b';ctx.fillText(title,320,78,580);
+  ctx.fillStyle='#183a2b';ctx.fillText(title,256,64,pillWidth-35);
+  const scaledWidth=width*(pillWidth/512)*1.1;
+  sprite.scale.set(scaledWidth, width*1.1/4,1);
   tex.needsUpdate=true;
  };
  renderName(text);sprite.userData.setLabel=renderName;parent.add(sprite);return sprite;
@@ -128,7 +135,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  const player=createAvatar(),villagers=npcs.map((n,i)=>{const a=createAvatar({coat:n.coat,hat:n.hat});a.root.userData.pick={type:'npc',index:i};scene.add(a.root);label(a.root,n.name,0,142,0,118);pickRoots.push(a.root);return a});scene.add(player.root);
  const residents=animals.map((n,i)=>{const a=createAvatar({coat:['lavender','mint','amber','rose'][i],animal:n.species});a.root.scale.setScalar(.85);a.root.userData.pick={type:'animal',id:n.id};scene.add(a.root);label(a.root,n.name,0,n.species==='rabbit'?161:140,0,118);pickRoots.push(a.root);return a});
  const questMarkers=animals.map(()=>{const mark=label(scene,'❗',0,185,0,48);mark.visible=false;return mark});
- const playerLabel=label(scene,nickname,0,143,0,120);
+ const playerLabel=label(scene,nickname,0,143,0,120,true);
  const playerSpeech=label(scene,'',0,192,0,172);playerSpeech.visible=false;
  let playerPhrase='',playerPhraseUntil=0;
  function sayLocal(text){
