@@ -229,26 +229,51 @@ const QUEST_TEMPLATES=[
  {kind:'gather',need:6,label:'나무·돌·꽃 6개 채집하기',reward:1250,xp:55},
  {kind:'gather',need:12,label:'나무·돌·꽃 12개 채집하기',reward:2200,xp:85}
 ];
+const QUEST_MULTIPLIER={common:1.2,fine:1.3,rare:1.5,hero:1.8,legend:2.5,mythic:3};
+function makeFishDeliveryQuest(seed){
+ const pool=FISH.filter(f=>['common','fine','rare','hero','legend','mythic'].includes(f.tier)&&(!f.level||f.level<=lifeLevel()+3));
+ if(!pool.length)return null;
+ // Rare high-tier orders appear occasionally, not as a daily guaranteed reward.
+ const roll=(seed%100),tier=roll<2?'mythic':roll<9?'legend':roll<25?'hero':roll<50?'rare':roll<70?'fine':'common';
+ const candidates=pool.filter(f=>f.tier===tier),fish=(candidates.length?candidates:pool)[seed%((candidates.length?candidates:pool).length)];
+ const price=quoteFish(fish,new Date(),state.fishRecords?.[fish.name]);
+ const reward=Math.max(price+1,Math.ceil(price*(QUEST_MULTIPLIER[fish.tier]||1.2)));
+ return {kind:'delivery',fishName:fish.name,fishTier:fish.tier,need:1,label:fish.name+' 1마리 납품',reward,xp:fish.tier==='mythic'?450:fish.tier==='legend'?280:110,quoted:price};
+}
 function villagerQuestState(){
- const day=nowDay(),q=state.villagerRequests;
- if(q&&q.day===day)return q;
- const ids=animalFriends.map(a=>a.id),seed=day.split('-').join('')*1+(Math.floor(Math.random()*9999));
+ const day=nowDay(),existing=state.villagerRequests;
+ if(existing&&existing.day===day)return existing;
+ const ids=animalFriends.map(a=>a.id),seed=Number(day.replace(/\D/g,''))+(Math.floor(Math.random()*9999));
  const shuffled=[...ids].sort((a,b)=>((seed+a.charCodeAt(0)*37)%101)-((seed+b.charCodeAt(0)*37)%101));
  const count=2+seed%3;
- const requests=shuffled.slice(0,count).map((id,i)=>({...QUEST_TEMPLATES[(seed+i*3)%QUEST_TEMPLATES.length],id,status:'available',start:0}));
- state.villagerRequests={day,requests};return state.villagerRequests;
+ const requests=shuffled.slice(0,count).map((id,i)=>{
+  const base=QUEST_TEMPLATES[(seed+i*3)%QUEST_TEMPLATES.length];
+  const special=(seed+i*19)%100<65?makeFishDeliveryQuest(seed+i*137):null;
+  return {...(special||base),id,status:'available',start:0};
+ });
+ state.villagerRequests={day,requests};save();return state.villagerRequests;
 }
 function questCounter(kind){return kind==='fish'?Number(state.fish)||0:Number(state.gathered)||0}
 function villagerQuestFor(id){return villagerQuestState().requests.find(q=>q.id===id)}
 function villagerQuestHtml(a){
  const q=villagerQuestFor(a.id);if(!q)return '';
- const done=q.status==='done',active=q.status==='active',progress=active?Math.max(0,questCounter(q.kind)-q.start):0;
- return '<div class="mini-card"><h3>❗ 오늘의 주민 의뢰</h3><p>'+q.label+'</p><p>보상 '+q.reward.toLocaleString()+'G · 경험치 '+q.xp+' · '+(done?'완료':active?Math.min(progress,q.need)+'/'+q.need:'수락 전')+'</p><button id="villagerQuestAction" '+(done?'disabled':'')+'>'+(done?'오늘 의뢰 완료':active?progress>=q.need?'보상 받기':'진행 중':'의뢰 수락')+'</button></div>';
+ const done=q.status==='done',active=q.status==='active',isDelivery=q.kind==='delivery';
+ const progress=isDelivery?Math.max(0,Number(state.fishStock?.[q.fishName])||0):(active?Math.max(0,questCounter(q.kind)-q.start):0);
+ const ready=active&&progress>=q.need;
+ const detail=isDelivery?'<p>오늘 시장가 '+Number(q.quoted||0).toLocaleString()+'G · 납품 시 물고기 1마리 소모 · 전설/신화도 직접 승인 후 납품</p>':'';
+ return '<div class="mini-card"><h3>❗ 오늘의 주민 의뢰</h3><p>'+q.label+'</p>'+detail+'<p>보상 '+q.reward.toLocaleString()+'G · 경험치 '+q.xp+' · '+(done?'완료':active?Math.min(progress,q.need)+'/'+q.need:'수락 전')+'</p><button id="villagerQuestAction" '+(done?'disabled':'')+'>'+(done?'오늘 의뢰 완료':ready?'🎁 물고기 납품하고 보상 받기':active?'진행 중':'의뢰 수락')+'</button></div>';
 }
 function villagerQuestAction(a){
  const q=villagerQuestFor(a.id);if(!q||q.status==='done')return;
  if(q.status==='available'){q.status='active';q.start=questCounter(q.kind);toast('❗ '+a.name+'의 의뢰를 받았어요');}
- else if(questCounter(q.kind)-q.start>=q.need){
+ else if(q.kind==='delivery'){
+  if((Number(state.fishStock?.[q.fishName])||0)<1){toast('🎣 '+q.fishName+'를 잡거나 가방에서 찾아보세요');return}
+  // Explicit delivery consumes the fish, even when protected from automatic selling.
+  const payment=credit(state,q.reward,'quest','주민 물고기 납품 · '+a.name,Math.max(1,lifeLevel()));
+  if(!payment.ok||payment.amount<q.reward){toast('오늘의 수입 한도 때문에 납품할 수 없어요');return}
+  state.fishStock[q.fishName]--;state.xp+=q.xp;q.status='done';
+  toast('🎉 '+q.fishName+' 납품 완료! +'+payment.amount.toLocaleString()+'G');
+ }else if(questCounter(q.kind)-q.start>=q.need){
   const credited=earn(q.reward,'quest','주민 의뢰 · '+a.name);
   state.xp+=q.xp;q.status='done';toast('🎉 주민 의뢰 완료! +'+credited.toLocaleString()+'G');
  }else{toast('아직 의뢰 목표를 달성하지 못했어요');}
