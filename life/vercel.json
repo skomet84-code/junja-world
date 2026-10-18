@@ -10,6 +10,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/economy-v36.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/ws.js",
       "use": "@vercel/node"
     },
@@ -45,6 +49,10 @@
     {
       "src": "/api/account",
       "dest": "/api/account.js"
+    },
+    {
+      "src": "/api/economy-v36",
+      "dest": "/api/economy-v36.js"
     },
     {
       "src": "/api/ws",
