@@ -1205,7 +1205,32 @@ export const CATALOG=Object.freeze([
   "price": 3199200,
   "bonus": 12,
   "index": 19
- }
+ },
+{"id":"fashion_outfit_collection_01","type":"outfit","name":"화이트 웨딩드레스","color":16249320,"accent":14138745,"shape":"dress","grade":"fine","price":1200,"bonus":0,"index":40,"gender":"여","collection":true},
+{"id":"fashion_outfit_collection_02","type":"outfit","name":"핑크 웨딩드레스","color":15972303,"accent":16771052,"shape":"dress","grade":"fine","price":1850,"bonus":0,"index":41,"gender":"여","collection":true},
+{"id":"fashion_outfit_collection_03","type":"outfit","name":"로열 웨딩드레스","color":16775664,"accent":15123551,"shape":"royal","grade":"fine","price":2500,"bonus":0,"index":42,"gender":"여","collection":true},
+{"id":"fashion_outfit_collection_04","type":"outfit","name":"클래식 턱시도","color":2435894,"accent":15918539,"shape":"suit","grade":"fine","price":3150,"bonus":0,"index":43,"gender":"남","collection":true},
+{"id":"fashion_outfit_collection_05","type":"outfit","name":"화이트 턱시도","color":15921127,"accent":13149276,"shape":"suit","grade":"rare","price":3800,"bonus":0,"index":44,"gender":"남","collection":true},
+{"id":"fashion_outfit_collection_06","type":"outfit","name":"로열 턱시도","color":2106943,"accent":15189084,"shape":"royal","grade":"rare","price":4450,"bonus":0,"index":45,"gender":"남","collection":true},
+{"id":"fashion_outfit_collection_07","type":"outfit","name":"네이비 남학생 교복","color":3426150,"accent":15063484,"shape":"suit","grade":"rare","price":5100,"bonus":0,"index":46,"gender":"남","collection":true},
+{"id":"fashion_outfit_collection_08","type":"outfit","name":"리본 여학생 교복","color":4610171,"accent":15771317,"shape":"dress","grade":"rare","price":5750,"bonus":0,"index":47,"gender":"여","collection":true},
+{"id":"fashion_outfit_collection_09","type":"outfit","name":"세일러 여학생 교복","color":15527669,"accent":5403555,"shape":"sailor","grade":"rare","price":6400,"bonus":0,"index":48,"gender":"여","collection":true},
+{"id":"fashion_outfit_collection_10","type":"outfit","name":"봄날 학생 가디건","color":15125938,"accent":16777215,"shape":"knit","grade":"rare","price":7050,"bonus":0,"index":49,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_11","type":"outfit","name":"경찰 제복","color":2506084,"accent":14926461,"shape":"suit","grade":"rare","price":7700,"bonus":0,"index":50,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_12","type":"outfit","name":"소방관 제복","color":11880502,"accent":15974491,"shape":"coat","grade":"rare","price":8350,"bonus":0,"index":51,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_13","type":"outfit","name":"파일럿 제복","color":2634570,"accent":14991467,"shape":"suit","grade":"rare","price":9000,"bonus":0,"index":52,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_14","type":"outfit","name":"해군 제복","color":15790830,"accent":2906757,"shape":"sailor","grade":"rare","price":9650,"bonus":0,"index":53,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_15","type":"outfit","name":"육군 전투복","color":7241825,"accent":4213813,"shape":"armor","grade":"hero","price":10300,"bonus":0,"index":54,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_16","type":"outfit","name":"사막 군복","color":12099962,"accent":7891789,"shape":"armor","grade":"hero","price":10950,"bonus":0,"index":55,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_17","type":"outfit","name":"아이돌 무대복","color":12100328,"accent":16372976,"shape":"jacket","grade":"hero","price":11600,"bonus":0,"index":56,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_18","type":"outfit","name":"스타 레드카펫 드레스","color":12070482,"accent":15780483,"shape":"dress","grade":"hero","price":12250,"bonus":0,"index":57,"gender":"여","collection":true},
+{"id":"fashion_outfit_collection_19","type":"outfit","name":"스타 레드카펫 수트","color":1514793,"accent":14923611,"shape":"suit","grade":"hero","price":12900,"bonus":0,"index":58,"gender":"남","collection":true},
+{"id":"fashion_outfit_collection_20","type":"outfit","name":"실버 로봇","color":11451333,"accent":6079968,"shape":"armor","grade":"legend","price":13550,"bonus":0,"index":59,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_21","type":"outfit","name":"블루 메카 로봇","color":2649015,"accent":9824755,"shape":"armor","grade":"legend","price":14200,"bonus":0,"index":60,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_22","type":"outfit","name":"핑크 로봇","color":14716604,"accent":16177134,"shape":"armor","grade":"legend","price":14850,"bonus":0,"index":61,"gender":"공용","collection":true},
+{"id":"fashion_outfit_collection_23","type":"outfit","name":"보랏빛 마녀","color":7029134,"accent":15186548,"shape":"robe","grade":"legend","price":15500,"bonus":0,"index":62,"gender":"여","collection":true},
+{"id":"fashion_outfit_collection_24","type":"outfit","name":"달빛 마법사","color":3428731,"accent":13153266,"shape":"robe","grade":"legend","price":16150,"bonus":0,"index":63,"gender":"남","collection":true},
+{"id":"fashion_outfit_collection_25","type":"outfit","name":"별빛 마녀","color":3420509,"accent":16111500,"shape":"robe","grade":"legend","price":16800,"bonus":0,"index":64,"gender":"여","collection":true}
 ].map(item=>Object.freeze({...item,price:Math.round(item.price*({common:8,fine:7,rare:6,hero:5,legend:4,mythic:3}[item.grade]||5))})));
 export const CATALOG_BY_ID=Object.freeze(Object.fromEntries(CATALOG.map(item=>[item.id,item])));
 export const CATEGORIES=Object.freeze([
