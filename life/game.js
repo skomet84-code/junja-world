@@ -363,7 +363,7 @@ const chapters=[
  {title:'숲으로 떠나는 산책',desc:'지도로 도토리 숲에 이동하고 나무·돌·꽃을 5번 채집해요.',done:()=>Math.min(5,state.gathered),total:5,station:'forest',reward:140},
  {title:'나의 첫 제작',desc:'나무결 공방에서 목재 3개와 꽃잎 2개로 선물 상자를 만들어요.',done:()=>Math.min(1,state.craftCount),total:1,station:'workshop',reward:180},
  {title:'손으로 번 첫 수입',desc:'숲속 교역소에 만든 선물 상자 1개를 납품해요.',done:()=>Math.min(1,state.deliveries),total:1,station:'lodge',reward:200},
- {title:'나만의 스타일',desc:'달빛 의상실에서 마음에 드는 옷이나 모자를 구매해요.',done:()=>Math.min(1,owned.filter(x=>!['mint','none'].includes(x)).length),total:1,station:'boutique',reward:150},
+ {title:'나만의 스타일',desc:'달빛 의상실에서 마음에 드는 옷이나 모자를 구매해요.',done:()=>Math.min(1,owned.filter(x=>!['mint','none'].includes(x)).length+state.fashion.owned.filter(id=>CATALOG_BY_ID[id]&&['outfit','hair','accessory'].includes(CATALOG_BY_ID[id].type)).length),total:1,station:'boutique',reward:150},
  {title:'머물고 싶은 마을',desc:'제작하거나 구매한 장식을 마을에 3개 배치해요.',done:()=>Math.min(3,state.decorations.length),total:3,station:'garden',reward:300},
  {title:'바다의 수집가',desc:'부두에서 서로 다른 물고기를 3종 발견해요.',done:()=>Math.min(3,new Set(state.collection).size),total:3,station:'pier',reward:350},
  {title:'마을의 생활 장인',desc:'누적 5개 상자를 납품하고 집에 가구 3개를 모아봐요.',done:()=>Math.min(5,state.deliveries)+Math.min(3,state.home.furniture.length),total:8,station:'lodge',reward:600}
@@ -1056,7 +1056,7 @@ function openShop(section=wardrobeTab){
  if(!['sets','classic',...CATEGORIES.map(x=>x.id)].includes(section))section='outfit';
  wardrobeTab=section;
  if(!fittingLook)fittingLook=fashionSnapshot();
- const selected=section==='classic'?outfits:section==='sets'?[]:CATALOG.filter(o=>o.type===section&&(section!=='outfit'||wardrobeGender==='전체'||!o.gender||o.gender===wardrobeGender||o.gender==='공용'));
+ const selected=section==='classic'?outfits:section==='sets'?[]:CATALOG.filter(o=>o.type===section&&(wardrobeGender==='전체'||!o.gender||o.gender===wardrobeGender||o.gender==='공용'));
  const cards=section==='sets'?STYLE_SETS.map(set=>{
   const needed=neededStyleItems(set),price=setPrice(set);
   return `<div class="premium-set">
@@ -1093,7 +1093,7 @@ function openShop(section=wardrobeTab){
   <div class="pill-row fitting-controls"><button class="pill-btn ghost" id="turnFitting">↻ 돌려보기</button>
    <button class="pill-btn ghost" id="walkFitting">걷는 모습</button><button class="pill-btn ghost" id="resetFitting">현재 착용</button></div>
   <nav class="fashion-tabs" aria-label="꾸미기 상점 분류">${buttons}</nav>
-  ${section==='outfit'?`<div class="pill-row" aria-label="의상 성별 필터">${['전체','남','여'].map(g=>`<button type="button" data-gender="${g}" class="pill-btn ${wardrobeGender===g?'':'ghost'}">${g==='남'?'👦 남자 의상':g==='여'?'👧 여자 의상':'🌈 전체 의상'}</button>`).join('')}</div>`:''}
+  ${!['sets','classic'].includes(section)?`<div class="pill-row" aria-label="상품 스타일 필터">${['전체','남','여'].map(g=>`<button type="button" data-gender="${g}" class="pill-btn ${wardrobeGender===g?'':'ghost'}">${g==='남'?'👦 남자 스타일':g==='여'?'👧 여자 스타일':'🌈 전체 보기'}</button>`).join('')}</div>`:''}
   ${section!=='classic'&&fittingLook.fashion[section]?`<button type="button" class="pill-btn ghost" id="unequipFashion">↩ ${CATEGORIES.find(c=>c.id===section).label} 해제</button>`:''}
   <p class="fashion-total">${section==='sets'?STYLE_SETS.length:selected.length}종 · 보유 코인 ${Math.floor(state.coins).toLocaleString('ko-KR')}G</p>
   <div class="goods">${cards}</div>`);
@@ -1325,7 +1325,7 @@ function fishingAction(){
     recordWeightKg:Math.round(Math.pow(fishLength/51,2.65)*10)/10
    };
    if(!state.dailyFishNames.includes(f.name))state.dailyFishNames.push(f.name);
-   state.xp+=32+reelProfile.tier*17+(isFirst?30:0);
+   state.xp+=48+reelProfile.tier*22+(isFirst?30:0);
    if(!addBagItems(state,'fish',f.name,1))toast('🎒 가방이 가득 찼어요. 어시장에 들러보세요');
    hud();save();completeDaily();checkAchievements();
    fishPhase='idle';castMode=false;hookedFish=null;reelProfile=null;
