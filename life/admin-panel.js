@@ -24,7 +24,7 @@ const panel=document.createElement('div');panel.id='junjaAdminPanel';panel.inner
 <p class="muted">게임 기록 변경은 서버 저장에 반영돼. 접속 중인 친구는 로그아웃한 뒤 다시 로그인해야 해.</p>
 </div>`;document.body.append(panel);
 const $=id=>document.getElementById(id);let members=[],selected='';
-const itemNames=CATALOG.map(x=>[x.id,({hair:'💇',outfit:'👕',accessory:'💍',pet:'🐾'}[x.type]||'🎁')+' ['+({common:'일반',fine:'고급',rare:'희귀',hero:'영웅',legend:'전설',mythic:'신화'}[x.grade]||x.grade)+'] '+x.name]);
+const itemNames=[...([1,3,6,12,24].map(hours=>['auto_fish_pass_'+hours,'🎣 자동낚시 '+hours+'시간권'])),...CATALOG.map(x=>[x.id,({hair:'💇',outfit:'👕',accessory:'💍',pet:'🐾'}[x.type]||'🎁')+' ['+({common:'일반',fine:'고급',rare:'희귀',hero:'영웅',legend:'전설',mythic:'신화'}[x.grade]||x.grade)+'] '+x.name])];
 for(const [id,name] of itemNames){const o=document.createElement('option');o.value=id;o.textContent=name;$('jaItem').append(o)}
 function status(t){$('jaResult').textContent=t}
 async function call(action,data){const res=await fetch('/api/account?action='+action,{method:data?'POST':'GET',credentials:'same-origin',headers:{'Content-Type':'application/json'},...(data?{body:JSON.stringify(data)}:{})});const out=await res.json().catch(()=>({}));if(!res.ok)throw Error(out.error||'서버 오류');return out}
