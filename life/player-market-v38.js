@@ -31,14 +31,14 @@ export function reserveListing(state,item,unitPrice,quantity){
 }
 export function cancelListing(state,listing){
  checkAccount(state);
- const q=marketQuote(listing.item,listing.unit_price,listing.quantity),s=structuredClone(state);
+ const q=marketQuote(listing.item,Number(listing.unit_price),Number(listing.quantity)),s=structuredClone(state);
  if(count(s.stock[q.item])+q.quantity>1_000_000)fault('창고 용량이 부족해 등록을 취소할 수 없어요');
  s.stock[q.item]=count(s.stock[q.item])+q.quantity;
  return {state:s,quote:q,delta:0};
 }
 export function settleListing(buyer,seller,listing){
  checkAccount(buyer);checkAccount(seller);
- const quote=marketQuote(listing.item,listing.unit_price,listing.quantity);
+ const quote=marketQuote(listing.item,Number(listing.unit_price),Number(listing.quantity));
  const b=structuredClone(buyer),s=structuredClone(seller);
  if(b.coins<quote.gross)fault('구매할 골드가 부족해요');
  if(s.coins+quote.net>MARKET_MAX_GOLD)fault('판매자 골드 한도에 도달했어요');
