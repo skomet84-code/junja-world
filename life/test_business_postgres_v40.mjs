@@ -47,6 +47,9 @@ try{
  const t=new Date(Date.now()-3600_000);
  const joined=selectProfession(state,'farmer',{},t).next;
  await pool.query('INSERT INTO village_economy_v36_accounts(user_key,state) VALUES($1,$2::jsonb)',['farmer',JSON.stringify(joined)]);
+ // The buyer intentionally starts with sufficient independent trial money; production must NOT credit them.
+ const buyerSeed=startingEconomy();buyerSeed.coins=4000;
+ await pool.query('INSERT INTO village_economy_v36_accounts(user_key,state) VALUES($1,$2::jsonb)',['buyer',JSON.stringify(buyerSeed)]);
  assert.equal((await biz('farmer','build')).code,409,'Cannot build without actual career proof');
  assert.equal((await biz('buyer','build')).code,409,'Cannot build without matching job');
  assert.equal((await request('farmer','POST',{action:'produce',role:'farmer',requestId:randomUUID()},business,
