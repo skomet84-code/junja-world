@@ -495,6 +495,8 @@ function openBusinessDistrictFromVillage(){
   '<p style="margin:2px 0 10px">🚪 동쪽 사업장 거리 입장 · 돌아가기를 누르면 마을의 원래 위치로 복귀해요.</p>'+
   '<div id="districtPortalV42" role="region" aria-label="3D 주민 사업장 거리"></div>');
  workshopPlaza=openWorkshopPlaza(document.getElementById('districtPortalV42'),{
+  look:{coat:state.coat,hat:state.hat,fashion:state.fashion?.equipped||{}},
+  backLabel:'← 준자마을로 돌아가기',
   back:()=>{closeModal();toast('🏡 주민 사업장 거리에서 마을로 돌아왔어요')}
  });
  // Main avatar never moves while the district modal is open.
