@@ -114,7 +114,20 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 #panelBody [data-sell-fish]{min-height:38px}
 #panelBody [data-bait-equip]{background:#8a91a2;color:#fff}
 #panelBody [data-bait-purchase]{background:#4c947b;color:#fff}
-.slot button{font-size:10px;min-height:30px;border-radius:8px;background:#f6f6e9;color:#46664c;padding:4px;margin:4px 0;max-width:100%}</style></head><body><canvas id="game" aria-label="모여봐요 반말방숲 입체 게임 필드"></canvas><div id="shade"></div>
+.slot button{font-size:10px;min-height:30px;border-radius:8px;background:#f6f6e9;color:#46664c;padding:4px;margin:4px 0;max-width:100%}
+/* Mobile HUD: preserve the center of the village as playable space. */
+@media(max-width:550px){
+ .hud.top{z-index:10;gap:8px;align-items:flex-start}
+ .hud.top .wallet{max-width:54vw;min-width:0;white-space:nowrap;font-variant-numeric:tabular-nums}
+ .hud.top .wallet #coins{font-size:clamp(11px,3.3vw,17px);overflow:hidden;text-overflow:ellipsis}
+ .hud.left{z-index:7;max-width:42vw}
+ .hud.left .quest{max-width:100%;box-sizing:border-box}
+ .season-bar{z-index:9}
+ .hint{display:none!important}
+ .social-status{right:10px;bottom:calc(88px + env(safe-area-inset-bottom));max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .welcome{max-width:70vw;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+}
+</style></head><body><canvas id="game" aria-label="모여봐요 반말방숲 입체 게임 필드"></canvas><div id="shade"></div>
 <div class="hud top"><div class="profile"><div class="portrait">🌿</div><div><div class="name" id="name">새싹</div><div class="rank" id="level">Lv. 1 · 초보 낚시꾼</div><div class="xp"><i id="xp"></i></div></div></div><div class="wallet"><i class="gold">★</i><span id="coins">800</span><span style="font-size:10px;color:#fff6">G</span></div></div>
 <div class="hud left"><div class="quest"><div class="eyebrow">✦ 오늘의 의뢰</div><strong id="questText">첫 생활 목표 확인하기</strong><span id="questNext">수첩을 눌러 다음 활동을 확인해요</span><div class="questbar"><i id="questProgress"></i></div><em id="questCount">0 / 1</em></div></div>
 <div class="minimap" id="mapButton" role="button" tabindex="0" aria-label="미니맵"><canvas id="mini" width="176" height="140"></canvas><span>🌸 모여봐요 반말방숲 · 지도</span></div>
