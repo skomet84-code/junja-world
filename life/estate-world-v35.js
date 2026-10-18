@@ -43,7 +43,7 @@ export function mountEstateWorld({host,estate,cropMap,onPlot,look={}}){
  geometries.add(boxGeo);geometries.add(sphereGeo);geometries.add(cylinderGeo);geometries.add(coneGeo);
  function material(color,transparent=false){
   const key=color+'-'+transparent;
-  if(!mats.has(key))mats.set(key,new T.MeshStandardMaterial({color,roughness:.92,transparent,opacity:transparent?.72:1}));
+  if(!mats.has(key))mats.set(key,new T.MeshStandardMaterial({color,roughness:.92,transparent,opacity:transparent ? .72 : 1}));
   return mats.get(key);
  }
  function obj(parent,geo,color,x,y,z,sx,sy,sz){
@@ -167,12 +167,17 @@ export function mountEstateWorld({host,estate,cropMap,onPlot,look={}}){
   if(hits.length)return {plot:hits[0].object.userData.plotIndex};
   return raycaster.ray.intersectPlane(plane,intersection)?{world:{x:intersection.x,z:intersection.z}}:null;
  }
+ function visitPlot(index){
+  const bed=layout.beds[index];if(!bed||disposed)return false;
+  targetPlot=bed.index;goal={x:bed.x,z:bed.z+51};
+  indicator.position.set(goal.x,18,goal.z);indicator.visible=true;
+  return true;
+ }
  function onPointerUp(event){
   if(disposed||!renderer.domElement.isConnected)return;
   const result=project(event);if(!result)return;
   if(Number.isInteger(result.plot)){
-   const bed=layout.beds[result.plot];
-   targetPlot=result.plot;goal={x:bed.x,z:bed.z+51};
+   visitPlot(result.plot);
   }else if(result.world){
    targetPlot=null;
    goal={x:Math.max(-layout.width/2+50,Math.min(layout.width/2-50,result.world.x)),
@@ -227,6 +232,7 @@ export function mountEstateWorld({host,estate,cropMap,onPlot,look={}}){
  camera.position.set(pos.x+370,450,pos.z+485);camera.lookAt(pos.x,45,pos.z);
  updateCrops(Date.now());raf=requestAnimationFrame(frame);
  return {
+  visitPlot,
   stats:()=>({plots:layout.slots,frames:timesRendered,walker:{...pos}}),
   dispose(){
    if(disposed)return;disposed=true;
