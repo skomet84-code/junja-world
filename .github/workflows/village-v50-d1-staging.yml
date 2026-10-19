@@ -20,6 +20,11 @@ jobs:
         run: node --check life/cf/d1/export-neon.mjs
       - name: Test Cloudflare D1 SQLite schema without any production data
         run: python3 life/cf/d1/test_schema.py
+      - name: Validate standalone D1 worker and read-only gate
+        run: |
+          node --check life/cf/d1/account-staging.js
+          node --check life/cf/d1/worker-staging.js
+          node life/cf/d1/test_account_staging.mjs
       - name: Test existing village gameplay and Cloudflare bridge
         working-directory: life
         run: |
