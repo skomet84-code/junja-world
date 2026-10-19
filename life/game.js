@@ -9,6 +9,7 @@ import {openProfessionCenter} from './professions-ui-v39.js';
 import {openBusinessCenter} from './business-ui-v40.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
 import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
+import {mountHomeStudioV48} from './home-studio-ui-v48.js';
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
 import {updateVillageResidents,npcDailyLine,v43Daypart} from './village-life-v43.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
@@ -21,7 +22,7 @@ import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-f
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
 const els=Object.fromEntries(['name','level','xp','coins','questText','questCount','questProgress','toast','hint','modal','panelBody','fishing','fishTitle','fishDesc','fishAction','gauge','needle','welcome'].map(k=>[k,document.getElementById(k)]));
-let world3D=null,estateWorld=null,workshopPlaza=null,energyModal=null;
+let world3D=null,estateWorld=null,workshopPlaza=null,energyModal=null,homeStudioV48=null;
 const W=3600,H=2400; let CW=innerWidth,CH=innerHeight,dpr=1,scale=1,camera={x:1000,y:900},t=0,last=performance.now();
 const A={};
 const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
@@ -926,6 +927,18 @@ function openNpc(npc){
 function openDecor(){const cards=decorCatalog.map(o=>`<div class="mini-card"><span class="emoji">${o.emoji}</span><strong>${o.label}</strong><p>${state.crafted[o.id]>0?'제작품 '+state.crafted[o.id]+'개 · 무료 배치':'🪙 '+(o.cost*5).toLocaleString()+'G · 구매 배치'}</p><button data-decor="${o.id}">배치하기</button></div>`).join('');openModal(`<span class="titlebadge">GARDEN ATELIER</span><h2>🏡 내 마을 꾸미기</h2><p>장식을 선택하고, 마을의 원하는 빈 바닥을 터치해 배치해요.</p><div class="card-grid">${cards}</div><div class="pill-row"><button class="pill-btn ghost" id="removeDecoration">설치된 장식 회수하기</button><button class="pill-btn ghost" id="openHomeLink">내 집 꾸미기</button></div>`);els.panelBody.querySelectorAll('[data-decor]').forEach(btn=>btn.onclick=()=>{placeDecor=btn.dataset.decor;closeModal();toast('👆 비어 있는 바닥을 터치해 배치해요!');els.hint.textContent='장식 배치 모드 · 바닥 터치 / 취소는 꾸미기 버튼';els.hint.classList.remove('hidden')});document.getElementById('removeDecoration').onclick=()=>{placeDecor='remove';closeModal();toast('원래 설치한 장식을 터치하면 회수해요!')};document.getElementById('openHomeLink').onclick=openHome}
 function placeAt(x,y){if(placeDecor==='remove'){const i=state.decorations.findIndex(o=>Math.hypot(o.x-x,o.y-y)<70);if(i<0){toast('회수할 장식을 터치해주세요');return}let old=state.decorations.splice(i,1)[0],v=decorCatalog.find(a=>a.id===old.id);earn(Math.floor((v?.cost||0)*.4),'other','장식 회수 환불');placeDecor=null;toast('📦 장식 회수 완료 · 일부 코인 환급');hud();save();return}
  const o=decorCatalog.find(v=>v.id===placeDecor);if(!o)return; if(!walkable(x,y)||Math.hypot(player.x-x,player.y-y)<40||[...props,...expansionProps].some(p=>Math.hypot(p.x-x,p.y-y)<185)||state.decorations.some(p=>Math.hypot(p.x-x,p.y-y)<48)){toast('여기에는 배치할 수 없어요');return}if(!(state.crafted[o.id]>0)&&state.coins<o.cost*5){toast('코인이 부족해요');placeDecor=null;return}if(state.crafted[o.id]>0)state.crafted[o.id]--;else spend(o.cost*5,'마을 장식 배치');state.decorations.push({id:o.id,x:Math.round(x),y:Math.round(y)});placeDecor=null;els.hint.classList.add('hidden');hud();save();party(x,y-10,22);checkAchievements();toast('🏡 '+o.label+' 설치 완료!')}
+function openHomeStudioV48(){
+ openModal('<span class="titlebadge">JUNJA V48 · SIGNATURE HOME</span><div id="homeStudioHostV48"></div>');
+ homeStudioV48=mountHomeStudioV48(document.getElementById('homeStudioHostV48'),{
+  getHome:()=>state.home,getCoins:()=>state.coins,
+  onBuy:change=>{
+   if(!spend(change.cost,'v48 '+change.label+' 집 가구 구매'))return false;
+   state.home=change.next;save();hud();return true;
+  },
+  onArrange:next=>{state.home=next;save();return true},
+  back:openHome
+ });
+}
 function openHome(){
  const opts=[['cream','크림 벽지','🤍'],['blue','바다빛 벽지','🌊'],['pink','봄꽃 벽지','🌷'],['gold','로열 벽지','👑']];
  const wallColor={cream:'#f8edd5',blue:'#c5e5ee',pink:'#f6d7e1',gold:'#e2c486'}[state.home.wall]||'#f8edd5';
@@ -948,7 +961,7 @@ function openHome(){
   <p>Lv.${next.minLevel} 필요 · 건축 비용 ${(next.price*5).toLocaleString()}G · ${next.rooms}개 공간</p>
   <button id="upgradeHome" ${!eligible?'disabled':''}>${!eligible?'레벨을 더 올려야 해요':'집 업그레이드'}</button></div>`:
   '<div class="mini-card"><strong>👑 최고 단계 주택 완성</strong><p>앞으로 가구와 어항을 더 꾸며봐요.</p></div>'}
-  <h3>🎨 벽지 선택</h3><div class="pill-row">
+  <button class="pill-btn" id="openStudioV48">✨ v48 · 입체 실내·방별 배치·희귀 가구 꾸미기</button><h3>🎨 벽지 선택</h3><div class="pill-row">
    ${opts.map(([k,label,emoji])=>`<button class="pill-btn ${state.home.wall===k?'':'ghost'}" data-wall="${k}">${emoji} ${label}</button>`).join('')}
   </div>
   <h3>🪑 가구 구매</h3><div class="pill-row">
@@ -976,6 +989,7 @@ function openHome(){
   if(state.home.furniture.length>=tier.rooms*3+2){toast('집을 넓히면 더 많은 가구를 놓을 수 있어요');return}
   spend(price,'집 가구 구매');state.home.furniture.push(item);hud();save();openHome();
  });
+ document.getElementById('openStudioV48').onclick=openHomeStudioV48;
  document.getElementById('homeAquarium').onclick=openAquarium;
 }
 function openCraft(){
@@ -1141,7 +1155,7 @@ function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers))
   if(els.modal.classList.contains('open')){player.vx=player.vy=0;return}
   // Pointer paths are updated from pointermove events, not a drifting frame loop.
   const kvx=Number(!!(keys.ArrowRight||keys.d||keys.D))-Number(!!(keys.ArrowLeft||keys.a||keys.A)),kvy=Number(!!(keys.ArrowDown||keys.s||keys.S))-Number(!!(keys.ArrowUp||keys.w||keys.W));
-  if(kvx||kvy){if(fishPhase!=='idle')fishFailure('이동하여 낚시를 마쳤어요');stopWalking();const len=Math.hypot(kvx,kvy),target={x:player.x+kvx/len*190*dt,y:player.y+kvy/len*190*dt};if(navigation.clear(player,target)){const moved=navigation.advance(player,[target],dt);if(moved>0){player.vx=kvx/len*190;player.vy=kvy/len*190}}}
+  if(kvx||kvy){if(fishPhase!=='idle')fishFailure('이동하여 낚시를 마쳤어요');stopWalking();const len=Math.hypot(kvx,kvy),target={x:player.x+kvx/len*205*dt,y:player.y+kvy/len*205*dt};if(navigation.clear(player,target)){const moved=navigation.advance(player,[target],dt,205);if(moved>0){player.vx=kvx/len*205;player.vy=kvy/len*205}}}
   else if(path.length){navigation.advance(player,path,dt);if(player.blocked){stopWalking();toast('길이 막혀 멈췄어요')}else if(!path.length)arrive();}
   else player.vx=player.vy=0;
   // A fixed follow camera avoids input drift caused by a lagging view transform.
@@ -1169,8 +1183,8 @@ function drawMini(){const w=mini.width,h=mini.height,sx=w/W,sy=h/H;
  mctx.fillStyle='#ffe48f';mctx.strokeStyle='#263e3a';mctx.lineWidth=1.5;mctx.beginPath();mctx.arc(player.x*sx,player.y*sy,3.5,0,7);mctx.fill();mctx.stroke();
 }
 function disposeEstateWorld(){if(estateWorld){estateWorld.dispose();estateWorld=null}if(workshopPlaza){workshopPlaza.dispose();workshopPlaza=null}}
-function closeModal(){energyModal?.dispose();energyModal=null;disposeEstateWorld();els.modal.classList.remove('open');}
-function openModal(html){energyModal?.dispose();energyModal=null;disposeEstateWorld();stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
+function closeModal(){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();els.modal.classList.remove('open');}
+function openModal(html){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
 const energyHudController=mountEnergyHud(document.getElementById('energyHudV47'),{open:()=>{
  openModal('<span class="titlebadge">JUNJA V47 · TRIAL ACTION ENERGY</span><div id="energyModalV47"></div>');
  energyModal=mountEnergyPanel(document.getElementById('energyModalV47'),{onChange:()=>energyHudController.refresh()});
@@ -1227,7 +1241,7 @@ function openPersonalEstate(){
  const recipes=ESTATE_RECIPES.map((r,i)=>'<div style="background:#f3f4e8;border-radius:14px;padding:12px"><strong>'+r.name+'</strong><p style="font-size:12px">'+Object.entries(r.needs).map(([id,n])=>ESTATE_BY_ID[id][2]+' '+n+'개').join(' · ')+'</p><button data-recipe="'+i+'" style="padding:9px 13px;border-radius:12px;background:#cde5c7;color:#23442e">'+(r.build?'건설 · '+estateFmt(r.gold):'제작·보관 · 가공비 '+estateFmt(ESTATE_PRODUCTS[i].fee))+'</button></div>').join('');
  openModal('<span class="titlebadge">MY PRIVATE FARM · JUNJA LIFE</span><h2>🌳 나만의 농장과 과수원</h2><p>내 계정 전용 공간 · 게임을 꺼도 작물은 계속 자라요.</p><div style="padding:14px;border-radius:18px;background:linear-gradient(135deg,#dceecb,#fff0d3);margin:12px 0"><strong>🏡 '+(tier?.name||'아직 내 농장이 없어요')+'</strong><p>'+(tier?'재배 공간 '+slots+'칸 · 수확해서 요리와 건물을 만들어요.':'농장을 구매하면 나만의 텃밭을 열 수 있어요.')+'</p>'+(next?'<button id="estateUpgrade" style="padding:12px 16px;background:#8ebc91;color:#183f27;border-radius:13px;font-weight:700">🌱 '+(tier?'농장 확장':'농장 구매')+' · '+estateFmt(next.cost)+'</button>':'<strong>👑 최대 확장 완료</strong>')+'</div>'+
  (slots?'<div id="estateWorldV35" style="height:320px;min-height:260px;width:100%;margin:12px 0 7px;overflow:hidden;border-radius:18px;border:2px solid #ecdfb7;background:#b4cf8d" role="group" aria-label="내 농장 3D 체험 공간"></div><p style="font-size:12px;color:#476c57;margin-bottom:12px">👆 3D 농장에서 땅을 누르면 걸어가고, 작물을 누르면 심거나 수확해요. 아래 목록으로도 관리할 수 있어요.</p><div style="display:flex;gap:8px;align-items:center;margin:12px 0"><label for="estateCrop" style="font-weight:700">심을 작물</label><select id="estateCrop" style="flex:1;min-width:0;padding:12px;border-radius:12px;background:#fff;border:1px solid #c3d3c0">'+cropOptions+'</select></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:300px;overflow:auto;padding:4px">'+plots+'</div>':'')+
- '<div style="display:grid;gap:8px;margin:14px 0;padding:13px;background:#eef3e5;border-radius:16px"><strong>🏅 '+estateRank(state).name+' · 주민 납품 명성 '+initEstateTrade(state).reputation+'점</strong><button id="estateOrdersOpen" style="padding:12px;background:#5b926e;color:white;border-radius:11px;font-weight:800">📦 오늘의 주민 주문 · 가공품 보관함 · 명예 기록</button><button id="estateSecureLab" style="padding:12px;background:#4d797c;color:white;border-radius:11px;font-weight:800">🔐 서버 경제 v37 · 복구 장부 시험장</button><button id="estatePlayerMarket" style="padding:12px;background:#9c774e;color:white;border-radius:11px;font-weight:800">🏪 주민 상점 · v38 시험 거래소</button><button id="estateProfessions" style="padding:12px;background:#6e738e;color:white;border-radius:11px;font-weight:800">🏅 직업 성장·일일 계약 · v39</button><button id="estateBusinesses" style="padding:12px;background:#8a746a;color:white;border-radius:11px;font-weight:800">🏡 나만의 사업장 · 전문 생산품 · v40</button><button id="estateWorkshops3D" style="padding:12px;background:#79907c;color:white;border-radius:11px;font-weight:800">🏘️ 걸어 다니는 3D 사업장 거리 · v41</button></div><h3 style="margin-top:20px">🧺 내 수확 창고</h3>'+inventory+'<h3 style="margin-top:20px">🍳 요리·건축 공방</h3><div style="display:grid;gap:9px">'+recipes+'</div><p style="font-size:12px;margin-top:16px">※ 농작물 판매와 제작 보상은 게임 골드로 지급됩니다. 시세는 고정이며 작물마다 성장 시간이 달라요. 농장은 계정별로 따로 저장돼요.</p>');
+ '<div style="display:grid;gap:8px;margin:14px 0;padding:13px;background:#eef3e5;border-radius:16px"><strong>🏅 '+estateRank(state).name+' · 주민 납품 명성 '+initEstateTrade(state).reputation+'점</strong><button id="estateHomeV48" style="padding:12px;background:#ddbe82;color:#3e352a;border-radius:11px;font-weight:800">🏡 3D 내 주택 · 희귀 가구 · v48</button><button id="estateOrdersOpen" style="padding:12px;background:#5b926e;color:white;border-radius:11px;font-weight:800">📦 오늘의 주민 주문 · 가공품 보관함 · 명예 기록</button><button id="estateSecureLab" style="padding:12px;background:#4d797c;color:white;border-radius:11px;font-weight:800">🔐 서버 경제 v37 · 복구 장부 시험장</button><button id="estatePlayerMarket" style="padding:12px;background:#9c774e;color:white;border-radius:11px;font-weight:800">🏪 주민 상점 · v38 시험 거래소</button><button id="estateProfessions" style="padding:12px;background:#6e738e;color:white;border-radius:11px;font-weight:800">🏅 직업 성장·일일 계약 · v39</button><button id="estateBusinesses" style="padding:12px;background:#8a746a;color:white;border-radius:11px;font-weight:800">🏡 나만의 사업장 · 전문 생산품 · v40</button><button id="estateWorkshops3D" style="padding:12px;background:#79907c;color:white;border-radius:11px;font-weight:800">🏘️ 걸어 다니는 3D 사업장 거리 · v41</button></div><h3 style="margin-top:20px">🧺 내 수확 창고</h3>'+inventory+'<h3 style="margin-top:20px">🍳 요리·건축 공방</h3><div style="display:grid;gap:9px">'+recipes+'</div><p style="font-size:12px;margin-top:16px">※ 농작물 판매와 제작 보상은 게임 골드로 지급됩니다. 시세는 고정이며 작물마다 성장 시간이 달라요. 농장은 계정별로 따로 저장돼요.</p>');
  if(slots){
   const host=document.getElementById('estateWorldV35');
   try{
@@ -1244,6 +1258,7 @@ function openPersonalEstate(){
    if(host){host.textContent='🌱 이 기기에서는 3D 농장 표시가 제한됐어요. 아래 밭 관리 버튼으로 계속 이용할 수 있어요.';host.style.height='auto';host.style.padding='28px 14px'}
   }
  }
+ document.getElementById('estateHomeV48').onclick=openHomeStudioV48;
  document.getElementById('estateOrdersOpen').onclick=openEstateOrders;
  document.getElementById('estateWorkshops3D').onclick=()=>{
   openModal('<span class="titlebadge">JUNJA V41 · BUSINESS DISTRICT · TEST ECONOMY</span><div id="estateWorkshopPlaza"></div>');
