@@ -9,6 +9,7 @@ import {openProfessionCenter} from './professions-ui-v39.js';
 import {openBusinessCenter} from './business-ui-v40.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
+import {updateVillageResidents,npcDailyLine,v43Daypart} from './village-life-v43.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
 import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
@@ -610,7 +611,7 @@ for(const coat of Object.keys(AVATAR_SPRITES)) AVATAR_IMAGES[coat]=AVATAR_SPRITE
 const AVATAR_PREVIEWS={};
 for(const [coat,urls] of Object.entries(AVATAR_SPRITES)) AVATAR_PREVIEWS[coat]='data:image/webp;base64,'+urls[0];
 
-function drawWorld(dt){if(estateWorld||workshopPlaza)return;if(world3D){const q=villagerQuestState();world3D.render({state,actor:player,npcs,animals:animalFriends.map(a=>({...a,questMark:q.requests.some(r=>r.id===a.id&&r.status!=='done')})),peers,time:t,dt,goal,path});}}
+function drawWorld(dt){if(estateWorld||workshopPlaza)return;if(world3D){updateVillageResidents(npcs,Date.now(),walkable);const q=villagerQuestState();world3D.render({state,actor:player,npcs,animals:animalFriends.map(a=>({...a,questMark:q.requests.some(r=>r.id===a.id&&r.status!=='done')})),peers,time:t,dt,goal,path});}}
 function party(x,y,n=12){for(let i=0;i<n;i++){fx.push({x,y,v:rand(22,64),vx:rand(-56,56),life:rand(.7,1.3),total:1.3,r:rand(2,5),col:['#fff7b5','#ffe1f1','#f3f7fb','#8de3dc'][Math.floor(rand(0,4))]})}}
 function walkable(x,y){
  if(portalCollision(x,y))return false;
@@ -886,7 +887,7 @@ function openNpc(npc){
  const esc=s=>String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
  completeDaily();
  openModal('<span class="titlebadge">VILLAGER FRIENDSHIP · '+esc(npc.name)+'</span><h2>💗 '+esc(npc.name)+'와의 우정</h2>'+
-  '<p>'+esc(npc.text)+'</p><div class="mini-card"><strong>친밀도 '+heart+' · '+ '💗'.repeat(Math.min(5,Math.floor(heart/7)+1))+
+  '<p>'+esc(npc.text)+'</p><p>🌤️ '+esc(npcDailyLine(npc.name))+'</p><div class="mini-card"><strong>친밀도 +heart+' · '+ '💗'.repeat(Math.min(5,Math.floor(heart/7)+1))+
   '</strong><p>하루 한 번 대화하고 선물을 건네면서 진짜 친구가 돼보세요. 매일 부탁도 달라져요.</p>'+
   '<div class="pill-row"><button class="pill-btn" id="friendTalk" '+(talked?'disabled':'')+'>💬 '+(talked?'오늘 인사 완료':'오늘의 이야기')+'</button>'+
   '<button class="pill-btn alt" id="friendGift" '+(gifted?'disabled':'')+'>🎁 '+(gifted?'오늘 선물 완료':'꽃 선물 180G')+'</button></div></div>'+
