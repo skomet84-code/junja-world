@@ -63,15 +63,32 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
   for(const x of [-89,89])for(const z of [-82,82])cylinder(outdoor,0xe7d6bd,s.x+x,21,s.z+z,5,22);
  }
  // Each owner facility is a mesh with distinct roof and products, not a flat sprite.
- const picks=[];
+ const picks=[],facades=[],festivalFlags=[];
  function decorateBuilding(facility){
   const {role,site,level}=facility,c=roleColors[role],point=WORKSHOP_SITES[site];
   const base=group(outdoor,point.x,0,point.z);
+  facades.push({base,level});
   const height=75+(level-1)*16;
   cube(base,c.wall,0,15+height/2,-15,151,height,122);
   cube(base,c.roof,0,height+23,-15,175,13,151);
   if(level>=2)cube(base,c.roof,0,height+38,-15,96,17,110);
   if(level===3)cube(base,COLORS.cream,0,height+55,-15,50,25,46);
+  // v43 building level progression: visible trim, a second-story balcony and a pennant roofline.
+  if(level>=2){
+   cube(base,0xf9ead0,0,height+6,52,147,8,10);
+   for(const px of [-57,-29,0,29,57])cylinder(base,0xc2a178,px,height-2,54,3,25);
+   cube(base,c.accent,0,height+19,52,148,5,10);
+  }
+  if(level===3){
+   for(const px of [-47,47]){
+    cylinder(base,0xe7d3ae,px,height+72,-21,4,38);
+    sphere(base,0xf8df9b,px,height+95,-21,11,10,11);
+   }
+   const flag=cube(base,0xf1c89d,0,height+94,22,58,30,4);
+   festivalFlags.push({flag,shift:site});
+  }
+  const welcome=cube(base,0xf2deba,0,112,52,71,19,5);
+  cube(base,c.accent,0,113,56,57,5,3);
   cube(base,0x977256,0,37,47,42,70,5); // door
   for(const x of [-54,54]){
    cube(base,0x9dd1cf,x,55,47,30,33,4);
@@ -93,6 +110,13 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
    for(const x of [-55,0,55])sphere(base,0xf3d2a3,x,37,80,14,13,10);
   }
   // Dedicated ray-pick mesh prevents small roofs from being hard to select on mobile.
+  // Cottage façade props convey the workshop's profession even on small phone screens.
+  for(const px of [-64,64]){
+   cube(base,0xc5a87b,px,11,82,29,15,29);
+   if(role==='farmer')sphere(base,0x8ac083,px,29,86,12,15,10);
+   if(role==='chef')sphere(base,0xe9bf81,px,29,86,13,12,11);
+   if(role==='merchant')cube(base,0xac9dca,px,31,85,22,18,11);
+  }
   const hit=cube(base,c.accent,0,65,-15,186,156,183);
   hit.material=mat(0xffffff,true);hit.userData.role=role;picks.push(hit);
  }
@@ -142,7 +166,7 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
  avatar.equip(look.fashion?.outfit||look.coat||'mint',look.hat||'none');
  avatar.setFashion(look.fashion||{});
  scene.add(avatar.root);avatar.root.scale.setScalar(.72);
- const pos={x:0,z:435};let goal=null,targetRole=null,inside=null,paused=false,disposed=false,raf=0,last=0,frames=0,stride=0;
+ const pos={x:0,z:435};let goal=null,targetRole=null,inside=null,paused=false,disposed=false,raf=0,last=0,frames=0,stride=0,bornAt=null,progress=0;
  const mark=new THREE.Mesh(new THREE.TorusGeometry(24,3,6,28),mat(0xffe09b));
  geometry.add(mark.geometry);mark.rotation.x=Math.PI/2;scene.add(mark);mark.visible=false;
  const pointer=new THREE.Vector2(),ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),-8);
@@ -210,6 +234,15 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
   if(time-last<30)return;
   const dt=Math.max(0,Math.min(.05,(time-(last||time))/1000));last=time;
   if(document.hidden)return;
+  if(bornAt===null)bornAt=time;
+  progress=Math.max(0,Math.min(1,(time-bornAt)/1700));
+  const ease=1-Math.pow(1-progress,3);
+  // Only decorative 3D transforms. No server upgrades or economy values are issued here.
+  for(const item of facades){
+   item.base.scale.y=.76+ease*.24;
+   item.base.position.y=(1-ease)*-24;
+  }
+  for(const item of festivalFlags)item.flag.rotation.z=Math.sin(time/900+item.shift)*.055;
   let vx=0,vz=0;
   if(!inside&&goal){
    const x=pos.x,z=pos.z;
@@ -239,7 +272,7 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
  raf=requestAnimationFrame(draw);
  return {
   visitRole,enter,exit,
-  stats:()=>({frames,inside,walker:{...pos},buildings:buildings.length,readOnly}),
+  stats:()=>({frames,inside,walker:{...pos},buildings:buildings.length,readOnly,constructionReveal:Math.round(progress*100),tierDecorations:festivalFlags.length}),
   dispose(){
    if(disposed)return;disposed=true;cancelAnimationFrame(raf);
    window.removeEventListener('resize',resize);
