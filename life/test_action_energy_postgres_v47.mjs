@@ -59,18 +59,13 @@ try{
  row=await account();assert.equal(row.state.actionEnergyV47.current,18,'Professional craft deducts 8 energy');
  assert.equal(row.state.stock.berry_box,1);
  assert.equal(row.state.stock.berry,0);
- const empty=structuredClone(row.state);empty.actionEnergyV47={...empty.actionEnergyV47,current:1};
- // Stay consistent with v37 checkpoint by using the real server to spend more energy:
- for(const crop of ['lettuce','lettuce','lettuce','lettuce','lettuce','lettuce','lettuce','lettuce']){
-  const x=await action('plant',{index:Math.floor(Math.random()*0)+1,crop});
-  if(x.code===200)break;
- }
+ assert.equal((await action('plant',{index:1,crop:'lettuce'})).code,200,'Second trial planting consumes 2 more energy');
  // Verify arbitrary client-supplied fake price is ignored by server.
  const second=await query(farm,'POST',{action:'energy_buy',payload:{packSize:9999,price:0},requestId:randomUUID()});
  assert.equal(second.code,200);
- row=await account();assert.equal(row.state.coins,8200-20-1200-130-1200);
+ row=await account();assert.equal(row.state.coins,8200-40-1200-130-1200);
  assert.equal(row.state.actionEnergyV47.packs,2);
- assert.equal(row.state.actionEnergyV47.current,43);
+ assert.equal(row.state.actionEnergyV47.current,41);
  const third=await purchase();assert.equal(third.code,200);
  assert.equal((await purchase()).code,409,'Fourth refill must fail daily quota');
  const status=await query(farm);assert.equal(status.code,200);
