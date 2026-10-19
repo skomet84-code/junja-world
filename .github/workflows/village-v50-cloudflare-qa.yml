@@ -24,7 +24,7 @@ jobs:
           npm install --no-save --no-package-lock wrangler@4.45.0
       - name: All village regression tests including Cloudflare protocol
         working-directory: life
-        run: npm test
+        run: npm test && node cf/test_api_bridge.mjs
       - name: Package browser-safe assets
         working-directory: life
         run: npm run build
