@@ -128,7 +128,7 @@ export async function handleAccountExtras({action,request,db,user,data,url}){
    WHERE NOT EXISTS (SELECT 1 FROM village_wallet_transfers WHERE idempotency_key=?)
    AND (? IS NULL OR (SELECT COALESCE(balance,0) FROM village_wallets WHERE user_id=?) >= ?)
    AND (? IS NULL OR (SELECT COALESCE(balance,0) FROM village_wallets WHERE user_id=?) <= ?)`)
-   .bind(txId,user.id,recipientId,amount,kind,key,at,key,payer,payer,amount,payee,payee,1000000000000-amount));
+   .bind(txId,action==='transfer'||user.id!==target.id?user.id:null,recipientId,amount,kind,key,at,key,payer,payer,amount,payee,payee,1000000000000-amount));
   if(payer)statements.push(db.prepare(`UPDATE village_wallets SET balance=balance-?,updated_at=?
    WHERE user_id=? AND EXISTS(SELECT 1 FROM village_wallet_transfers WHERE id=? AND idempotency_key=?)`)
    .bind(amount,at,payer,txId,key));
