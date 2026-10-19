@@ -82,7 +82,7 @@ export function mountHome3D(host,house,{onSelect=()=>{}}={}){
  }
  function reset(h){
   snapshot=h;grid=({1:4,2:5,3:6,4:7})[h.level]||4;span=grid*56;
-  while(root.children.length){const child=root.children.pop();child?.parent?.remove(child)}
+  while(root.children.length)root.remove(root.children[0]);
   tiles=[];
   block(root,0x8d765e,0,-11,0,span+16,18,span+16);
   block(root,floorColor(h.floor),0,-1,0,span,4,span);
