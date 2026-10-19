@@ -10,7 +10,7 @@
 .v48-help,.v48-note{font-size:11px!important;color:#849082!important;line-height:1.55!important}
 .v48-totals{background:linear-gradient(115deg,#eee9d7,#efe8e8);padding:13px;color:#615b65;border-radius:16px;font-size:12px;font-weight:800;margin:12px 0;border:1px solid #ede5cd}
 .v48-section{border:1px solid #eae5d5;background:#fffdf5;padding:13px 11px;border-radius:18px;box-shadow:0 4px 17px #726a4820;margin:12px 0}
-.v48-grid{display:grid;gap:5px;padding:10px 6px;margin:9px 0;background:#f1e6d4;border:2px solid #dec8a9;border-radius:14px;max-width:350px}
+.v48-grid{display:grid;gap:5px;overflow-x:auto;overscroll-behavior-x:contain;padding:10px 6px;margin:9px 0;background:#f1e6d4;border:2px solid #dec8a9;border-radius:14px;max-width:350px}
 .v48-tile{aspect-ratio:1;min-width:0;min-height:40px!important;border-radius:9px;background:#e5d2b9;color:#a58b6e;font-size:23px;border:1px solid #f8f2df;box-shadow:inset 0 1px 3px #ab86662e;touch-action:manipulation}
 .v48-tile.occupied{background:#f9f0dc;color:#6d785f}
 .v48-tile.selected{outline:3px solid #c0985c;outline-offset:0;background:#fff6d4;box-shadow:0 2px 5px #86654840}
