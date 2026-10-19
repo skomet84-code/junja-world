@@ -1,6 +1,6 @@
-// Cloudflare Workers Free prototype: static game + SQLite-backed Durable Object relay.
-// Production account and wallet endpoints are explicitly blocked until fully migrated.
-// Never silently fall back to guest or local data on a missing durable DB.
+// Cloudflare game/relay with a transitional bridge to the authoritative account API.
+// Database hosting stays unchanged; failures never fall back to local saves.
+import {bridgeApi} from "./api-bridge.js";
 import {DurableObject} from 'cloudflare:workers';
 import {
  MAX_ROOM_PLAYERS,normalizeRoom,normalizeClientId,sanitizeText,sanitizeAvatar,
@@ -84,13 +84,13 @@ export default{
  async fetch(request,env){
   const u=new URL(request.url);
   if(u.pathname==='/api/health'||u.pathname==='/health')
-   return json({ok:true,edge:'cloudflare',database:'not connected',release:'v50-preview'});
+   return json({ok:true,edge:'cloudflare',database:'existing-api-bridge',release:'v50-bridge',apiHealth:'not-probed'});
   if(u.pathname==='/api/ws'){
    const id=env.VILLAGE_ROOMS.idFromName('village-room-relay-v50');
    return env.VILLAGE_ROOMS.get(id).fetch(request);
   }
   if(u.pathname.startsWith('/api/')){
-   return json({error:'정식 저장 서버 연결 전입니다. 사용자 데이터를 변경하지 않았어요',reason:'migration_incomplete'},503);
+   return bridgeApi(request);
   }
   if(u.pathname==='/'||u.pathname==='/index.html'){
    return env.ASSETS.fetch(new Request(new URL('/index.html',request.url),request));
