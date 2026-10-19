@@ -49,7 +49,18 @@ export function mountHomeStudioV48(host,{getHome,getCoins,onBuy,onArrange,back}=
   for(const id of view.items){
    const item=HOME_FURNITURE_V48[id];
    const b=btn(item.icon+' '+item.name+(id===selected?' ✓':''),()=>{
-    selected=id;render('선택한 가구: '+item.name)},false,'v48-item'+(id===selected?' active':''));
+    // Selection should NOT tear down and recreate a GPU context. Only owned
+    // furniture transactions/room changes rebuild the 3D room.
+    selected=id;
+    for(const other of owned.querySelectorAll('[data-home-item]')){
+     const key=other.dataset.homeItem,active=key===selected,entry=HOME_FURNITURE_V48[key];
+     other.classList.toggle('active',active);
+     other.setAttribute('aria-pressed',String(active));
+     other.textContent=entry.icon+' '+entry.name+(active?' ✓':'');
+    }
+    hint.textContent='✅ '+item.name+' 선택됨 · 3D 가구 또는 바닥을 눌러 위치를 골라줘';
+   },false,'v48-item'+(id===selected?' active':''));
+   b.dataset.homeItem=id;
    b.setAttribute('aria-pressed',String(id===selected));owned.append(b);
   }
   add(host,'h3',data.info.name+' · 배치 공간');
