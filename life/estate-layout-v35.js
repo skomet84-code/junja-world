@@ -26,7 +26,7 @@ export function estateCropView(plot,cropMap,now=Date.now()){
  const progress=Math.max(0,Math.min(1,passed/seconds));
  return {id:plot.id,progress,ready:progress>=1,remaining:Math.max(0,Math.ceil(seconds-passed))};
 }
-export function estateWalkStep(position,target,dt,speed=260){
+export function estateWalkStep(position,target,dt,speed=280){
  if(!target)return {x:position.x,z:position.z,arrived:true,moving:false};
  const dx=target.x-position.x,dz=target.z-position.z,dist=Math.hypot(dx,dz);
  const step=Math.max(0,Math.min(.05,Number(dt)||0))*speed;
