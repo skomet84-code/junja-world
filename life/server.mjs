@@ -3,6 +3,7 @@
  * Rooms are temporary. Economy / inventories are intentionally client-only in this preview;
  * NEVER treat guest state as authenticated production data.
  */
+import {handleVillageApiV50} from './vm-api-v50.mjs';
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
@@ -17,6 +18,7 @@ const types={'.html':'text/html; charset=utf-8','.webp':'image/webp','.png':'ima
 const server=http.createServer(async(req,res)=>{
  try{
   const url=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`);
+  if(await handleVillageApiV50(req,res,url))return;
   if(url.pathname==='/health'){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,rooms:rooms.size}));return}
   const pathname=url.pathname==='/'?'/index.html':url.pathname;
   const file=resolve(root,'.'+decodeURIComponent(pathname));
