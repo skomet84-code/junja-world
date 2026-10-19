@@ -1,0 +1,32 @@
+name: Village v50 D1 Migration Staging Safety
+on:
+  push:
+    branches: [feat/village-v50-d1-unification]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate private exporter syntax (do NOT run against live DB)
+        run: node --check life/cf/d1/export-neon.mjs
+      - name: Test Cloudflare D1 SQLite schema without any production data
+        run: python3 life/cf/d1/test_schema.py
+      - name: Test existing village gameplay and Cloudflare bridge
+        working-directory: life
+        run: |
+          npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+          npm test
+          node cf/test_api_bridge.mjs
+          node test_login_gate_v50.mjs
+      - name: Compile existing safe browser assets
+        working-directory: life
+        run: npm run build
