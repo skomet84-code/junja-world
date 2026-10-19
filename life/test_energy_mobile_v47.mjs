@@ -30,9 +30,11 @@ try{
      packPrice:1200,packsUsed:packs,packsLeft:3-packs,day:'2026-10-19'}
    })});
   });
-  await page.route('**/api/account**',async route=>route.fulfill({
-   status:401,contentType:'application/json',body:'{"error":"isolated QA"}'
-  }));
+  await page.route('**/api/account**',async route=>{
+   const action=new URL(route.request().url()).searchParams.get('action');
+   return route.fulfill({status:action==='save'?200:401,contentType:'application/json',
+    body:action==='save'?'{"save":null}':'{"error":"isolated QA"}'});
+  });
   await page.goto(url+'index.html',{waitUntil:'domcontentloaded'});
   await page.evaluate(()=>window.villageGateEnter({nickname:'v47 test'}));
   try{
