@@ -83,6 +83,31 @@ export function renderVillageMenuV49(host,{
  add(header,'span','준자마을 · 생활 안내','v49-eyebrow');
  add(header,'h2',active.icon+' '+active.heading);
  add(header,'p',active.subtitle);
+ // One search across every existing feature. Finding a menu never changes save state.
+ const finder=add(host,'section',undefined,'v49-finder');
+ const input=make('input');input.type='search';input.placeholder='🔎 기능 찾기 · 예: 낚시, 주문, 집, 사업장';
+ input.setAttribute('aria-label','마을 전체 기능 검색');
+ input.autocomplete='off';input.maxLength=35;finder.append(input);
+ const results=add(finder,'div',undefined,'v49-find-results');
+ results.hidden=true;
+ input.addEventListener('input',()=>{
+  const keyword=input.value.trim().toLocaleLowerCase('ko');
+  results.replaceChildren();results.hidden=!keyword;
+  if(!keyword)return;
+  const seen=new Set();let count=0;
+  for(const group of VILLAGE_NAV_V49){
+   for(const entry of VILLAGE_ACTIONS_V49[group.id]){
+    if(seen.has(entry.id))continue;
+    if(![entry.label,entry.description,group.label].some(t=>t.toLocaleLowerCase('ko').includes(keyword)))continue;
+    seen.add(entry.id);
+    const result=button(entry.icon,group.label+' › '+entry.label,entry.description,
+     {id:entry.id,onAction},{trial:entry.trial,travel:entry.travel});
+    results.append(result);count++;if(count>=8)break;
+   }
+   if(count>=8)break;
+  }
+  if(count===0)add(results,'p','해당 기능을 찾지 못했어. 다른 단어로 검색해 봐.');
+ });
  if(active.id==='home'){
   const lead=add(host,'section',undefined,'v49-goal-card');
   const top=add(lead,'div',undefined,'v49-goal-top');
