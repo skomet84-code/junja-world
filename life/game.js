@@ -10,6 +10,7 @@ import {openBusinessCenter} from './business-ui-v40.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
 import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
 import {mountHomeStudioV48} from './home-studio-ui-v48.js';
+import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js';
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
 import {updateVillageResidents,npcDailyLine,v43Daypart} from './village-life-v43.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
@@ -448,6 +449,71 @@ function lifePerkGuide(){
  ['Lv.3','마을 밖 슬라임 사냥터 오픈',3],['Lv.5','목조주택·어항 6칸',5],['Lv.7','은빛 낚싯대 구매',7],['Lv.8','낚시 수입 +15G · 어항 9칸',8],
  ['Lv.10','정원이 있는 집 업그레이드',10],['Lv.12','어항 전시 12칸',12],['Lv.18','로열 주택·별빛 낚싯대',18]].map(([label,name,need])=>'<p>'+(lv>=need?'✅':'🔒')+' '+label+' · '+name+'</p>').join('');
 }
+// v49: one discoverable menu tree. All actions are existing game functions.
+let v49ActiveSection='home';
+function openV49Component(section,elementId,lead,mount){
+ openModal('<span class="titlebadge">준자마을 · '+lead+' · 시험 기능</span><div id="'+elementId+'"></div>');
+ mount(document.getElementById(elementId),{back:()=>openVillageMenuV49(section)});
+}
+function openVillageMenuV49(section='home'){
+ const allowed=['home','life','production','house','bag'];
+ v49ActiveSection=allowed.includes(section)?section:'home';
+ const q=chapters[state.chapter];
+ const goal=q?{title:q.title,description:q.desc,done:Math.min(q.total,Math.max(0,Number(q.done())||0)),
+  total:q.total,reward:q.reward,station:q.station}:null;
+ activateVillageDockV49(document.getElementById('v49Dock'),v49ActiveSection);
+ openModal('<div id="v49MenuHost" role="region" aria-label="마을 메뉴"></div>');
+ renderVillageMenuV49(document.getElementById('v49MenuHost'),{
+  section:v49ActiveSection,goal,level:lifeLevel(),
+  onCategory:openVillageMenuV49,
+  onAction:action=>{
+   switch(action){
+    case 'goal':return openJourney();
+    case 'go-goal':return q?goStation(q.station):openJourney();
+    case 'farm':case 'storage':return openPersonalEstate();
+    case 'fishing':return goStation('pier');
+    case 'gather':return goStation('forest');
+    case 'craft':return openCraft();
+    case 'orders':return openEstateOrders();
+    case 'daily':return openJournal();
+    case 'career':return openV49Component('life','v49Profession','직업과 계약',openProfessionCenter);
+    case 'hunt':return goToHunting();
+    case 'festival':return openFestival();
+    case 'social':return openSocial();
+    case 'business':return openV49Component('production','v49Business','나의 사업장',openBusinessCenter);
+    case 'district':
+     openModal('<span class="titlebadge">준자마을 · 사업장 거리 · 시험 공간</span><div id="v49District"></div>');
+     workshopPlaza=openWorkshopPlaza(document.getElementById('v49District'),{
+      look:{coat:state.coat,hat:state.hat,fashion:state.fashion?.equipped||{}},
+      backLabel:'← 생산 메뉴로 돌아가기',back:()=>openVillageMenuV49('production')
+     });return;
+    case 'market':return openMarket();
+    case 'trade':return openV49Component('production','v49Trade','주민 거래소',openPlayerMarket);
+    case 'economy':return openV49Component('production','v49Economy','서버 경제·복구',openSecureEconomyLab);
+    case 'house':return openHomeStudioV48();
+    case 'decorate':return openDecor();
+    case 'wardrobe':return openShop();
+    case 'collection':return openAquarium();
+    case 'reputation':return openReputation();
+    case 'inventory':return openBag();
+    case 'materials':return openMaterialMarket();
+    case 'map':return openWorldMap();
+    case 'backup':return openSaveVault();
+    default:return toast('이 기능의 이동 경로를 찾을 수 없어');
+   }
+  }
+ });
+}
+function installVillageDockV49(){
+ const dock=document.getElementById('v49Dock');
+ if(!dock)return;
+ for(const b of dock.querySelectorAll('[data-v49-section]')){
+  b.onclick=()=>openVillageMenuV49(b.dataset.v49Section);
+ }
+ activateVillageDockV49(dock,'home');
+}
+// v49 never rewrites, replaces, or migrates user cloud saves.
+
 function initJourney(){
  // Old saved positions may be inside newer buildings/trees. Ensure avatar-width clearance.
  if(!navigation.safe(player)){
@@ -1720,7 +1786,7 @@ function showRenderError(error){
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();save();showRenderError('그래픽 컨텍스트가 중단됐습니다. 다시 열기를 눌러 복구하세요.');});
 cv.addEventListener('webglcontextrestored',()=>location.reload());
 try{world3D=createWorld({canvas:cv,width:W,height:H,stations,resources:resourceNodes,beds:bedCenters,npcs,animals:animalFriends,walkable,nickname:socialNickname})}catch(error){console.error(error);showRenderError(error);}
-els.name.textContent=socialNickname;initJourney();connectSocial();
+els.name.textContent=socialNickname;initJourney();installVillageDockV49();connectSocial();
 installQualityHUD({
  snapshot:()=>{
   const resource=resourceNodes.filter(n=>distance(player,n)<105&&!(state.nodeReady[n.id]>Date.now())).sort((a,b)=>distance(player,a)-distance(player,b))[0];
