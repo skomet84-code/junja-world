@@ -15,7 +15,7 @@ async function refresh(){
 }
 $('accountOpen').onclick=()=>{layer.classList.add('show');refresh()};
 $('accountClose').onclick=()=>layer.classList.remove('show');
-async function action(name,body){try{const r=await api(name,body);say(r.message||'처리 완료');if(name==='logout'){sessionStorage.removeItem('village-auth-user');sessionStorage.removeItem('village-auth-nickname');sessionStorage.removeItem('village-auth-role');location.reload();return}await refresh()}catch(e){say('⚠️ '+e.message)}}
+async function action(name,body){try{const r=await api(name,body);say(r.message||'처리 완료');if(name==='logout'){sessionStorage.removeItem('village-auth-user');sessionStorage.removeItem('village-auth-nickname');sessionStorage.removeItem('village-auth-role');location.reload();return}if(name==='login'){layer.classList.remove('show');$('accountPassword').value=''}await refresh()}catch(e){say('⚠️ '+e.message)}}
 $('accountRegister').onclick=()=>action('register',{username:$('accountUser').value,nickname:$('accountNick').value,password:$('accountPassword').value});
 $('accountLogin').onclick=()=>action('login',{username:$('accountUser').value,password:$('accountPassword').value});
 $('accountLogout').onclick=()=>action('logout',{});
