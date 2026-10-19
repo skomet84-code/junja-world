@@ -46,6 +46,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/personal-home-v48.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/ws.js",
       "use": "@vercel/node"
     },
@@ -59,6 +63,10 @@
     },
     {
       "src": "*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.css",
       "use": "@vercel/static"
     },
     {
@@ -117,6 +125,10 @@
     {
       "src": "/api/business-honors-v46",
       "dest": "/api/business-honors-v46.js"
+    },
+    {
+      "src": "/api/personal-home-v48",
+      "dest": "/api/personal-home-v48.js"
     },
     {
       "src": "/api/ws",
