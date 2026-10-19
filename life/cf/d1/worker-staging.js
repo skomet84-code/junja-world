@@ -1,7 +1,7 @@
 // Separate Cloudflare D1 migration staging Worker. Never deploy over junja-world.
 // All unsupported API paths fail closed, with no fallback to guest/local saves.
 import {VillageRoom} from '../worker.js';
-import {handleAccountD1} from './account-staging.js';
+import {handleAccountD1,userForSession} from './account-staging.js';
 export {VillageRoom};
 const json=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
 export default {
@@ -16,8 +16,15 @@ export default {
   }
   if(url.pathname==='/api/account')return handleAccountD1(request,env);
   if(url.pathname==='/api/ws'){
+   if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')
+    return json({error:'WebSocket 연결만 허용합니다'},426);
+   const account=env.DB?await userForSession(request,env.DB):null;
+   if(!account)return json({error:'로그인 후 친구 마을에 입장해 주세요'},401);
+   const forwardedHeaders=new Headers(request.headers);
+   forwardedHeaders.set('x-village-verified-nick',account.nickname);
+   const verified=new Request(request,{headers:forwardedHeaders});
    const id=env.VILLAGE_ROOMS.idFromName('village-d1-staging-room-v50');
-   return env.VILLAGE_ROOMS.get(id).fetch(request);
+   return env.VILLAGE_ROOMS.get(id).fetch(verified);
   }
   if(url.pathname.startsWith('/api/'))return json({error:'별도 D1 시험 서버입니다. 경제 API는 아직 검증 중입니다.',reason:'staging_only'},503);
   const file=url.pathname==='/'?'/index.html':url.pathname;
