@@ -91,12 +91,14 @@ try{
   assert.equal(wallet.houseV48.placed.length,2);
   await page.locator('.v48-tile').first().click();
   await page.getByRole('button',{name:'↻ 가구 90° 회전'}).click();
+  await page.waitForFunction(()=>document.querySelector('.v48-section')?.textContent?.includes('90도'));
   assert.equal(wallet.houseV48.placed.find(x=>x.slot===0).turn,1);
   const next=page.getByRole('button',{name:/햇살 정원 하우스 증축/});
   await next.click();
   await page.waitForFunction(()=>document.querySelectorAll('.v48-tile').length===25);
   assert.equal(wallet.houseV48.level,2);
   await page.locator('.v48-item').filter({hasText:'별빛 크리스털 조명'}).getByRole('button',{name:'구매 · 9,800G'}).click();
+  await page.waitForFunction(()=>[...document.querySelectorAll('.v48-item')].find(x=>x.textContent.includes('별빛 크리스털 조명'))?.textContent?.includes('보유 1/1'));
   assert.equal(wallet.houseV48.owned.crystal_lamp,1,'Receipt-earned rare fixture can be bought');
   assert.deepEqual(Object.keys(requests[0]).sort(),['action','data','requestId']);
   assert.deepEqual(Object.keys(requests[0].data),['item'],'Client must never send prices, inventories or rank');
