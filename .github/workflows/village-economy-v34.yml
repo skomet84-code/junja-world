@@ -18,6 +18,7 @@ on:
       - feat/village-energy-ui-v47
       - feat/village-homestead-interiors-v48
       - feat/village-v48-visual-polish
+      - feat/village-v49-navigation-refresh
   pull_request:
     branches:
       - village-progression-v30
