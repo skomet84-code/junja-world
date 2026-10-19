@@ -26,7 +26,7 @@ export function mountHome3D(host,house,{onSelect=()=>{}}={}){
  };
  const block=(p,c,x,y,z,w,h,d,o)=>mesh(p,boxGeo,c,x,y,z,w,h,d,o);
  const ball=(p,c,x,y,z,w,h=w,d=w,o)=>mesh(p,ballGeo,c,x,y,z,w,h,d,o);
- const cyl=(p,c,x,y,z,w,h)=>mesh(p,cylGeo,c,x,y,z,w,h,d);
+ const cyl=(p,c,x,y,z,r,h)=>mesh(p,cylGeo,c,x,y,z,r,h,r);
  const group=(p,x=0,y=0,z=0)=>{const g=new T.Group();g.position.set(x,y,z);p.add(g);return g};
  scene.add(new T.HemisphereLight(0xfff3dd,0x87958d,2.8));
  const sun=new T.DirectionalLight(0xffd6ae,3.0);sun.position.set(-420,680,580);scene.add(sun);
