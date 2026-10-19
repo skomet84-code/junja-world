@@ -1,6 +1,6 @@
 // Separate Cloudflare D1 migration staging Worker. Never deploy over junja-world.
 // All unsupported API paths fail closed, with no fallback to guest/local saves.
-import {VillageRoom} from '../worker.js';
+import {VillageRoom} from './rooms.js';
 import {handleAccountD1,userForSession} from './account-staging.js';
 export {VillageRoom};
 const json=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -10,7 +10,7 @@ export default {
   if(url.pathname==='/health'||url.pathname==='/api/health'){
    if(!env.DB)return json({ok:false,release:'v50-d1-staging',error:'D1 binding missing'},503);
    try{
-    await env.DB.prepare('SELECT 1 AS ready').first();
+    await env.DB.prepare('SELECT count(*) AS n FROM village_users').first();
     return json({ok:true,release:'v50-d1-staging',database:'D1',production:false});
    }catch{return json({ok:false,release:'v50-d1-staging',error:'D1 check failed'},503)}
   }
