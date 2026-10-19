@@ -44,7 +44,7 @@ try{
  await pool.query('INSERT INTO village_economy_v36_accounts(user_key,state) VALUES($1,$2::jsonb)',
   ['owner',JSON.stringify(farmed)]);
  assert.equal((await request('visitor')).code,200,'Visitor sees only own order board');
- assert.equal((await sell('visitor')).code,409,'Visitor has no owned product/role');
+ assert.equal((await sell('visitor')).code,403,'Visitor has no owned profession and receives a forbidden response');
  assert.equal((await sell('owner','rina')).code,403,'Wrong profession purchase denied');
  assert.equal((await request('owner','POST',{npcId:'tobi',requestId:randomUUID()},
   {origin:'https://evil.example'})).code,403,'Origin/CSRF denied');
