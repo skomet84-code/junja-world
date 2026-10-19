@@ -1,5 +1,6 @@
 // v36 safe server economy lab — browser UI only; never owns or mutates a balance.
 // This is opt-in preview currency. It is NOT the existing village wallet or saved character gold.
+import {mountEnergyPanel} from './action-energy-ui-v47.js';
 const make=(tag,text,className)=>{
  const el=document.createElement(tag);if(text!==undefined)el.textContent=String(text);
  if(className)el.className=className;return el;
@@ -15,6 +16,8 @@ export function openSecureEconomyLab(host,{back}={}){
  style(txt(host,'시험장 전용 골드와 창고를 사용합니다. 기존 캐릭터의 레벨, 골드, 농장에는 영향을 주지 않아요.'),'font-weight:700;color:#637a64');
  const notification=style(make('p','준자마을 계정 확인 중…'),'background:#f3f3e6;padding:12px;border-radius:12px');
  host.append(notification);
+ const energyHost=make('section');host.append(energyHost);
+ const energyPanel=mountEnergyPanel(energyHost);
  const contents=make('div');host.append(contents);
  let snapshot=null,busy=false,retry=null;
  const link=(caption,handler)=>{
@@ -29,7 +32,7 @@ export function openSecureEconomyLab(host,{back}={}){
    const json=await r.json();
    if(!r.ok)throw Error(json.error||'서버 경제를 불러올 수 없어요');
    if(!host.isConnected)return;
-   snapshot=json.economy;notification.textContent='✅ 서버에 기록된 시범 경제 · 저장 버전 '+json.version;render();
+   snapshot=json.economy;notification.textContent='✅ 서버에 기록된 시범 경제 · 저장 버전 '+json.version;energyPanel.refresh();render();
   }catch(error){
    notification.textContent='⚠️ '+error.message;
    contents.replaceChildren();
@@ -50,6 +53,7 @@ export function openSecureEconomyLab(host,{back}={}){
    if(!r.ok)throw Object.assign(new Error(json.error||'요청 실패'),{serverStatus:r.status});
    retry=null;if(!host.isConnected)return;
    snapshot=json.economy;
+   energyPanel.refresh();
    notification.textContent='✅ '+json.receipt.detail+(json.replayed?' (이미 처리된 요청 확인)':'')+' · 잔액 '+format(json.receipt.balance);
   }catch(error){
    if(error.serverStatus)retry=null; // Transport errors retry the *same* request ID.
@@ -109,5 +113,5 @@ export function openSecureEconomyLab(host,{back}={}){
   contents.append(link('↻ 서버 기록 새로고침',request));
  }
  request();
- return {refresh:request};
+ return {refresh:request,dispose(){energyPanel.dispose()}};
 }
