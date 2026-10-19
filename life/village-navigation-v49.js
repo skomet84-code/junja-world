@@ -11,8 +11,10 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
  home:Object.freeze([
   {id:'goal',icon:'📖',label:'다음 생활 목표',description:'현재 진행 중인 목표·보상 확인'},
   {id:'farm',icon:'🌾',label:'농장',description:'작물을 심고 수확하기'},
-  {id:'craft',icon:'🧵',label:'제작소',description:'재료를 가공해 가치 높이기'},
-  {id:'orders',icon:'📦',label:'주민 주문',description:'주문을 납품하고 명성 쌓기'}
+  {id:'craft',icon:'🧵',label:'제작소',description:'제작소까지 걸어가서 재료 가공',travel:true},
+  {id:'orders',icon:'📦',label:'주민 주문',description:'주문을 납품하고 명성 쌓기'},
+  {id:'house',icon:'🏠',label:'나의 집',description:'3D 인테리어와 가구 배치'},
+  {id:'energy',icon:'⚡',label:'행동력',description:'회복 상태와 시험 골드 충전',trial:true}
  ]),
  life:Object.freeze([
   {id:'farm',icon:'🌾',label:'내 농장',description:'나만의 텃밭·과수원'},
@@ -25,7 +27,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
   {id:'social',icon:'👫',label:'친구와 소통',description:'친구 말풍선·함께 플레이'}
  ]),
  production:Object.freeze([
-  {id:'craft',icon:'🧵',label:'제작소',description:'채집 재료로 도구와 선물 제작'},
+  {id:'craft',icon:'🧵',label:'제작소',description:'공방으로 이동해 도구와 선물 만들기',travel:true},
   {id:'orders',icon:'📦',label:'주민 주문',description:'농산물 가공과 주문 납품'},
   {id:'business',icon:'🏭',label:'나의 사업장',description:'직업 전문 생산품 만들기',trial:true},
   {id:'district',icon:'🏘️',label:'사업장 거리',description:'3D 공방과 손님·매출 확인',trial:true},
@@ -135,7 +137,7 @@ export function renderVillageMenuV49(host,{
   const route=add(host,'div',undefined,'v49-steps');
   for(const [id,icon,label,note] of [
    ['farm','🌱','농장 수확','작물 모으기'],
-   ['craft','🧵','제작','가치 높이기'],
+   ['craft','🧵','제작소','공방까지 이동'],
    ['orders','📦','주문 납품','골드·명성']
   ]){
    const b=make('button',undefined,'v49-step');b.type='button';
