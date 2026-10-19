@@ -8,6 +8,7 @@ import {openPlayerMarket} from './player-market-ui-v38.js';
 import {openProfessionCenter} from './professions-ui-v39.js';
 import {openBusinessCenter} from './business-ui-v40.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
+import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
 import {updateVillageResidents,npcDailyLine,v43Daypart} from './village-life-v43.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
@@ -20,7 +21,7 @@ import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-f
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
 const els=Object.fromEntries(['name','level','xp','coins','questText','questCount','questProgress','toast','hint','modal','panelBody','fishing','fishTitle','fishDesc','fishAction','gauge','needle','welcome'].map(k=>[k,document.getElementById(k)]));
-let world3D=null,estateWorld=null,workshopPlaza=null;
+let world3D=null,estateWorld=null,workshopPlaza=null,energyModal=null;
 const W=3600,H=2400; let CW=innerWidth,CH=innerHeight,dpr=1,scale=1,camera={x:1000,y:900},t=0,last=performance.now();
 const A={};
 const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
@@ -1168,8 +1169,12 @@ function drawMini(){const w=mini.width,h=mini.height,sx=w/W,sy=h/H;
  mctx.fillStyle='#ffe48f';mctx.strokeStyle='#263e3a';mctx.lineWidth=1.5;mctx.beginPath();mctx.arc(player.x*sx,player.y*sy,3.5,0,7);mctx.fill();mctx.stroke();
 }
 function disposeEstateWorld(){if(estateWorld){estateWorld.dispose();estateWorld=null}if(workshopPlaza){workshopPlaza.dispose();workshopPlaza=null}}
-function closeModal(){disposeEstateWorld();els.modal.classList.remove('open');}
-function openModal(html){disposeEstateWorld();stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
+function closeModal(){energyModal?.dispose();energyModal=null;disposeEstateWorld();els.modal.classList.remove('open');}
+function openModal(html){energyModal?.dispose();energyModal=null;disposeEstateWorld();stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
+const energyHudController=mountEnergyHud(document.getElementById('energyHudV47'),{open:()=>{
+ openModal('<span class="titlebadge">JUNJA V47 · TRIAL ACTION ENERGY</span><div id="energyModalV47"></div>');
+ energyModal=mountEnergyPanel(document.getElementById('energyModalV47'),{onChange:()=>energyHudController.refresh()});
+}});
 document.getElementById('close').onclick=closeModal;els.modal.addEventListener('click',e=>{if(e.target===els.modal)closeModal()});
 
 /* Personal homestead: persisted in the existing account-scoped save. */
