@@ -50,7 +50,7 @@ export function openPersonalHome(host,{back}={}){
    b.setAttribute('aria-label',(i+1)+'번 칸 '+(placed?data.catalog[placed.item]?.name:'빈자리'));
    b.setAttribute('aria-pressed',String(slot===i));select.append(b);
   }
-  select.style.gridTemplateColumns='repeat('+n+',minmax(0,1fr))';
+  select.style.gridTemplateColumns='repeat('+n+',minmax(44px,1fr))';
   const chosen=h.placed.find(p=>p.slot===slot);
   const current=append(heading,'p',chosen?'📍 '+(slot+1)+'번 · '+data.catalog[chosen.item].name+' · '+chosen.turn*90+'도':'📍 '+(slot+1)+'번 빈자리 · 가구를 선택해 배치할 수 있어');
   current.className='v48-note';
