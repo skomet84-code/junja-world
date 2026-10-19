@@ -2,6 +2,8 @@
 import pg from 'pg';
 import {createHash} from 'node:crypto';
 import {startingEconomy,economyAction,economyView} from '../secure-economy-v36.js';
+import {projectEnergy,chargeEnergy,buyEnergy} from '../action-energy-v47.js';
+import {makeCheckpoint,validateCheckpointChain} from '../economy-integrity-v37.js';
 
 const dbUrl=()=>process.env.VILLAGE_DATABASE_URL||process.env.DATABASE_URL;
 const pool=new pg.Pool({connectionString:dbUrl(),ssl:{rejectUnauthorized:false},max:3});
@@ -25,7 +27,7 @@ function sameOrigin(req){
 function canonical(body){
  if(!body||typeof body!=='object'||Array.isArray(body))throw Object.assign(new Error('요청 형식을 확인해 주세요'),{status:400});
  const action=body.action;
- if(typeof action!=='string'||!['plant','harvest','craft','sell','order','expand'].includes(action))
+ if(typeof action!=='string'||!['plant','harvest','craft','sell','order','expand','energy_buy'].includes(action))
   throw Object.assign(new Error('지원하지 않는 거래입니다'),{status:400});
  const raw=body.payload&&typeof body.payload==='object'&&!Array.isArray(body.payload)?body.payload:{};
  // Fixed whitelists guarantee same request hashes even with unrelated client fields.
@@ -60,11 +62,12 @@ export function makeEconomyHandler({pool:database=pool,now=()=>new Date()}={}){
     const row=await c.query('SELECT state,version FROM village_economy_v36_accounts WHERE user_key=$1',[userKey]);
     const s=row.rows[0]?.state||startingEconomy();
     const events=row.rows[0]?await c.query('SELECT receipt FROM village_economy_v36_events WHERE user_key=$1 ORDER BY id DESC LIMIT 8',[userKey]):{rows:[]};
-    return respond(res,200,{ok:true,trial:true,version:Number(row.rows[0]?.version||0),economy:economyView(s,now()),receipts:events.rows.map(r=>r.receipt)});
+    return respond(res,200,{ok:true,trial:true,version:Number(row.rows[0]?.version||0),economy:economyView(s,now()),energy:process.env.ENABLE_VILLAGE_ENERGY_V47==='true'?projectEnergy(s,now()):null,receipts:events.rows.map(r=>r.receipt)});
    }
    const id=req.body?.requestId;
    if(typeof id!=='string'||!uuid.test(id))return respond(res,400,{error:'중복 거래 방지를 위한 요청 ID가 필요해요'});
    const {action,payload}=canonical(req.body);
+   if(action==='energy_buy'&&process.env.ENABLE_VILLAGE_ENERGY_V47!=='true')return respond(res,503,{error:'시험 행동력 상점이 아직 비활성화되어 있어요'});
    const requestHash=digest(JSON.stringify({action,payload}));
    await c.query('BEGIN');inTransaction=true;
    await c.query(`INSERT INTO village_economy_v36_accounts(user_key,state)
@@ -78,9 +81,38 @@ export function makeEconomyHandler({pool:database=pool,now=()=>new Date()}={}){
      return respond(res,409,{error:'같은 요청 ID에 서로 다른 거래 정보가 들어왔어요'});
     }
     await c.query('COMMIT');inTransaction=false;
-    return respond(res,200,{ok:true,replayed:true,receipt:duplicated.rows[0].receipt,economy:economyView(saved.rows[0].state,now()),version:Number(saved.rows[0].version)});
+    return respond(res,200,{ok:true,replayed:true,receipt:duplicated.rows[0].receipt,economy:economyView(saved.rows[0].state,now()),energy:process.env.ENABLE_VILLAGE_ENERGY_V47==='true'?projectEnergy(saved.rows[0].state,now()):null,version:Number(saved.rows[0].version)});
    }
-   const result=economyAction(saved.rows[0].state,action,payload,now());
+   const stamp=now();
+   // v47 energy is only charged for server-owned actions with actual validation;
+   // the action, energy and checkpoint are all rolled back if any step fails.
+   let result,energyMeta=null;
+   if(process.env.ENABLE_VILLAGE_ENERGY_V47==='true'&&action==='energy_buy'){
+    const purchased=buyEnergy(saved.rows[0].state,stamp);
+    result={next:purchased.next,receipt:{action,detail:purchased.detail,delta:purchased.delta,
+     balance:purchased.next.coins,day:purchased.energy.day,at:stamp.toISOString()}};
+    energyMeta=purchased.energy;
+   }else if(process.env.ENABLE_VILLAGE_ENERGY_V47==='true'){
+    const charge=chargeEnergy(saved.rows[0].state,action,stamp);
+    result=economyAction(charge.next,action,payload,stamp);
+    energyMeta=projectEnergy(result.next,stamp);
+   }else result=economyAction(saved.rows[0].state,action,payload,stamp);
+   let chainHead=null;
+   if(process.env.ENABLE_VILLAGE_ENERGY_V47==='true'){
+    const list=(await c.query(`SELECT version,state,previous_hash,state_hash,request_id
+      FROM village_economy_v37_checkpoints WHERE user_key=$1 ORDER BY version DESC LIMIT 25`,[userKey])).rows;
+    if(list.length){
+     const audit=validateCheckpointChain(userKey,saved.rows[0],list);
+     if(!audit.ok)throw Object.assign(new Error('시험 지갑 복구 장부 불일치'),{status:409});
+     chainHead=list[0].state_hash;
+    }else{
+     const base=makeCheckpoint(userKey,Number(saved.rows[0].version),saved.rows[0].state);
+     await c.query(`INSERT INTO village_economy_v37_checkpoints
+       (user_key,version,state,previous_hash,state_hash,request_id) VALUES($1,$2,$3::jsonb,$4,$5,$6)`,
+       [userKey,base.version,JSON.stringify(base.state),null,base.state_hash,null]);
+     chainHead=base.state_hash;
+    }
+   }
    const version=Number(saved.rows[0].version)+1;
    await c.query(`UPDATE village_economy_v36_accounts
      SET state=$2::jsonb,version=version+1,updated_at=now() WHERE user_key=$1`,[userKey,JSON.stringify(result.next)]);
@@ -88,8 +120,15 @@ export function makeEconomyHandler({pool:database=pool,now=()=>new Date()}={}){
      (user_key,request_id,request_hash,action,amount_delta,balance_after,receipt)
      VALUES($1,$2,$3,$4,$5,$6,$7::jsonb)`,
      [userKey,id,requestHash,action,result.receipt.delta,result.receipt.balance,JSON.stringify(result.receipt)]);
+   if(process.env.ENABLE_VILLAGE_ENERGY_V47==='true'){
+    const point=makeCheckpoint(userKey,version,result.next,chainHead,id);
+    await c.query(`INSERT INTO village_economy_v37_checkpoints
+      (user_key,version,state,previous_hash,state_hash,request_id) VALUES($1,$2,$3::jsonb,$4,$5,$6)`,
+      [userKey,version,JSON.stringify(point.state),point.previous_hash,point.state_hash,id]);
+   }
    await c.query('COMMIT');inTransaction=false;
-   return respond(res,200,{ok:true,version,receipt:result.receipt,economy:economyView(result.next,now())});
+   return respond(res,200,{ok:true,version,receipt:result.receipt,
+    energy:energyMeta,economy:economyView(result.next,now())});
   }catch(error){
    if(inTransaction&&c){try{await c.query('ROLLBACK')}catch{}}
    if(error.code==='42P01')return respond(res,503,{error:'서버 경제 데이터베이스 설치가 아직 완료되지 않았어요'});
