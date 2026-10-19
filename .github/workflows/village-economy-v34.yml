@@ -15,6 +15,7 @@ on:
       - feat/village-resident-demand-v44
       - feat/village-customer-loyalty-v45
       - feat/village-business-honors-v46
+      - feat/village-energy-ui-v47
   pull_request:
     branches:
       - village-progression-v30
