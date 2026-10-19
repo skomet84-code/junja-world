@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
-  "name": "junja-village-v50-preview",
+  "name": "junja-world",
   "main": "./worker.js",
   "compatibility_date": "2026-10-19",
   "workers_dev": true,
