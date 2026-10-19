@@ -81,8 +81,8 @@ export function makeHomeHandler({pool=livePool,now=()=>new Date()}={}){
       VALUES($1,$2::jsonb) ON CONFLICT(user_key) DO NOTHING`,[key,JSON.stringify(startingEconomy())]);
    const row=(await c.query('SELECT state,version FROM village_economy_v36_accounts WHERE user_key=$1 FOR UPDATE',[key])).rows[0];
    if(!row)reject('시험 주택 계정을 잠글 수 없어요',500);
-   const previous=(await c.query('SELECT request_hash,receipt FROM village_economy_v36_events
-     WHERE user_key=$1 AND request_id=$2',[key,id])).rows;
+   const previous=(await c.query(`SELECT request_hash,receipt FROM village_economy_v36_events
+     WHERE user_key=$1 AND request_id=$2`,[key,id])).rows;
    if(previous.length){
     if(previous[0].request_hash!==requestHash)reject('같은 거래번호로 다른 가구 변경을 할 수 없어요');
     await c.query('COMMIT');tx=false;
