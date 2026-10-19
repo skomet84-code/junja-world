@@ -76,7 +76,18 @@ try{
   }
   assert.equal(wallet.coins,249550,'Only trial wallet debited for furniture');
   await page.getByRole('button',{name:'🪑 선택 칸에 배치하기'}).click();
-  await page.waitForFunction(()=>document.getElementById('houseHost')?.textContent?.includes('2/5개 배치'));
+  try{
+   await page.waitForFunction(()=>document.querySelectorAll('.v48-tile.occupied').length===2,null,{timeout:10000});
+  }catch(e){
+   const diag=await page.evaluate(()=>({
+    status:document.querySelector('.v48-status')?.textContent,
+    tiles:[...document.querySelectorAll('.v48-tile.occupied')].map(x=>x.getAttribute('aria-label')),
+    select:document.querySelector('.v48-select')?.value,
+    buttons:[...document.querySelectorAll('.v48-action-row .v48-button')].map(x=>({text:x.textContent,disabled:x.disabled})),
+    room:document.querySelector('.v48-section')?.textContent?.slice(0,250)
+   }));
+   throw Error('v48 placement: '+JSON.stringify({diag,requests,errors,coins:wallet.coins,house:wallet.houseV48})+'; '+e.message);
+  }
   assert.equal(wallet.houseV48.placed.length,2);
   await page.getByRole('button',{name:/1번 칸/}).click();
   await page.getByRole('button',{name:'↻ 가구 90° 회전'}).click();
