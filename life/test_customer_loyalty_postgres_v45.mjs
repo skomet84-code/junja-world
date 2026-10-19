@@ -25,7 +25,7 @@ let clock=new Date('2026-10-16T06:00:00Z'); // 15:00 KST (Thursday)
 const daily=makeResidentDemandHandler({pool,now:()=>clock});
 const loyalty=makeLoyaltyHandler({pool,now:()=>clock});
 const response=()=>({code:0,data:null,setHeader(){},status(n){this.code=n;return this},json(body){this.data=body;return this}});
-async function request(user,method='GET',body={},api=loyalty,headers={}){
+async function request(user='owner',method='GET',body={},api=loyalty,headers={}){
  const res=response();
  await api({method,body,headers:{host:'localhost:38845',origin:'http://localhost:38845',
   'sec-fetch-site':'same-origin','content-type':'application/json',
