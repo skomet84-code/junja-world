@@ -63,8 +63,11 @@ try{
   assert.equal((await page.evaluate(()=>window.premiumQA.snapshot())).places,0,
    'Camera dragging must never place or buy furniture');
   await controls.nth(4).click(); // reset to predictable camera
-  // Choose table, then click the projected center tile in the real WebGL canvas.
+  // Choose table without forcing a new WebGL context, then tap the 3D room.
+  await page.evaluate(()=>{window.premiumCanvasOriginal=document.querySelector('#premiumStudioQA .v48-scene canvas')});
   await page.locator('#premiumStudioQA .v48-item').filter({hasText:'원목 식탁'}).click();
+  assert.equal(await page.evaluate(()=>window.premiumCanvasOriginal===document.querySelector('#premiumStudioQA .v48-scene canvas')),true,
+   'Changing furniture selection must preserve GPU context');
   await canvas.scrollIntoViewIfNeeded();rect=await canvas.boundingBox();
   await page.mouse.click(rect.x+rect.width/2,rect.y+rect.height/2);
   const pos=await page.evaluate(()=>window.premiumQA.snapshot());
