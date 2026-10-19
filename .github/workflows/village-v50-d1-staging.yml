@@ -25,6 +25,7 @@ jobs:
           node --check life/cf/d1/account-staging.js
           node --check life/cf/d1/worker-staging.js
           node --check life/cf/d1/account-extensions.js
+          node --check life/cf/d1/economy-staging.js
           node --check life/cf/d1/rooms.js
           node life/cf/d1/test_account_staging.mjs
       - name: Test existing village gameplay and Cloudflare bridge
