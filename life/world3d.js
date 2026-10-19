@@ -117,7 +117,10 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  road(scene,[[2130,900],[2150,1450],[2470,2140],[2910,1900],[3350,1660],[3200,1430],[3100,920]],72);
  cylinder(scene,0xe6d7b8,1010,.8,695,150,1.5).castShadow=false;
  pickRoots.push(building(scene,{x:515,y:470,w:275,d:180,roof:0x7b9b83,name:'해빛 상점',action:'shop'}));
- pickRoots.push(building(scene,{x:1430,y:465,w:260,d:180,roof:0xbb8b7f,kind:'home',name:'우리집',action:'home'}));
+ const homeExterior=building(scene,{x:1430,y:465,w:260,d:180,roof:0xbb8b7f,kind:'home',name:'우리집',action:'home'});
+ pickRoots.push(homeExterior);
+ // v48 upgrades decorate the original house only; the building collision stays unchanged.
+ const homeOrnaments=group(homeExterior);let lastHomeTier=-1;
  pickRoots.push(building(scene,{x:1585,y:837,w:240,d:140,roof:0xe2bc78,name:'씨앗 가게',action:'seeds'}));
  pickRoots.push(building(scene,{x:2500,y:640,w:280,d:175,roof:0x8e9eab,name:'나무결 공방',action:'workshop'}));
  pickRoots.push(building(scene,{x:3100,y:740,w:280,d:175,roof:0xbda4ba,name:'달빛 의상실',action:'boutique'}));
@@ -270,6 +273,32 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
     previewPet.root.position.set(49,0,26);previewPet.root.scale.setScalar(.77);
   }
  }
+ function updateHomeExterior(state){
+  const level=Math.min(4,Math.max(1,Math.floor(Number(state.home?.level)||1)));
+  if(level===lastHomeTier)return;
+  lastHomeTier=level;homeOrnaments.clear();
+  if(level>=2){
+   box(homeOrnaments,0xe5bf9a,0,149,107,186,8,40);
+   for(const x of [-91,91]){
+    cylinder(homeOrnaments,0xf3e1c2,x,104,114,6,58);
+    box(homeOrnaments,0xc89d78,x,88,117,51,18,29);
+    for(let k=-1;k<=1;k++)sphere(homeOrnaments,0x8fb67d,x+k*11,105,126,10,10,10);
+   }
+  }
+  if(level>=3){
+   box(homeOrnaments,0xf8e9cc,0,170,112,140,10,37);
+   for(const x of [-72,-36,0,36,72])cylinder(homeOrnaments,0xd3bc92,x,187,115,3.5,32);
+   box(homeOrnaments,0xbdd3bd,0,191,116,159,7,8);
+   for(const x of [-120,120]){cylinder(homeOrnaments,0xc3af7d,x,80,143,10,98);
+    sphere(homeOrnaments,0xb6a2bf,x,138,144,15,16,15)}
+  }
+  if(level>=4){
+   box(homeOrnaments,0xc9aa72,0,279,0,120,12,25);
+   for(const x of [-46,0,46])sphere(homeOrnaments,0xf6e3a5,x,301,0,17,19,17);
+   for(const x of [-116,116]){sphere(homeOrnaments,0xe5c9f1,x,230,65,17,18,17);
+    cylinder(homeOrnaments,0xb394c6,x,208,65,5,40)}
+  }
+ }
  function updateCrops(state){const key=state.beds.map(b=>b.crop+':'+Math.min(3,Math.floor((Date.now()-b.at)/1000/({carrot:65,strawberry:120,pumpkin:220,lily:300}[b.crop]||1)*3))).join('|');if(key===cropKey)return;cropKey=key;
   state.beds.forEach((b,i)=>{const g=cropGroups[i];g.clear();if(!b.crop)return;const age=Math.min(1,(Date.now()-b.at)/1000/({carrot:65,strawberry:120,pumpkin:220,lily:300}[b.crop]||65));for(let j=0;j<6;j++){const x=(j%3-1)*18,z=(Math.floor(j/3)-.5)*22;const stem=cylinder(g,0x729252,x,4+age*5,z,1.8,8+age*10);for(const k of [-1,1]){const leaf=sphere(g,0x88a964,x+k*4,8+age*8,z,5+age*2,2.2,3);leaf.rotation.z=k*.4}if(age>=.66)sphere(g,b.crop==='carrot'?0xe2a465:b.crop==='strawberry'?0xd68b83:b.crop==='pumpkin'?0xe3bc6d:0xf1dab1,x,7,z,4+age*3,5+age*2,4+age*3)}})
  }
@@ -322,7 +351,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   as.forEach((n,i)=>{const m=questMarkers[i];if(m){m.visible=!!n.questMark;m.position.set(n.x,195+Math.sin(time*3+i)*5,n.y)}});
   updateGuests(peers,dt,time);
   for(const r of resources){const ready=!(state.nodeReady[r.id]>Date.now()),g=resGroups.get(r.id);g.scale.y=ready?1:.55;}
-  updateCrops(state);updateDecor(state);
+  updateCrops(state);updateDecor(state);updateHomeExterior(state);
   destination.visible=!!goal;if(goal)destination.position.set(goal.x,2,goal.y);
   const key=path.map(p=>Math.round(p.x)+','+Math.round(p.y)).join(';');if(key!==routeKey){routeKey=key;pathLine.geometry.dispose();pathLine.geometry=new T.BufferGeometry().setFromPoints([new T.Vector3(actor.x,2,actor.y),...path.map(p=>new T.Vector3(p.x,2,p.y))]);pathLine.computeLineDistances();pathLine.visible=path.length>0}
   // Hide fully off-screen small objects before traversing their meshes.
