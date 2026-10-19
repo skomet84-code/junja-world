@@ -61,6 +61,11 @@ try{
   clock=new Date(date);
   const sale=await regular('owner','tobi');
   assert.equal(sale.code,200,JSON.stringify({date,error:sale.data?.error}));
+  // Database created_at is real wall-clock time; retime historic TEST-ONLY receipts
+  // to match the simulated v44 purchase day, never doing this outside disposable CI.
+  await pool.query(`UPDATE village_economy_v36_events SET created_at=$2::timestamptz
+   WHERE user_key='owner' AND action='npc_purchase' AND receipt->>'day'=$1`,
+   [date.slice(0,10),date]);
   const current=await request();
   assert.equal(current.code,200);
   assert.equal(current.data.loyalty.customers.find(c=>c.npcId==='tobi').days,i+1);
