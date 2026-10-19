@@ -560,7 +560,7 @@ function openBusinessDistrictFromVillage(){
  // Capture return point in RAM only. Never change persisted cloud-save shape.
  const returnSpot=portalReturnPosition(player);
  stopWalking();
- openModal('<span class="titlebadge">JUNJA V42 · VILLAGE BUSINESS GATEWAY</span>'+
+ openModal('<span class="titlebadge">준자마을 · 사업장 거리</span>'+
   '<p style="margin:2px 0 10px">🚪 동쪽 사업장 거리 입장 · 돌아가기를 누르면 마을의 원래 위치로 복귀해요.</p>'+
   '<div id="districtPortalV42" role="region" aria-label="3D 주민 사업장 거리"></div>');
  workshopPlaza=openWorkshopPlaza(document.getElementById('districtPortalV42'),{
@@ -994,7 +994,7 @@ function openDecor(){const cards=decorCatalog.map(o=>`<div class="mini-card"><sp
 function placeAt(x,y){if(placeDecor==='remove'){const i=state.decorations.findIndex(o=>Math.hypot(o.x-x,o.y-y)<70);if(i<0){toast('회수할 장식을 터치해주세요');return}let old=state.decorations.splice(i,1)[0],v=decorCatalog.find(a=>a.id===old.id);earn(Math.floor((v?.cost||0)*.4),'other','장식 회수 환불');placeDecor=null;toast('📦 장식 회수 완료 · 일부 코인 환급');hud();save();return}
  const o=decorCatalog.find(v=>v.id===placeDecor);if(!o)return; if(!walkable(x,y)||Math.hypot(player.x-x,player.y-y)<40||[...props,...expansionProps].some(p=>Math.hypot(p.x-x,p.y-y)<185)||state.decorations.some(p=>Math.hypot(p.x-x,p.y-y)<48)){toast('여기에는 배치할 수 없어요');return}if(!(state.crafted[o.id]>0)&&state.coins<o.cost*5){toast('코인이 부족해요');placeDecor=null;return}if(state.crafted[o.id]>0)state.crafted[o.id]--;else spend(o.cost*5,'마을 장식 배치');state.decorations.push({id:o.id,x:Math.round(x),y:Math.round(y)});placeDecor=null;els.hint.classList.add('hidden');hud();save();party(x,y-10,22);checkAchievements();toast('🏡 '+o.label+' 설치 완료!')}
 function openHomeStudioV48(){
- openModal('<span class="titlebadge">JUNJA V48 · SIGNATURE HOME</span><div id="homeStudioHostV48"></div>');
+ openModal('<span class="titlebadge">나만의 주택 인테리어</span><div id="homeStudioHostV48"></div>');
  homeStudioV48=mountHomeStudioV48(document.getElementById('homeStudioHostV48'),{
   getHome:()=>state.home,getCoins:()=>state.coins,
   onBuy:change=>{
@@ -1027,7 +1027,7 @@ function openHome(){
   <p>Lv.${next.minLevel} 필요 · 건축 비용 ${(next.price*5).toLocaleString()}G · ${next.rooms}개 공간</p>
   <button id="upgradeHome" ${!eligible?'disabled':''}>${!eligible?'레벨을 더 올려야 해요':'집 업그레이드'}</button></div>`:
   '<div class="mini-card"><strong>👑 최고 단계 주택 완성</strong><p>앞으로 가구와 어항을 더 꾸며봐요.</p></div>'}
-  <button class="pill-btn" id="openStudioV48">✨ v48 · 입체 실내·방별 배치·희귀 가구 꾸미기</button><h3>🎨 벽지 선택</h3><div class="pill-row">
+  <button class="pill-btn" id="openStudioV48">🏡 3D 인테리어 꾸미기</button><h3>🎨 벽지 선택</h3><div class="pill-row">
    ${opts.map(([k,label,emoji])=>`<button class="pill-btn ${state.home.wall===k?'':'ghost'}" data-wall="${k}">${emoji} ${label}</button>`).join('')}
   </div>
   <h3>🪑 가구 구매</h3><div class="pill-row">
@@ -1252,7 +1252,7 @@ function disposeEstateWorld(){if(estateWorld){estateWorld.dispose();estateWorld=
 function closeModal(){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();els.modal.classList.remove('open');}
 function openModal(html){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
 const energyHudController=mountEnergyHud(document.getElementById('energyHudV47'),{open:()=>{
- openModal('<span class="titlebadge">JUNJA V47 · TRIAL ACTION ENERGY</span><div id="energyModalV47"></div>');
+ openModal('<span class="titlebadge">행동력 · 시험 경제</span><div id="energyModalV47"></div>');
  energyModal=mountEnergyPanel(document.getElementById('energyModalV47'),{onChange:()=>energyHudController.refresh()});
 }});
 document.getElementById('close').onclick=closeModal;els.modal.addEventListener('click',e=>{if(e.target===els.modal)closeModal()});
@@ -1307,7 +1307,7 @@ function openPersonalEstate(){
  const recipes=ESTATE_RECIPES.map((r,i)=>'<div style="background:#f3f4e8;border-radius:14px;padding:12px"><strong>'+r.name+'</strong><p style="font-size:12px">'+Object.entries(r.needs).map(([id,n])=>ESTATE_BY_ID[id][2]+' '+n+'개').join(' · ')+'</p><button data-recipe="'+i+'" style="padding:9px 13px;border-radius:12px;background:#cde5c7;color:#23442e">'+(r.build?'건설 · '+estateFmt(r.gold):'제작·보관 · 가공비 '+estateFmt(ESTATE_PRODUCTS[i].fee))+'</button></div>').join('');
  openModal('<span class="titlebadge">MY PRIVATE FARM · JUNJA LIFE</span><h2>🌳 나만의 농장과 과수원</h2><p>내 계정 전용 공간 · 게임을 꺼도 작물은 계속 자라요.</p><div style="padding:14px;border-radius:18px;background:linear-gradient(135deg,#dceecb,#fff0d3);margin:12px 0"><strong>🏡 '+(tier?.name||'아직 내 농장이 없어요')+'</strong><p>'+(tier?'재배 공간 '+slots+'칸 · 수확해서 요리와 건물을 만들어요.':'농장을 구매하면 나만의 텃밭을 열 수 있어요.')+'</p>'+(next?'<button id="estateUpgrade" style="padding:12px 16px;background:#8ebc91;color:#183f27;border-radius:13px;font-weight:700">🌱 '+(tier?'농장 확장':'농장 구매')+' · '+estateFmt(next.cost)+'</button>':'<strong>👑 최대 확장 완료</strong>')+'</div>'+
  (slots?'<div id="estateWorldV35" style="height:320px;min-height:260px;width:100%;margin:12px 0 7px;overflow:hidden;border-radius:18px;border:2px solid #ecdfb7;background:#b4cf8d" role="group" aria-label="내 농장 3D 체험 공간"></div><p style="font-size:12px;color:#476c57;margin-bottom:12px">👆 3D 농장에서 땅을 누르면 걸어가고, 작물을 누르면 심거나 수확해요. 아래 목록으로도 관리할 수 있어요.</p><div style="display:flex;gap:8px;align-items:center;margin:12px 0"><label for="estateCrop" style="font-weight:700">심을 작물</label><select id="estateCrop" style="flex:1;min-width:0;padding:12px;border-radius:12px;background:#fff;border:1px solid #c3d3c0">'+cropOptions+'</select></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:300px;overflow:auto;padding:4px">'+plots+'</div>':'')+
- '<div style="display:grid;gap:8px;margin:14px 0;padding:13px;background:#eef3e5;border-radius:16px"><strong>🏅 '+estateRank(state).name+' · 주민 납품 명성 '+initEstateTrade(state).reputation+'점</strong><button id="estateHomeV48" style="padding:12px;background:#ddbe82;color:#3e352a;border-radius:11px;font-weight:800">🏡 3D 내 주택 · 희귀 가구 · v48</button><button id="estateOrdersOpen" style="padding:12px;background:#5b926e;color:white;border-radius:11px;font-weight:800">📦 오늘의 주민 주문 · 가공품 보관함 · 명예 기록</button><button id="estateSecureLab" style="padding:12px;background:#4d797c;color:white;border-radius:11px;font-weight:800">🔐 서버 경제 v37 · 복구 장부 시험장</button><button id="estatePlayerMarket" style="padding:12px;background:#9c774e;color:white;border-radius:11px;font-weight:800">🏪 주민 상점 · v38 시험 거래소</button><button id="estateProfessions" style="padding:12px;background:#6e738e;color:white;border-radius:11px;font-weight:800">🏅 직업 성장·일일 계약 · v39</button><button id="estateBusinesses" style="padding:12px;background:#8a746a;color:white;border-radius:11px;font-weight:800">🏡 나만의 사업장 · 전문 생산품 · v40</button><button id="estateWorkshops3D" style="padding:12px;background:#79907c;color:white;border-radius:11px;font-weight:800">🏘️ 걸어 다니는 3D 사업장 거리 · v41</button></div><h3 style="margin-top:20px">🧺 내 수확 창고</h3>'+inventory+'<h3 style="margin-top:20px">🍳 요리·건축 공방</h3><div style="display:grid;gap:9px">'+recipes+'</div><p style="font-size:12px;margin-top:16px">※ 농작물 판매와 제작 보상은 게임 골드로 지급됩니다. 시세는 고정이며 작물마다 성장 시간이 달라요. 농장은 계정별로 따로 저장돼요.</p>');
+ '<div class="v49-farm-shortcuts"><strong>🏅 '+estateRank(state).name+' · 주민 납품 명성 '+initEstateTrade(state).reputation+'점</strong><h4>🏡 나의 공간</h4><div class="v49-farm-group"><button id="estateHomeV48" style="padding:12px;background:#ddbe82;color:#3e352a;border-radius:11px;font-weight:800">🏠 나의 집</button><button id="estateOrdersOpen" style="padding:12px;background:#5b926e;color:white;border-radius:11px;font-weight:800">📦 주민 주문</button></div><h4>🏭 생산·직업·거래</h4><div class="v49-farm-group"><button id="estatePlayerMarket" style="padding:12px;background:#9c774e;color:white;border-radius:11px;font-weight:800">🏪 주민 거래소 · 시험</button><button id="estateProfessions" style="padding:12px;background:#6e738e;color:white;border-radius:11px;font-weight:800">🏅 직업과 계약 · 시험</button><button id="estateBusinesses" style="padding:12px;background:#8a746a;color:white;border-radius:11px;font-weight:800">🏭 나의 사업장 · 시험</button><button id="estateWorkshops3D" style="padding:12px;background:#79907c;color:white;border-radius:11px;font-weight:800">🏘️ 사업장 거리 · 시험</button></div><details class="v49-experimental"><summary>⚙️ 시험 경제·복구 기능</summary><p>정식 캐릭터 골드와 분리된 시험용 서버 경제야. 필요할 때만 열어줘.</p><button id="estateSecureLab" style="padding:12px;background:#4d797c;color:white;border-radius:11px;font-weight:800">📒 경제 관리</button></details></div><h3 style="margin-top:20px">🧺 내 수확 창고</h3>'+inventory+'<h3 style="margin-top:20px">🍳 요리·건축 공방</h3><div style="display:grid;gap:9px">'+recipes+'</div><p style="font-size:12px;margin-top:16px">※ 농작물 판매와 제작 보상은 게임 골드로 지급됩니다. 시세는 고정이며 작물마다 성장 시간이 달라요. 농장은 계정별로 따로 저장돼요.</p>');
  if(slots){
   const host=document.getElementById('estateWorldV35');
   try{
@@ -1327,23 +1327,23 @@ function openPersonalEstate(){
  document.getElementById('estateHomeV48').onclick=openHomeStudioV48;
  document.getElementById('estateOrdersOpen').onclick=openEstateOrders;
  document.getElementById('estateWorkshops3D').onclick=()=>{
-  openModal('<span class="titlebadge">JUNJA V41 · BUSINESS DISTRICT · TEST ECONOMY</span><div id="estateWorkshopPlaza"></div>');
+  openModal('<span class="titlebadge">사업장 거리 · 시험 경제</span><div id="estateWorkshopPlaza"></div>');
   workshopPlaza=openWorkshopPlaza(document.getElementById('estateWorkshopPlaza'),{back:openPersonalEstate});
  };
  document.getElementById('estateBusinesses').onclick=()=>{
-  openModal('<span class="titlebadge">JUNJA V40 · MY BUSINESS · TEST ECONOMY</span><div id="estateBusinessCenter"></div>');
+  openModal('<span class="titlebadge">나의 사업장 · 시험 경제</span><div id="estateBusinessCenter"></div>');
   openBusinessCenter(document.getElementById('estateBusinessCenter'),{back:openPersonalEstate});
  };
  document.getElementById('estateProfessions').onclick=()=>{
-  openModal('<span class="titlebadge">JUNJA V39 · PROFESSIONS · EXPERIMENTAL</span><div id="estateProfessionCenter"></div>');
+  openModal('<span class="titlebadge">직업과 계약 · 시험 경제</span><div id="estateProfessionCenter"></div>');
   openProfessionCenter(document.getElementById('estateProfessionCenter'),{back:openPersonalEstate});
  };
  document.getElementById('estatePlayerMarket').onclick=()=>{
-  openModal('<span class="titlebadge">JUNJA PLAYER MARKET · v38 · EXPERIMENTAL</span><div id="estatePlayerMarketContent"></div>');
+  openModal('<span class="titlebadge">주민 거래소 · 시험 경제</span><div id="estatePlayerMarketContent"></div>');
   openPlayerMarket(document.getElementById('estatePlayerMarketContent'),{back:openPersonalEstate});
  };
  document.getElementById('estateSecureLab').onclick=()=>{
-  openModal('<span class="titlebadge">JUNJA SERVER ECONOMY · V37 · RECOVERY LAB</span><div id="estateEconomyLab"></div>');
+  openModal('<span class="titlebadge">경제 관리 · 시험 복구</span><div id="estateEconomyLab"></div>');
   openSecureEconomyLab(document.getElementById('estateEconomyLab'),{back:openPersonalEstate});
  };
  const estateCropSelect=document.getElementById('estateCrop');
@@ -1382,7 +1382,7 @@ function openEstateOrders(){
   const has=Object.entries(o.needs).map(([id,n])=>requirement(id,n)).concat(Object.entries(o.goods).map(([id,n])=>requirement(id,n,true)));
   return '<div class="mini-card" style="margin:6px 0"><strong>'+o.name+'</strong><p>필요 재료: '+has.join(' · ')+'</p><p>기준 보상 '+estateFmt(o.reward)+' · 명성 +'+o.rep+' · 경험치 +'+o.xp+'</p><button data-estate-order="'+o.id+'" '+(o.complete||!o.ready?'disabled':'')+'>'+(o.complete?'✅ 오늘 납품 완료':o.ready?'📦 주문 납품하기':'재료 준비 중')+'</button></div>';
  }).join('');
- openModal('<span class="titlebadge">JUNJA VILLAGE · LIVING ECONOMY v34</span><h2>📦 주민 주문과 가공품 상점</h2><p>개인 농장에서 재배한 작물 → 가공품 제작 → 주문 납품 → 명성 상승</p>'+
+ openModal('<span class="titlebadge">준자마을 · 주민 주문</span><h2>📦 주민 주문과 가공품 상점</h2><p>개인 농장에서 재배한 작물 → 가공품 제작 → 주문 납품 → 명성 상승</p>'+
  '<div class="mini-card"><strong>🏅 '+rank.name+' · 명성 '+t.reputation+'점</strong><p>다음 직업 단계 '+(rank.next===null?'최고 단계 달성':rank.next+'점 · '+Math.max(0,rank.next-t.reputation)+'점 남음')+'</p><p>총 수확 '+t.stats.harvested+'회 · 가공 '+t.stats.made+'회 · 판매 '+t.stats.sold+'회 · 납품 '+t.stats.fulfilled+'회</p></div>'+
  '<h3>📅 오늘의 주민 주문 · '+board.day+'</h3><p>오늘 '+board.completed+'/'+board.limit+'건 완료 · 주문은 매일 변경돼요. 시즌 경쟁을 위한 명성은 누적됩니다.</p>'+ordersHtml+
  '<h3>🍳 가공품 창고</h3>'+goodsHtml+
