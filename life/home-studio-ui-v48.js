@@ -100,5 +100,5 @@ export function mountHomeStudioV48(host,{getHome,getCoins,onBuy,onArrange,back}=
  }
  function dispose(){alive=false;disposeScene();host.replaceChildren()}
  render();
- return {refresh:()=>render(),dispose};
+ return {refresh:()=>render(),sceneStats:()=>scene?.stats()||null,dispose};
 }
