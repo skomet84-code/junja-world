@@ -72,7 +72,7 @@ try{
   await page.locator('#energyHudV47').click();
   await page.waitForSelector('#energyModalV47 .v47-energy-card',{timeout:10000});
   assert((await page.locator('#energyModalV47').innerText()).includes('1,200G'));
-  assert((await page.locator('#energyModalV47').innerText()).includes('7 / 100'));
+  await page.waitForFunction(()=>document.querySelector('#energyModalV47')?.textContent?.includes('7 / 100'),null,{timeout:10000});
   await mkdir('artifacts',{recursive:true});
   await page.screenshot({path:'artifacts/v47-energy-mobile-'+width+'.png',fullPage:true});
   await page.locator('#energyModalV47 .v47-buy-button').click();
