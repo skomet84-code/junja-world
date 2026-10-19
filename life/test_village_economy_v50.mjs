@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {villageEconomyGuideV50} from './village-economy-guide-v50.js';
+const a=villageEconomyGuideV50(new Date('2026-10-19T12:00:00+09:00'));
+const b=villageEconomyGuideV50(new Date('2026-10-19T20:00:00+09:00'));
+assert.equal(a.market,b.market,'daily market identity remains stable');
+assert.equal(a.currency,'G');
+assert.equal(a.hints.length,4);
+assert(a.energy.includes('6분'));
+assert(a.warning.includes('별도'));
+const guide=await (await import('node:fs/promises')).readFile(new URL('./village-economy-guide-v50.js',import.meta.url),'utf8');
+assert(!/\b(?:localStorage|fetch|save|UPDATE|INSERT)\s*\(/.test(guide),'guide must be read-only');
+console.log('PASS v50 economy guide is deterministic, has actionable production loop and never saves wallet data');

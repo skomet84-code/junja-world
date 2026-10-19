@@ -1,3 +1,4 @@
+import {villageEconomyGuideV50} from './village-economy-guide-v50.js';
 // v49 single, player-facing information architecture. No developer version labels.
 // This module changes navigation only: never writes game saves, coins or inventory.
 export const VILLAGE_NAV_V49=Object.freeze([
@@ -151,6 +152,13 @@ export function renderVillageMenuV49(host,{
  for(const a of VILLAGE_ACTIONS_V49[active.id])tiles.append(button(a.icon,a.label,a.description,
   {id:a.id,onAction},{trial:a.trial,travel:a.travel,main:active.id==='home'}));
  if(active.id==='production'){
+  const guide=villageEconomyGuideV50();
+  const section=add(host,'section',undefined,'v49-goal-card');
+  add(section,'h3',guide.title);
+  add(section,'p','오늘의 시장: '+guide.market);
+  for(const hint of guide.hints)add(section,'p',hint);
+  add(section,'small',guide.energy+' · '+guide.costs);
+  add(section,'p',guide.warning);
   const details=add(host,'details',undefined,'v49-advanced');
   add(details,'summary','⚙️ 경제 시험·복구 기능 보기');
   add(details,'p','정식 마을 골드와 별도로 운영하는 개발용 시험 경제야. 시험 재화와 일반 재화를 혼동하지 않도록 분리했어.');
