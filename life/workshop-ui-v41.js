@@ -3,6 +3,7 @@ import {mountWorkshopVillage} from './workshop-world-v41.js';
 import {mountResidentDemand} from './resident-demand-ui-v44.js';
 import {mountCustomerLoyalty} from './customer-loyalty-ui-v45.js';
 import {mountBusinessHonors} from './business-honors-ui-v46.js';
+import {mountEnergyPanel} from './action-energy-ui-v47.js';
 import {villagePlots,WORKSHOP_ROLES,WORKSHOP_SITES,DEFAULT_WORKSHOP_SLOTS} from './workshop-plots-v41.js';
 const mk=(tag,label)=>{const el=document.createElement(tag);if(label!==undefined)el.textContent=String(label);return el};
 const add=(parent,tag,text)=>{const e=mk(tag,text);parent.append(e);return e};
@@ -20,7 +21,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
  const controls=add(host,'div');
  const actionPanel=add(host,'section');actionPanel.style.cssText='background:#edf3e9;padding:10px;border-radius:14px;margin-top:8px';
  const selector=add(host,'section');
- let scene=null,removed=false,self=null,owner=null,visitorList=[],busy=false,pending=null,current=null,residentShop=null,loyaltyPanel=null,honorsPanel=null;
+ let scene=null,removed=false,self=null,owner=null,visitorList=[],busy=false,pending=null,current=null,residentShop=null,loyaltyPanel=null,honorsPanel=null,energyPanel=null;
  const button=(label,fn,disabled=false)=>{
   const b=mk('button',label);b.type='button';b.style.cssText=btnStyle;b.disabled=disabled||busy;b.onclick=fn;return b;
  };
@@ -87,6 +88,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
   residentShop?.dispose();residentShop=null;
   loyaltyPanel?.dispose();loyaltyPanel=null;
   honorsPanel?.dispose();honorsPanel=null;
+  energyPanel?.dispose();energyPanel=null;
   controls.replaceChildren();selector.replaceChildren();
   const first=add(controls,'h3','📍 '+who+'의 사업장');
   if(!buildings.length)add(controls,'p','아직 지어진 사업장이 없어요.');
@@ -135,6 +137,9 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
     residentShop?.refresh();honorsPanel?.refresh();
     fetchJSON('/api/business-v40').then(data=>{if(!removed)self=data}).catch(()=>{});
    }});
+   const energyHost=add(selector,'section');
+   energyHost.style.cssText='padding:10px;margin:12px 0;border-radius:16px;background:#fbf7ed';
+   energyPanel=mountEnergyPanel(energyHost);
    const honorsHost=add(selector,'section');
    honorsHost.style.cssText='margin-top:12px;padding:11px;border-radius:15px;background:#f1f8ef';
    honorsPanel=mountBusinessHonors(honorsHost);
@@ -173,7 +178,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
    pending=null;
    note.textContent='✅ '+j.receipt.detail+(j.replayed?' · 중복 요청 1회 처리':'');
    self=await fetchJSON('/api/business-v40');
-   honorsPanel?.refresh();
+   honorsPanel?.refresh();energyPanel?.refresh();
    if(removed||!host.isConnected)return;
    await viewSelf(true);
   }catch(e){
@@ -182,6 +187,6 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
   }finally{busy=false}
  }
  load();
- return {dispose(){removed=true;residentShop?.dispose();loyaltyPanel?.dispose();honorsPanel?.dispose();keepScene();host.replaceChildren()},refresh:load,
+ return {dispose(){removed=true;residentShop?.dispose();loyaltyPanel?.dispose();honorsPanel?.dispose();energyPanel?.dispose();keepScene();host.replaceChildren()},refresh:load,
   enterRole:role=>scene?.enter(role),stats:()=>scene?.stats()};
 }
