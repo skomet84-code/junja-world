@@ -2,6 +2,7 @@
 // All unsupported API paths fail closed, with no fallback to guest/local saves.
 import {VillageRoom} from './rooms.js';
 import {handleAccountD1,userForSession} from './account-staging.js';
+import {handleTrialEconomyD1} from './economy-staging.js';
 export {VillageRoom};
 const json=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
 export default {
@@ -15,6 +16,8 @@ export default {
    }catch{return json({ok:false,release:'v50-d1-staging',error:'D1 check failed'},503)}
   }
   if(url.pathname==='/api/account')return handleAccountD1(request,env);
+  if(url.pathname==='/api/economy-v36')return handleTrialEconomyD1(request,env,'v36');
+  if(url.pathname==='/api/economy-v37')return handleTrialEconomyD1(request,env,'v37');
   if(url.pathname==='/api/ws'){
    if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')
     return json({error:'WebSocket 연결만 허용합니다'},426);
