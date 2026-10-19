@@ -133,7 +133,7 @@ export function openPersonalHome(host,{back}={}){
   }catch(e){
    if(e.status&&e.status<500)pending=null;
    if(active)status.textContent='⚠️ '+e.message;
-  }finally{busy=false}
+  }finally{busy=false;if(active&&server&&host.isConnected)refreshView()}
  }
  load();
  return {refresh:load,dispose(){active=false;room?.dispose();room=null;host.replaceChildren();host.classList.remove('v48-home')}};
