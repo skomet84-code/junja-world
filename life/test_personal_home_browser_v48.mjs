@@ -58,11 +58,22 @@ try{
   assert(metrics.scene.width>=220&&metrics.scene.height>=180,'3D room viewer sufficiently large');
   assert(metrics.buy.height>=43,'Buy button large enough for touch');
   await page.locator('.v48-item').filter({hasText:'작은 몬스테라'}).getByRole('button',{name:'구매 · 450G'}).click();
-  await page.waitForFunction(()=>{
-   const card=[...document.querySelectorAll('.v48-item')].find(e=>e.textContent.includes('작은 몬스테라'));
-   return card?.textContent.includes('보유 1/3')&&
-    !document.querySelector('.v48-action-row .v48-button')?.disabled;
-  });
+  try{
+   await page.waitForFunction(()=>{
+    const card=[...document.querySelectorAll('.v48-item')].find(e=>e.textContent.includes('작은 몬스테라'));
+    return card?.textContent.includes('보유 1/3')&&
+     !document.querySelector('.v48-action-row .v48-button')?.disabled;
+   },null,{timeout:10000});
+  }catch(e){
+   const diag=await page.evaluate(()=>({
+    plant:[...document.querySelectorAll('.v48-item')].find(x=>x.textContent.includes('몬스테라'))?.textContent,
+    action:document.querySelector('.v48-action-row')?.textContent,
+    disabled:document.querySelector('.v48-action-row .v48-button')?.disabled,
+    notice:document.querySelector('.v48-status')?.textContent,
+    cards:document.querySelectorAll('.v48-item').length
+   }));
+   throw Error('v48 buy render: '+JSON.stringify({diag,errors,coins:wallet.coins,requests})+'; '+e.message);
+  }
   assert.equal(wallet.coins,249550,'Only trial wallet debited for furniture');
   await page.getByRole('button',{name:'🪑 선택 칸에 배치하기'}).click();
   await page.waitForFunction(()=>document.getElementById('houseHost')?.textContent?.includes('2/5개 배치'));
