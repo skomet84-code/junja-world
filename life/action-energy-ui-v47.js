@@ -80,7 +80,7 @@ export function mountEnergyPanel(host,{onChange=()=>{}}={}){
   }finally{busy=false;render()}
  }
  buy.onclick=purchase;
- const timer=setInterval(()=>{if(alive&&host.isConnected)render()},10000); // client-side only, NO HTTP polling
+ const timer=setInterval(()=>{if(!host.isConnected){alive=false;clearInterval(timer);return}if(alive)render()},10000); // no detached-modal timers, NO HTTP polling
  refresh();
  return {refresh,dispose(){alive=false;clearInterval(timer);host.replaceChildren()}};
 }
