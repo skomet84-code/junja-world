@@ -6,6 +6,23 @@ This branch is intentionally isolated from `feat/village-v50-cloudflare-cutover`
 It does **not** automatically deploy to the live `junja-world` Worker.
 Its `worker-staging.js` uses the distinct Worker name `junja-world-d1-staging`.
 
+## Updated decision: fresh Cloudflare-only accounts (2026-10-20)
+
+The owner authorized discarding old **gameplay accounts/saves** for a clean start.
+**Do not delete or modify old Vercel/Neon data:** it remains a rollback archive.
+Therefore there is **no planned Neon-to-D1 import, no cross-provider runtime API
+calls, no legacy password reuse and no dual writes** on the final Cloudflare release.
+The D1 setup will initialize a **new empty** database, and users will register new
+accounts. Old localStorage keys are isolated by the `junja-v50-d1-` prefix.
+
+The exporter and old-save audit below remain archived as optional read-only tools,
+**not required** for this reset-authorized launch.
+
+Current limits: Cloudflare D1 has not yet been provisioned; experimental
+v36-v46 business/economy endpoints need porting before full v50 parity and final
+launch; actual Cloudflare runtime password-hashing/free CPU limits remain untested.
+Do not claim the single-platform launch is complete until these are resolved.
+
 ## What has been implemented
 
 - D1-compatible core schema (accounts, password hashes, sessions, per-user saves and versions,
