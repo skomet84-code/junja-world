@@ -28,7 +28,7 @@ const W=3600,H=2400; let CW=innerWidth,CH=innerHeight,dpr=1,scale=1,camera={x:10
 const A={};
 const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
-const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
+const scopedSaveKey=accountScope?'junja-v50-d1-user-'+accountScope:'junja-v50-d1-guest';
 let cloudSave=window.__villageCloudSave||null;
 // Cloud data is loaded before module import, without top-level await.
 const initialCloudVersion=Number.isSafeInteger(Number(cloudSave?.version))?Number(cloudSave.version):0;
@@ -312,7 +312,7 @@ const outfits=[{id:'mint',name:'민트 피크닉룩',cost:0,emoji:'🌿',col:'#5
 outfits.push(...[{id:'lavender',name:'라벤더 원피스',cost:380,emoji:'💜',col:'#a897dc',type:'coat'},{id:'coral',name:'산호빛 데이트룩',cost:450,emoji:'🧡',col:'#f0a07a',type:'coat'},{id:'navy',name:'밤바다 정장',cost:540,emoji:'🌙',col:'#375d83',type:'coat'},{id:'cream',name:'크림 니트',cost:240,emoji:'🤍',col:'#e6d5b5',type:'coat'},{id:'forest',name:'숲속 탐험룩',cost:410,emoji:'🍃',col:'#568a60',type:'coat'},{id:'pink',name:'벚꽃 드레스',cost:610,emoji:'🎀',col:'#ee9ac7',type:'coat'},{id:'flower',name:'봄꽃 밀짚모자',cost:340,emoji:'🌸',type:'hat'},{id:'navycap',name:'청량 선장 모자',cost:480,emoji:'⚓',type:'hat'},{id:'beanie',name:'카페 비니',cost:190,emoji:'🧶',type:'hat'},{id:'cat',name:'고양이 귀',cost:600,emoji:'🐈',type:'hat'},{id:'ribbon',name:'왕리본 머리띠',cost:280,emoji:'🎀',type:'hat'},{id:'captain',name:'바다의 선장 모자',cost:420,emoji:'🧢',type:'hat'}]);
 
 outfits.push({id:'linen',name:'공방 린넨 셔츠',cost:0,emoji:'🧵',col:'#d8c7a6',type:'coat',craftOnly:true});
-let owned=['mint','none'];try{const o=resumeUnsyncedOwned||cloudSave?.owned||(accountScope?JSON.parse(localStorage.getItem('junja-harbor-owned-'+accountScope)||'[]'):[]);if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
+let owned=['mint','none'];try{const o=resumeUnsyncedOwned||cloudSave?.owned||(accountScope?JSON.parse(localStorage.getItem('junja-v50-d1-owned-'+accountScope)||'[]'):[]);if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
 // Migrate in place; never discard existing coins, fish, legacy costumes or quests.
 const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashion:{};
 const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
@@ -367,7 +367,7 @@ function save(){
    localStorage.setItem(scopedSaveKey,JSON.stringify(state));
    if(!saveBlocked)localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:cloudVersion,profile:state,owned:[...owned],savedAt:state.savedAt}));
   }
-  if(accountScope)localStorage.setItem('junja-harbor-owned-'+accountScope,JSON.stringify(owned));
+  if(accountScope)localStorage.setItem('junja-v50-d1-owned-'+accountScope,JSON.stringify(owned));
   // Retain up to seven daily restore points, not every five-second save.
   const day=nowDay(),key='junja-village-snapshots-v27-'+accountScope;
   const shots=JSON.parse(localStorage.getItem(key)||'[]');
@@ -660,7 +660,7 @@ if(accountScope){
   }catch{}
   await refreshOnline();
  }
- setInterval(syncVillagePresence,10000);syncVillagePresence();
+ setInterval(syncVillagePresence,30000);syncVillagePresence();
 }
 ensureFestival();
 const festivalBtn=document.getElementById('festivalBtn');if(festivalBtn)festivalBtn.onclick=openFestival;
