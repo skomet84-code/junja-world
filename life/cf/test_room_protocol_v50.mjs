@@ -20,6 +20,6 @@ const config=JSON.parse((await fs.readFile(new URL('./wrangler.jsonc',import.met
 assert(config.migrations[0].new_sqlite_classes.includes('VillageRoom'));
 assert(config.assets.directory==='../public');
 const worker=await fs.readFile(new URL('./worker.js',import.meta.url),'utf8');
-assert(worker.includes("reason:'migration_incomplete'"),'No guest fallback until real DB authenticated');
+assert(worker.includes('return bridgeApi(request)'),'Account requests must use the authoritative API bridge');
 assert(worker.includes('this.ctx.acceptWebSocket'),'Must use persistent Durable Object relay');
-console.log('PASS v50 CF: eight person rooms, safe input, speech whitelist, SQLite-backed relay and explicit save cutover gate');
+console.log('PASS v50 CF: eight person rooms, safe input, speech whitelist, SQLite-backed relay and authoritative API bridge');
