@@ -12,7 +12,7 @@ const currency=n=>Number(n).toLocaleString('ko-KR')+'G';
 export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 돌아가기',look={}}={}){
  if(!host)throw Error('사업장 구역 화면을 찾지 못했습니다');
  host.replaceChildren();
- add(host,'h2','🏘️ 준자마을 3D 사업장 거리 · v41');
+ add(host,'h2','🏘️ 준자마을 3D 사업장 거리 · v46');
  add(host,'p','사업장 터치를 통해 직접 걸어가고, 실내를 둘러볼 수 있어요. 방문은 열람만 가능하며 다른 주민의 재산을 변경할 수 없습니다.');
  const note=add(host,'p','서버 사업장 기록을 확인하는 중…');
  note.style.cssText='padding:12px;background:#f2f3e4;border-radius:12px;font-weight:700';
