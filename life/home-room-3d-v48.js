@@ -3,48 +3,94 @@
 import * as T from './vendor/three.module.js';
 import {homeRoomV48,HOME_SLOTS_V48} from './home-interiors-v48.js';
 const THEMES={
- honey:{floor:0xdbb78d,wall:0xf6e6cc,trim:0xc49a78,rug:0xe7b9a1},
- sage:{floor:0xbcaa89,wall:0xc9ddc2,trim:0x8caa86,rug:0xa7c4a3},
- rose:{floor:0xe8c4a8,wall:0xf3d4db,trim:0xc99eae,rug:0xf0b9b9},
- cream:{floor:0xe0cfae,wall:0xf7f0d9,trim:0xc3a86e,rug:0xc3b7de}
+ honey:{floor:0xdbb78d,wall:0xf6e6cc,trim:0xc49a78,rug:0xe7b9a1,accent:0x7c9c87,window:0xb5d6ce,metal:0xbaa171},
+ sage:{floor:0xbcaa89,wall:0xc9ddc2,trim:0x8caa86,rug:0xa7c4a3,accent:0x5a816e,window:0xa3cdd1,metal:0xa6a28a},
+ rose:{floor:0xe8c4a8,wall:0xf3d4db,trim:0xc99eae,rug:0xf0b9b9,accent:0xb88aa4,window:0xaccbd6,metal:0xc0a58f},
+ cream:{floor:0xe0cfae,wall:0xf7f0d9,trim:0xc3a86e,rug:0xc3b7de,accent:0xb59dce,window:0xa8d6d8,metal:0xd4af65}
 };
 export function mountHomeInteriorV48({host,home,room=0,onSlot=()=>{}}){
  if(!host)throw Error('3D 주택 실내 화면이 없습니다');
  const view=homeRoomV48(home,room),tone=THEMES[view.info.style]||THEMES.honey;
- const scene=new T.Scene();scene.background=new T.Color(0xedede4);
+ const scene=new T.Scene();scene.background=new T.Color(0xe6ede4);
+ scene.fog=new T.Fog(0xe6ede4,650,1300);
  const renderer=new T.WebGLRenderer({alpha:false,antialias:false,powerPreference:'low-power'});
- renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.24;
+ renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.17;
  renderer.setPixelRatio(Math.min(typeof devicePixelRatio==='number'?devicePixelRatio:1,1.3));
- renderer.domElement.style.cssText='display:block;width:100%;height:100%;touch-action:manipulation';
- renderer.domElement.setAttribute('aria-label','입체 주택 실내와 가구. 타일을 누르면 선택한 가구를 그 위치에 배치합니다.');
+ renderer.domElement.style.cssText='display:block;width:100%;height:100%;touch-action:none;cursor:grab';
+ renderer.domElement.setAttribute('aria-label','3D 주택 인테리어. 가구를 터치하면 배치할 수 있고 손가락으로 좌우 드래그하면 시점을 회전해요.');
  renderer.domElement.tabIndex=0;host.append(renderer.domElement);
  const camera=new T.OrthographicCamera(-235,235,185,-185,1,1500);
- camera.position.set(310,340,390);camera.lookAt(0,65,0);
- scene.add(new T.HemisphereLight(0xfffaf0,0xa4b9a4,2.8));
- const sun=new T.DirectionalLight(0xffffff,2);sun.position.set(-190,320,240);scene.add(sun);
+ scene.add(new T.HemisphereLight(0xfffaf0,0x93a9a0,2.15));
+ const sun=new T.DirectionalLight(0xfff2d9,2.5);sun.position.set(-220,390,230);scene.add(sun);
+ const bounce=new T.DirectionalLight(0xb5cfe8,.8);bounce.position.set(220,150,-120);scene.add(bounce);
+ let angle=.76,zoom=1,selectedSlot=-1,dragCount=0;const cameraTarget=new T.Vector3(0,43,0);
+ function aimCamera(){const distance=555;camera.position.set(
+  Math.sin(angle)*distance,405,Math.cos(angle)*distance);camera.lookAt(cameraTarget);}
+ aimCamera();
  const boxGeo=new T.BoxGeometry(1,1,1),sphereGeo=new T.SphereGeometry(1,12,9),cylGeo=new T.CylinderGeometry(1,1,1,12);
- const mats=new Map(),objects=[],picks=[],geos=[boxGeo,sphereGeo,cylGeo];
- function mat(color){if(!mats.has(color))mats.set(color,new T.MeshStandardMaterial({color,roughness:.88,metalness:0}));return mats.get(color)}
+ const mats=new Map(),picks=[],geos=[boxGeo,sphereGeo,cylGeo],shadows=[];
+ const shadowMaterial=new T.MeshBasicMaterial({color:0x213728,transparent:true,opacity:.13,depthWrite:false});
+ function mat(color){if(!mats.has(color))mats.set(color,new T.MeshStandardMaterial({color,
+  roughness:color===tone.metal? .36:.86,metalness:color===tone.metal? .38:0}));return mats.get(color)}
  function mesh(parent,geo,color,x,y,z,sx,sy,sz){
-  const m=new T.Mesh(geo,mat(color));m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);objects.push(m);return m;
+  const m=new T.Mesh(geo,mat(color));m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m;
  }
  const box=(p,c,x,y,z,w,h,d)=>mesh(p,boxGeo,c,x,y,z,w,h,d);
  const ball=(p,c,x,y,z,r=10)=>mesh(p,sphereGeo,c,x,y,z,r,r,r);
  const cylinder=(p,c,x,y,z,r,h)=>mesh(p,cylGeo,c,x,y,z,r,h,r);
  const group=(x,z)=>{const g=new T.Group();g.position.set(x,0,z);scene.add(g);return g};
+ const cream=0xfaf3e4,wood=0xb58e66,deep=0x36594c;
+ // Fake soft ambient-occlusion disks retain cozy grounding without expensive shadow maps.
+ function floorShadow(parent,x,z,size=52){
+  const shadow=new T.Mesh(cylGeo,shadowMaterial);
+  shadow.position.set(x,11,z);shadow.scale.set(size,.45,size*.72);parent.add(shadow);shadows.push(shadow);
+ }
  box(scene,tone.floor,0,0,0,430,13,355);
  box(scene,tone.wall,0,98,-180,430,200,12);
  box(scene,tone.wall,-220,98,0,12,200,355);
  box(scene,tone.trim,0,8,-171,420,12,6);
  box(scene,tone.trim,-211,8,0,6,12,350);
- box(scene,tone.rug,0,8,0,305,2,228);
+ box(scene,tone.rug,0,8,0,315,2,235);
+ // Thin planks + floor seams visually remove the toy-block flatness.
+ for(let i=-5;i<=5;i++){
+  const x=i*36;
+  box(scene,i%2===0?0xc2a57e:tone.floor,x,7,0,1,1,350);
+ }
+ for(let i=-3;i<=3;i++){const z=i*48;box(scene,tone.trim,0,7,z,420,1.2,.85)}
+ // Wall wainscoting, skirting and brass picture lights.
+ box(scene,cream,0,45,-171,419,4,7);
+ box(scene,tone.trim,0,8,-167,420,12,7);
+ for(let x=-189;x<200;x+=87){
+  box(scene,tone.trim,x,31,-171,3,36,7);
+  box(scene,cream,x+41,43,-166,66,1.5,4);
+ }
+ box(scene,tone.accent,-210,58,-18,4,94,102);
+ box(scene,cream,-205,116,-5,8,8,142);
+ // Warm halo behind the rug, warm wood and tiny potted flower.
+ box(scene,0xe9d6b5,0,10,0,326,2,245);
+ box(scene,tone.rug,0,12,0,310,2,228);
+ for(const z of [-109,109])box(scene,cream,0,13,z,303,1.6,3);
+ cylinder(scene,wood,-176,14,128,15,22);
+ for(const [x,z] of [[-177,130],[-188,121],[-163,126]]){cylinder(scene,deep,x,35,z,3,25);ball(scene,0x7ea489,x,50,z,16)}
  // A little luminous window and picture frame add depth to the handmade room.
  box(scene,0xf6f3dc,100,130,-172,85,82,5);
- box(scene,0x96c7ba,100,134,-167,70,64,6);
+ box(scene,tone.window,100,134,-167,70,64,6);
  box(scene,0xf2e7c7,100,132,-162,5,70,4);
  box(scene,0xf2e7c7,100,132,-160,76,5,4);
  box(scene,tone.trim,-122,130,-171,94,72,6);
  box(scene,0xf5dfae,-122,130,-166,77,57,4);
+ box(scene,tone.accent,-143,130,-161,20,38,3);
+ ball(scene,0xf7efe0,-121,128,-160,18);
+ box(scene,0xd7b992,-95,133,-160,18,31,3);
+ for(const x of [-155,-96])ball(scene,tone.metal,x,173,-161,5);
+ // Window highlight/sill and curtain pleats.
+ box(scene,cream,100,91,-162,92,7,23);
+ for(const x of [62,71,128,139])box(scene,0xf6eee0,x,137,-155,5,82,6);
+ for(const x of [60,140])ball(scene,tone.metal,x,179,-156,6);
+ // Wall sconces create a deliberate nighttime ambience without expensive dynamic shadows.
+ for(const x of [-181,181]){box(scene,tone.metal,x,145,-165,10,29,13);
+  ball(scene,0xf2db9a,x,163,-156,9)}
+ const warm=new T.PointLight(0xffe6bc,.6,690);warm.position.set(0,205,40);scene.add(warm);
  const slotOffsets=Array.from({length:HOME_SLOTS_V48},(_,i)=>({
   x:((i%3)-1)*120,z:(Math.floor(i/3)-1)*105
  }));
