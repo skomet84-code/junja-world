@@ -13,6 +13,7 @@ on:
       - feat/village-business-portal-v42
       - feat/village-lively-world-v43
       - feat/village-resident-demand-v44
+      - feat/village-customer-loyalty-v45
   pull_request:
     branches:
       - village-progression-v30

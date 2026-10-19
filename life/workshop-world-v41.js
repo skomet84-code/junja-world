@@ -121,6 +121,25 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
   hit.material=mat(0xffffff,true);hit.userData.role=role;picks.push(hit);
  }
  buildings.forEach(decorateBuilding);
+ // v45: three visually distinct customers wander near their matching shops.
+ // Their walking is purely decorative; purchases only happen through authenticated server orders.
+ const shopCustomers=[];
+ for(const b of buildings){
+  const place=WORKSHOP_SITES[b.site],style=roleColors[b.role];
+  const figure=group(outdoor,place.x-113,0,place.z+116);
+  const accent=b.role==='farmer'?0x8eae80:b.role==='chef'?0xd6a58d:0xb6a1d0;
+  sphere(figure,0xf5d8bb,0,59,0,17,18,16);
+  cube(figure,style.accent,0,30,0,29,37,23);
+  for(const dx of [-9,9]){
+   cube(figure,0x776b79,dx,7,0,9,23,10);
+   cylinder(figure,accent,dx*1.8,39,0,4,27);
+  }
+  sphere(figure,b.role==='chef'?0xd29b75:0x66534d,0,76,0,17,7,17);
+  for(const dx of [-7,7])sphere(figure,0x3f454a,dx,59,15,2.1,2.4,2.1);
+  cube(figure,0xfaf0d6,0,104,0,43,18,5);
+  const heart=sphere(figure,0xea9c9f,12,115,0,7,7,6);
+  shopCustomers.push({figure,heart,originX:place.x-113,originZ:place.z+116,phase:b.site*1.47,role:b.role});
+ }
  function tree(x,z,flower=false){
   const g=group(outdoor,x,0,z);
   cylinder(g,COLORS.wood,0,30,0,7,60);
@@ -243,6 +262,14 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
    item.base.position.y=(1-ease)*-24;
   }
   for(const item of festivalFlags)item.flag.rotation.z=Math.sin(time/900+item.shift)*.055;
+  // Small, bounded sidewalk strolls; no new WebGL context or polling.
+  for(const customer of shopCustomers){
+   const phase=time/2700+customer.phase;
+   customer.figure.position.x=customer.originX+Math.sin(phase)*23;
+   customer.figure.position.z=customer.originZ+Math.cos(phase*.8)*8;
+   customer.figure.rotation.y=Math.cos(phase)<0?-.30:.30;
+   customer.heart.position.y=115+Math.sin(time/730+customer.phase)*4;
+  }
   let vx=0,vz=0;
   if(!inside&&goal){
    const x=pos.x,z=pos.z;
@@ -272,7 +299,7 @@ export function mountWorkshopVillage({host,buildings=[],readOnly=false,ownerName
  raf=requestAnimationFrame(draw);
  return {
   visitRole,enter,exit,
-  stats:()=>({frames,inside,walker:{...pos},buildings:buildings.length,readOnly,constructionReveal:Math.round(progress*100),tierDecorations:festivalFlags.length}),
+  stats:()=>({frames,inside,walker:{...pos},buildings:buildings.length,readOnly,constructionReveal:Math.round(progress*100),tierDecorations:festivalFlags.length,customerFigures:shopCustomers.length}),
   dispose(){
    if(disposed)return;disposed=true;cancelAnimationFrame(raf);
    window.removeEventListener('resize',resize);
