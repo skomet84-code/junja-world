@@ -38,6 +38,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/customer-loyalty-v45.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/ws.js",
       "use": "@vercel/node"
     },
@@ -101,6 +105,10 @@
     {
       "src": "/api/resident-demand-v44",
       "dest": "/api/resident-demand-v44.js"
+    },
+    {
+      "src": "/api/customer-loyalty-v45",
+      "dest": "/api/customer-loyalty-v45.js"
     },
     {
       "src": "/api/ws",
