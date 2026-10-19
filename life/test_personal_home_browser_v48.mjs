@@ -89,7 +89,7 @@ try{
    throw Error('v48 placement: '+JSON.stringify({diag,requests,errors,coins:wallet.coins,house:wallet.houseV48})+'; '+e.message);
   }
   assert.equal(wallet.houseV48.placed.length,2);
-  await page.getByRole('button',{name:/1번 칸/}).click();
+  await page.locator('.v48-tile').first().click();
   await page.getByRole('button',{name:'↻ 가구 90° 회전'}).click();
   assert.equal(wallet.houseV48.placed.find(x=>x.slot===0).turn,1);
   const next=page.getByRole('button',{name:/햇살 정원 하우스 증축/});
