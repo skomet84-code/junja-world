@@ -7,7 +7,7 @@ const actionStyle='margin:4px 4px 6px 0;border:0;border-radius:10px;background:#
 
 export function openPlayerMarket(host,{back}={}){
  host.replaceChildren();
- text(host,'🏪 주민 상점과 거래소 · v38 시험판','h2');
+ text(host,'🏪 주민 거래소 · 시험 경제','h2');
  text(host,'시험용 농작물과 골드만 거래할 수 있어요. 기존 레벨·재산·꾸미기 아이템은 이동하지 않습니다.');
  const status=css(node('p','서버 연결 확인 중…'),'padding:12px;background:#f3f2df;border-radius:12px;font-weight:700');
  host.append(status);
