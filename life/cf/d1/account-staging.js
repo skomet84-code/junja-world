@@ -10,7 +10,8 @@ const KDF_ITERATIONS=310000;
 async function passwordHash(password,salt){
  const raw=await crypto.subtle.importKey('raw',new TextEncoder().encode(String(password)),'PBKDF2',false,['deriveBits']);
  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:Buffer.from(salt,'hex'),iterations:KDF_ITERATIONS,hash:'SHA-256'},raw,256);
- return 'pbkdf2-sha256
+ return ['pbkdf2-sha256',String(KDF_ITERATIONS),Buffer.from(bits).toString('hex')].join(':');
+}
 const cookie=(request,name)=>(request.headers.get('cookie')||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='))?.slice(name.length+1)||'';
 const sessionCookie=(token,maxAge=1209600)=>`village_session=${token}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=Lax`;
 const now=()=>new Date().toISOString();
@@ -92,7 +93,7 @@ export async function handleAccountD1(request,env){
    // intentionally NOT imported into the fresh-start Cloudflare account system.
    const digest=await passwordHash(password,row?.password_salt||'00'.repeat(16));
    const valid=!!row && typeof row.password_hash==='string' &&
-    /^pbkdf2-sha256\$310000\$[a-f0-9]{64}$/.test(row.password_hash) &&
+    /^pbkdf2-sha256:310000:[a-f0-9]{64}$/.test(row.password_hash) &&
     timingSafeEqual(Buffer.from(digest),Buffer.from(row.password_hash));
    if(!valid)return send({error:'아이디 또는 비밀번호를 확인해주세요'},401);
    const token=randomBytes(32).toString('hex'),at=now();
