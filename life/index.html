@@ -336,4 +336,51 @@ window.villageGateLogout=function(){gate.hidden=false;status.textContent='계정
  .v48-grid{gap:5px}
 }
 @media(prefers-reduced-motion:reduce){.v48-studio *{transition:none!important}}
+</style><style>
+/* JUNJA V48 DELUXE — tactile home studio, legible small-phone camera controls. */
+.v48-studio{--studio-ink:#405847;--studio-gold:#bb955a}
+.v48-studio h2{font-weight:900;line-height:1.25;letter-spacing:-.8px}
+.v48-home-info{background:linear-gradient(125deg,#faf4df 0%,#e5e9dd 58%,#f7e9ce 100%);
+ border:1px solid #e4ceac;box-shadow:0 7px 24px #766b4120,inset 0 1px 0 #fff;
+ border-radius:18px;padding:16px;gap:9px}
+.v48-home-info strong{color:#826036;font-size:16px;text-shadow:0 1px #ffffffb9}
+.v48-tab{border:1px solid #d7d9c7;box-shadow:0 2px 6px #455f4012;transition:background .15s ease}
+.v48-tab.active{box-shadow:0 4px 14px #bb8a482a,inset 0 1px 0 #fff4}
+.v48-scene-deluxe{position:relative;border:3px solid #e4d2aa;
+ background:radial-gradient(ellipse at center,#edf0e4,#b9c9b1);
+ box-shadow:inset 0 0 0 3px #fff7e2,0 13px 28px #3d604535;isolation:isolate}
+.v48-scene-deluxe::after{position:absolute;content:"✦ SIGNATURE INTERIOR";
+ pointer-events:none;z-index:2;bottom:10px;left:12px;padding:5px 8px;
+ background:#f5f0deeb;color:#836947;letter-spacing:1.1px;
+ border:1px solid #e8dbc2;border-radius:999px;font-size:9px;font-weight:900}
+.v48-camera-controls{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:8px 0 11px}
+.v48-camera-btn{height:44px;min-height:44px;padding:4px 1px;min-width:0;
+ background:linear-gradient(150deg,#e9eddf,#dce6da);color:#4e6859;
+ border:1px solid #c9d6c5;border-radius:11px;font-size:10px;font-weight:850;
+ box-shadow:0 2px 4px #4f684112;touch-action:manipulation;white-space:normal}
+.v48-camera-btn.reset{background:linear-gradient(135deg,#f7ecd1,#e7d6ae);color:#806640;border-color:#d6bd8e}
+.v48-camera-btn:focus-visible{outline:3px solid #b78f56;outline-offset:2px}
+.v48-camera-btn:active{transform:translateY(1px);filter:brightness(.97)}
+.v48-owned,.v48-grid{gap:8px}
+.v48-item{box-shadow:0 2px 5px #536e4712;background:linear-gradient(145deg,#f9f9f0,#e9ede1)}
+.v48-item.active{box-shadow:0 4px 11px #ac934735}
+.v48-grid-cell{border:1px solid #ccd9c9;box-shadow:inset 0 1px #fff9,0 2px 6px #56705112}
+.v48-store-item{position:relative;overflow:hidden;border-color:#d9dec8;
+ box-shadow:0 5px 14px #61745418,inset 0 1px 0 #fff}
+.v48-store-item.legendary{background:linear-gradient(150deg,#fff8e7,#f7e6c1,#eee3dd);
+ border-color:#d3ae64;box-shadow:0 4px 16px #b39c6130}
+.v48-store-item.legendary::after{content:"✦";position:absolute;top:5px;right:10px;
+ color:#be9e60;font-size:13px}
+.v48-store-emoji{font-size:34px;filter:drop-shadow(0 4px 3px #566b4625)}
+.v48-studio .v48-help{background:#f5f7ec;color:#607462!important;
+ border-left:3px solid #c5d5b4;padding:10px;border-radius:0 10px 10px 0}
+@media(max-width:350px){
+ .v48-camera-controls{gap:3px}
+ .v48-camera-btn{font-size:9px;padding:3px 0}
+ .v48-studio .v48-home-info{padding:10px}
+ .v48-scene-deluxe{height:275px}
+}
+@media(prefers-reduced-motion:reduce){
+ .v48-tab,.v48-camera-btn{transition:none!important}
+}
 </style></body></html>
