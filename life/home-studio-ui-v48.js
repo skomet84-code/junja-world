@@ -81,8 +81,8 @@ export function mountHomeStudioV48(host,{getHome,getCoins,onBuy,onArrange,back}=
    try{
     const changed=buyHomeItemV48(getHome(),id,getCoins());
     if(onBuy?.(changed)===false)throw Error('기존 지갑에서 구매 비용을 차감하지 못했어');
-    selected=id;render('✨ '+changed.label+' 구매 완료 · '+gold(changed.cost)+' 지출');
-   }catch(e){render('⚠️ '+e.message)}
+    selected=id;busy=false;render('✨ '+changed.label+' 구매 완료 · '+gold(changed.cost)+' 지출');
+   }catch(e){busy=false;render('⚠️ '+e.message)}
    finally{busy=false}
   }
   const bottom=add(host,'div');bottom.className='v48-footer';
