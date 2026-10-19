@@ -54,8 +54,8 @@ try{
   assert(layout.boxes.every(b=>b.w>=44&&b.h>=44),'Each icon needs at least a 44px touch target');
   assert(layout.scrollWidth<=width,'No horizontal scrolling/overflow on mobile');
   assert(layout.actions.x>=0&&layout.actions.x+layout.actions.width<=width,'Dock stays on screen');
-  if(width===320)assert(new Set(layout.boxes.map(x=>Math.round(x.y))).size===2,'Narrow phone must use two rows');
-  else assert(new Set(layout.boxes.map(x=>Math.round(x.y))).size===1,'Typical phone uses one uniform row');
+  if(width<=415)assert(new Set(layout.boxes.map(x=>Math.round(x.y))).size===2,'Phone width up to 415px must use accessible 4x2 dock');
+  else assert(new Set(layout.boxes.map(x=>Math.round(x.y))).size===1,'Wide phone uses uniform eight-button row');
   await page.locator('#energyHudV47').click();
   await page.waitForSelector('#energyModalV47 .v47-energy-card',{timeout:10000});
   assert((await page.locator('#energyModalV47').innerText()).includes('1,200G'));
