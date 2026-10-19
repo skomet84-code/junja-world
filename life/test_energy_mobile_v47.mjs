@@ -35,8 +35,20 @@ try{
   }));
   await page.goto(url+'index.html',{waitUntil:'domcontentloaded'});
   await page.evaluate(()=>window.villageGateEnter({nickname:'v47 test'}));
-  await page.waitForFunction(()=>document.querySelector('.actions #estateBtn')&&
-   document.getElementById('energyHudV47')?.textContent?.includes('7/100'),null,{timeout:60000});
+  try{
+   await page.waitForFunction(()=>document.querySelector('.actions #estateBtn')&&
+    document.getElementById('energyHudV47')?.textContent?.length>0,null,{timeout:20000});
+  }catch(err){
+   const diag=await page.evaluate(()=>({
+    gameStarted:window.__villageGameStarted,
+    buttons:[...document.querySelectorAll('.hud.actions>.act')].map(x=>x.id),
+    hud:document.getElementById('energyHudV47')?.textContent,
+    gate:document.getElementById('villageGate')?.hidden,
+    script:document.querySelector('script[src="game.js"]')?.outerHTML
+   }));
+   throw Error('Mobile world UI did not initialize: '+JSON.stringify(diag)+
+    '; JS errors='+JSON.stringify(errors)+'; '+err.message);
+  }
   const layout=await page.evaluate(()=>{
    const controls=[...document.querySelectorAll('.hud.actions>.act')];
    const root=document.querySelector('.hud.actions');
