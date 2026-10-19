@@ -753,7 +753,7 @@ function showOperatorNickname(){
  els.name.textContent=socialNickname;
  world3D?.setNickname(socialNickname);
  // The relay stores the nickname at join, so reconnect with the updated name.
- if(typeof pollLive==='function')pollLive();
+ if(typeof connectSocial==='function')connectSocial();
 }
 const VILLAGE_CLIENT_KEY='junja-village-client-id';
 let villageClientId='';
@@ -767,7 +767,9 @@ try{
 let effectiveDisplayNick=socialNickname,oldSocketReplaced=false;
 let socialSocket=null,socialRoom='SPRING',socialId=null,lastPositionSent=0,retryCount=0;
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function socialSend(o){if(o?.type==='say')livePendingPhrase=o.phrase}
+function socialSend(o){if(o?.type!=='say')return;
+if(socialSocket?.readyState===WebSocket.OPEN)socialSocket.send(JSON.stringify({type:'say',phrase:o.phrase}));
+else livePendingPhrase=o.phrase}
 function updateSocialBadge(){const b=document.getElementById('socialStatus');if(!b)return;b.textContent=socialId?'🟢 친구 '+(Object.keys(peers).length+1)+'/8명 · '+socialRoom:'👫 친구 · 오프라인';}
 function openSocial(){
  const connected=Boolean(socialId);
@@ -801,27 +803,66 @@ function openSocial(){
  });
  document.getElementById('roomPlayers').onclick=()=>toast(connected?'같은 방에 '+(Object.keys(peers).length+1)+'명 접속':'현재 혼자 플레이 중');
 }
-let livePolling=false,livePendingPhrase=null,liveTimer=null;
-async function pollLive(){
- if(livePolling)return;
- livePolling=true;
- try{
- const payload={room:socialRoom,x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped};
- if(livePendingPhrase){payload.phrase=livePendingPhrase;livePendingPhrase=null}
- const response=await fetch('/api/live',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
- if(!response.ok)throw Error('presence '+response.status);
- const data=await response.json();socialId=data.id;
- const seen=new Set();
- for(const o of data.players||[]){if(!o||!o.id)continue;seen.add(o.id);const prev=peers[o.id];if(prev){Object.assign(prev,{...o,targetX:o.x,targetY:o.y})}else peers[o.id]={...o,targetX:o.x,targetY:o.y};if(o.phrase&&Number(o.phrase_at)>Date.now()-3500){peers[o.id].phrase=o.phrase;peers[o.id].phraseUntil=Number(o.phrase_at)+3200}}
- for(const id of Object.keys(peers))if(!seen.has(id))delete peers[id];
- updateSocialBadge();
- }catch(e){socialId=null;for(const id of Object.keys(peers))delete peers[id];updateSocialBadge()}
- finally{livePolling=false}
+let livePendingPhrase=null,liveTimer=null,reconnectTimer=null;
+function pollLive(){
+ if(socialSocket?.readyState!==WebSocket.OPEN||!socialId)return;
+ socialSocket.send(JSON.stringify({type:'pos',x:player.x,y:player.y,dir:player.dir,
+  coat:state.coat,hat:state.hat,fashion:state.fashion.equipped}));
+ if(livePendingPhrase){socialSocket.send(JSON.stringify({type:'say',phrase:livePendingPhrase}));livePendingPhrase=null}
 }
 function connectSocial(){
  socialRoom=(new URLSearchParams(location.search).get('room')||'SPRING').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,12)||'SPRING';
  if(liveTimer)clearInterval(liveTimer);
- pollLive();liveTimer=setInterval(()=>{if(!document.hidden)pollLive()},1500);
+ if(reconnectTimer)clearTimeout(reconnectTimer);
+ if(socialSocket){const prev=socialSocket;socialSocket=null;try{prev.onclose=null;prev.close()}catch{}}
+ oldSocketReplaced=false;socialId=null;retryCount=0;
+ function openSocket(){
+  if(oldSocketReplaced)return;
+  try{
+   const url=new URL('/api/ws',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';
+   const socket=new WebSocket(url.href);socialSocket=socket;
+   socket.onopen=()=>{
+    if(socket!==socialSocket)return;
+    socket.send(JSON.stringify({type:'join',room:socialRoom,clientId:villageClientId,nick:socialNickname,
+     x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped}));
+   };
+   socket.onmessage=event=>{
+    if(socket!==socialSocket)return;
+    let data;try{data=JSON.parse(event.data)}catch{return}
+    if(!data||typeof data!=='object')return;
+    if(data.type==='welcome'){
+     socialId=data.id;retryCount=0;
+     for(const key of Object.keys(peers))delete peers[key];
+     for(const p of data.players||[])if(p?.id&&p.id!==socialId)peers[p.id]={...p,targetX:p.x,targetY:p.y};
+     updateSocialBadge();
+    }else if(data.type==='join'&&data.player?.id&&data.player.id!==socialId){
+     const p=data.player;peers[p.id]={...p,targetX:p.x,targetY:p.y};updateSocialBadge();
+    }else if(data.type==='pos'&&data.id&&data.id!==socialId){
+     const old=peers[data.id]||{id:data.id,nick:'마을 친구'};
+     peers[data.id]={...old,...data,targetX:data.x,targetY:data.y};
+    }else if(data.type==='leave'&&data.id){delete peers[data.id];updateSocialBadge();
+    }else if(data.type==='speech'&&data.id&&peers[data.id]){
+     peers[data.id].phrase=data.phrase;peers[data.id].phraseUntil=Date.now()+3200;
+    }else if(data.type==='replaced'){
+     oldSocketReplaced=true;socialId=null;updateSocialBadge();
+     toast('다른 탭에서 접속하여 이 화면의 멀티플레이가 종료됐어요');
+    }else if(data.type==='error'){toast(String(data.message||'마을 접속 오류').slice(0,80))}
+   };
+   socket.onclose=()=>{
+    if(socket!==socialSocket)return;
+    socialId=null;for(const id of Object.keys(peers))delete peers[id];
+    updateSocialBadge();
+    if(oldSocketReplaced)return;
+    reconnectTimer=setTimeout(openSocket,Math.min(15000,1000*2**Math.min(retryCount++,4)));
+   };
+   socket.onerror=()=>{try{socket.close()}catch{}};
+  }catch(e){
+   socialId=null;updateSocialBadge();
+   reconnectTimer=setTimeout(openSocket,Math.min(15000,1000*2**Math.min(retryCount++,4)));
+  }
+ }
+ openSocket();
+ liveTimer=setInterval(()=>{if(!document.hidden)pollLive()},250);
 }
 
 function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
