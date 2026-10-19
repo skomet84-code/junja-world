@@ -13,6 +13,7 @@ try{
  await new Promise(r=>setTimeout(r,130))}
  assert(up,'Local test fixture did not start');
  browser=await chromium.launch({headless:true,args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader']});
+ await mkdir('artifacts',{recursive:true});
  for(const width of [320,390,430,1280]){
   const mobile=width<600;
   const page=await browser.newPage({viewport:{width,height:850},deviceScaleFactor:1,
