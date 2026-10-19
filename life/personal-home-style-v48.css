@@ -1,0 +1,44 @@
+/* v48 — airy ivory/royal-lilac living-room showroom for 320px–desktop. */
+.v48-home{font:500 13px/1.5 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;color:#526259;min-width:0;overflow-wrap:anywhere}
+.v48-home h2{font-weight:850;font-size:clamp(23px,5vw,28px)!important;line-height:1.2;margin:7px 0 12px}
+.v48-home h3{font-size:16px;margin:3px 0 10px;color:#4e674f;letter-spacing:-.35px}
+.v48-home h4{font-size:12px;color:#7d7868;margin:8px 0 5px}
+.v48-home p{margin:5px 0 11px!important;line-height:1.65;font-size:12px!important;color:#71816e!important}
+.v48-eyebrow{display:inline-flex;background:#ede3ed;color:#8b698f;border:1px solid #d7cad8;padding:5px 11px;border-radius:999px;letter-spacing:1.2px;font-size:10px;font-weight:850}
+.v48-status{padding:11px 12px;background:#eaf1df;border:1px solid #d9e6c9;border-radius:14px;color:#486f54!important;font-weight:750!important}
+.v48-3d{width:100%;height:clamp(220px,64vw,320px);max-height:44vh;border:2px solid #e5d9c3;overflow:hidden;border-radius:18px;background:#eee9de;box-shadow:0 10px 28px #46392720}
+.v48-help,.v48-note{font-size:11px!important;color:#849082!important;line-height:1.55!important}
+.v48-totals{background:linear-gradient(115deg,#eee9d7,#efe8e8);padding:13px;color:#615b65;border-radius:16px;font-size:12px;font-weight:800;margin:12px 0;border:1px solid #ede5cd}
+.v48-section{border:1px solid #eae5d5;background:#fffdf5;padding:13px 11px;border-radius:18px;box-shadow:0 4px 17px #726a4820;margin:12px 0}
+.v48-grid{display:grid;gap:5px;padding:10px 6px;margin:9px 0;background:#f1e6d4;border:2px solid #dec8a9;border-radius:14px;max-width:350px}
+.v48-tile{aspect-ratio:1;min-width:0;min-height:40px!important;border-radius:9px;background:#e5d2b9;color:#a58b6e;font-size:23px;border:1px solid #f8f2df;box-shadow:inset 0 1px 3px #ab86662e;touch-action:manipulation}
+.v48-tile.occupied{background:#f9f0dc;color:#6d785f}
+.v48-tile.selected{outline:3px solid #c0985c;outline-offset:0;background:#fff6d4;box-shadow:0 2px 5px #86654840}
+.v48-button{border:0;border-radius:11px;background:linear-gradient(135deg,#67947c,#59846f);color:#fff;
+ padding:10px 12px;min-height:43px;max-width:100%;font-size:12px;line-height:1.3;font-weight:800;touch-action:manipulation;text-align:center}
+.v48-button.ghost{background:#f1e9df;color:#706353;border:1px solid #e2d6c4}
+.v48-button:disabled{opacity:.48;filter:grayscale(.15);cursor:default}
+.v48-button:not(:disabled):active{transform:translateY(1px)}
+.v48-button:focus-visible,.v48-select:focus-visible,.v48-tile:focus-visible{outline:3px solid #9273ae;outline-offset:2px}
+.v48-action-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:7px;margin:8px 0}
+.v48-select{width:100%;border:1px solid #decdb2;border-radius:11px;background:#fff9eb;color:#556855;min-height:44px;padding:8px;font-size:14px;margin:8px 0}
+.v48-style-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:8px 0}
+.v48-style-row>.v48-button{white-space:normal;min-width:0}
+.v48-catalog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.v48-item{display:flex;flex-direction:column;gap:4px;min-width:0;border:1px solid #e5dcc8;background:#fcf7ec;border-radius:14px;padding:10px}
+.v48-item.rare{background:linear-gradient(145deg,#fff9ec,#efe5f3);border-color:#cbb9d3}
+.v48-item-icon{font-size:32px;line-height:1.4;filter:drop-shadow(0 3px 2px #4442)}
+.v48-item strong{font-size:13px;color:#526553;min-height:34px;line-height:1.35}
+.v48-rarity{color:#ab8552;font-weight:800;font-size:11px}
+.v48-item.rare .v48-rarity{color:#81608d}
+.v48-item>.v48-button{width:100%;margin-top:auto;min-height:45px}
+.v48-lock{min-height:35px;color:#986d78!important}
+@media(max-width:360px){
+ .v48-section{padding:10px 8px}
+ .v48-item{padding:8px}
+ .v48-item strong{font-size:12px}
+ .v48-grid{gap:3px;padding:6px 3px}
+ .v48-tile{min-height:39px!important;font-size:20px}
+ .v48-catalog{gap:6px}
+}
+@media(prefers-reduced-motion:reduce){.v48-button{transition:none}}
