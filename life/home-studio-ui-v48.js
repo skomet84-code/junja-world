@@ -33,15 +33,35 @@ export function mountHomeStudioV48(host,{getHome,getCoins,onBuy,onArrange,back}=
    tabs.append(btn(item.name+(i>=view.level?' 🔒':''),()=>{room=i;render()},i>=view.level,
     'v48-tab'+(room===i?' active':'')));
   }
-  const viewport=add(host,'div');viewport.className='v48-scene';
-  const hint=add(host,'p','👆 아래에서 가구를 고른 다음 실내 바닥을 누르면 배치해. 가구가 있으면 서로 자리를 교환해.');
+  const viewport=add(host,'div');viewport.className='v48-scene v48-scene-deluxe';
+  const cameraControls=add(host,'nav');cameraControls.className='v48-camera-controls';
+  cameraControls.setAttribute('aria-label','3D 실내 카메라 조작');
+  cameraControls.append(btn('↶ 왼쪽',()=>scene?.rotate(-.45),false,'v48-camera-btn'));
+  cameraControls.append(btn('↷ 오른쪽',()=>scene?.rotate(.45),false,'v48-camera-btn'));
+  cameraControls.append(btn('− 축소',()=>scene?.zoom(.15),false,'v48-camera-btn'));
+  cameraControls.append(btn('＋ 확대',()=>scene?.zoom(-.15),false,'v48-camera-btn'));
+  cameraControls.append(btn('⌂ 정면',()=>scene?.resetView(),false,'v48-camera-btn reset'));
+  const hint=add(host,'p','👆 가구 또는 바닥을 터치하면 배치 · 좌우 드래그하면 3D 방 회전 · 아래 버튼으로 확대/축소 가능');
   hint.className='v48-help';
+  hint.id='homeV48Instruction';
   add(host,'h3','🎒 보유 가구 선택');
   const owned=add(host,'div');owned.className='v48-owned';
   for(const id of view.items){
    const item=HOME_FURNITURE_V48[id];
-   owned.append(btn(item.icon+' '+item.name+(id===selected?' ✓':''),()=>{
-    selected=id;render('선택한 가구: '+item.name)},false,'v48-item'+(id===selected?' active':'')));
+   const b=btn(item.icon+' '+item.name+(id===selected?' ✓':''),()=>{
+    // Selection should NOT tear down and recreate a GPU context. Only owned
+    // furniture transactions/room changes rebuild the 3D room.
+    selected=id;
+    for(const other of owned.querySelectorAll('[data-home-item]')){
+     const key=other.dataset.homeItem,active=key===selected,entry=HOME_FURNITURE_V48[key];
+     other.classList.toggle('active',active);
+     other.setAttribute('aria-pressed',String(active));
+     other.textContent=entry.icon+' '+entry.name+(active?' ✓':'');
+    }
+    hint.textContent='✅ '+item.name+' 선택됨 · 3D 가구 또는 바닥을 눌러 위치를 골라줘';
+   },false,'v48-item'+(id===selected?' active':''));
+   b.dataset.homeItem=id;
+   b.setAttribute('aria-pressed',String(id===selected));owned.append(b);
   }
   add(host,'h3',data.info.name+' · 배치 공간');
   const grid=add(host,'div');grid.className='v48-grid';
@@ -91,5 +111,5 @@ export function mountHomeStudioV48(host,{getHome,getCoins,onBuy,onArrange,back}=
  }
  function dispose(){alive=false;disposeScene();host.replaceChildren()}
  render();
- return {refresh:()=>render(),dispose};
+ return {refresh:()=>render(),sceneStats:()=>scene?.stats()||null,dispose};
 }
