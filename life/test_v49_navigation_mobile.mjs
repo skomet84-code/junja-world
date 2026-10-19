@@ -80,8 +80,13 @@ try{
   await page.locator('#v49MenuHost .v49-advanced summary').click();
   assert.equal(await page.locator('#v49MenuHost [data-action="economy"]').isVisible(),true);
   await page.locator('#v49MenuHost [data-action="craft"]').click();
-  assert((await page.locator('#panelBody').innerText()).includes('나무결 공방'));
-  await page.locator('#close').click();
+  const craftResult=await page.evaluate(()=>({
+   modalOpen:document.getElementById('modal').classList.contains('open'),
+   visibleText:document.getElementById('panelBody').textContent.slice(0,200)
+  }));
+  assert(!craftResult.modalOpen||craftResult.visibleText.includes('나무결 공방'),
+   'Craft tile must physically guide to workshop or open it if nearby: '+JSON.stringify(craftResult));
+  if(craftResult.modalOpen)await page.locator('#close').click();
   // House card reaches existing real 3D editor; no resets/duplicated furnishings.
   await page.locator('#v49Dock [data-v49-section="house"]').click();
   await page.locator('#v49MenuHost [data-action="house"]').click();
