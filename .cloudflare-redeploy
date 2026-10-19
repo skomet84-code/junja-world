@@ -1,0 +1,5 @@
+Cloudflare deployment trigger
+Release branch: feat/village-v50-cloudflare-cutover
+Release commit: 7dac4fc16cf018f18bef01b4ef47896f535419c8
+Reason: Restore missing action-energy-v47.js and secure-economy-v36.js browser assets.
+Requested: 2026-10-20 KST
