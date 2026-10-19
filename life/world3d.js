@@ -3,6 +3,7 @@ import {createAvatar,ball,tube} from './avatar3d.js';
 import {createPet} from './fashion-3d.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {BUSINESS_PORTAL_V42} from './district-portal-v42.js';
+import {v43LightMood} from './village-life-v43.js';
 
 const materials=new Map();
 function material(color){if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:.95}));return materials.get(color)}
@@ -97,7 +98,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  // Raycast only intentionally interactive objects, not the full island/grass meshes.
  const pickRoots=[];
  const camera=new T.OrthographicCamera(-400,400,400,-400,1,5000),raycaster=new T.Raycaster(),groundPlane=new T.Plane(new T.Vector3(0,1,0),0),v=new T.Vector3();
- scene.add(new T.HemisphereLight(0xfff6de,0x94b294,2.65));
+ const skyAmbient=new T.HemisphereLight(0xfff6de,0x94b294,2.65);scene.add(skyAmbient);
   // A soft frontal fill brings out the face, eyes and sleeve trim without changing scale.
   const faceFill=new T.DirectionalLight(0xfff3de,1.0);
   faceFill.position.set(0,420,620);scene.add(faceFill);const sun=new T.DirectionalLight(0xffedca,3.1);sun.position.set(-400,900,400);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-680;sun.shadow.camera.right=680;sun.shadow.camera.top=680;sun.shadow.camera.bottom=-680;sun.shadow.camera.near=10;sun.shadow.camera.far=2200;sun.shadow.bias=-.0004;sun.shadow.normalBias=1.7;scene.add(sun);scene.add(sun.target);
@@ -134,6 +135,29 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  // Pier physically projects above the sea; fish action uses this same location.
  const dock=group(scene,1498,0,1240);dock.userData.pick={type:'station',id:'pier'};for(let j=0;j<12;j++)box(dock,j%2?0xc8a77a:0xd2b386,0,2,-50+j*10,94,5,8);for(const x of [-50,50])for(const z of [-50,60]){cylinder(dock,0x9c815e,x,12,z,5,35);sphere(dock,0xbfa17b,x,30,z,6,3,6)}
  pickRoots.push(dock);
+ // v43: artisan quarter landscaping — modeled fences, festival bunting, flower tubs and patio benches.
+ // Decorative geometry is not collidable and never changes game objectives or saving.
+ const avenueDecor=group(scene);
+ for(const [x,z] of [[2660,1240],[2885,1240],[2705,1435],[3010,1175]]){
+  box(avenueDecor,0xd7bc8c,x,13,z,72,16,50);
+  box(avenueDecor,0x9b7b57,x,23,z,75,9,54);
+  for(const [xx,zz] of [[-23,-12],[4,14],[27,-6]]){
+   cylinder(avenueDecor,0x72966a,x+xx,42,z+zz,2,24);
+   sphere(avenueDecor,0xecc3b0,x+xx,55,z+zz,11,8,10);
+   sphere(avenueDecor,0xffe3b3,x+xx+4,61,z+zz,4,5,4);
+  }
+ }
+ for(const [x,z] of [[2630,1320],[3030,1250]])bench(avenueDecor,x,z);
+ for(const x of [2590,2940]){
+  cylinder(avenueDecor,0x8e765a,x,62,1390,5,124);
+  sphere(avenueDecor,0xe9c378,x,130,1390,13,13,13);
+ }
+ for(let j=0;j<10;j++){
+  const x=2590+j*39;
+  const pennant=new T.Mesh(new T.ConeGeometry(12,24,3),material(j%3===0?0xe5b4a8:j%3===1?0xa5c3b2:0xf1d79c));
+  pennant.position.set(x,129-Math.sin(j/9*Math.PI)*16,1390);
+  pennant.rotation.z=Math.PI;avenueDecor.add(pennant);
+ }
  const solids=[],treeGroups=[];
  // Hand-placed borders avoid blocking the deliberately designed paths.
  const treeCoords=[[210,280],[350,190],[760,240],[1030,230],[1220,180],[1700,260],[1830,450],[250,650],[190,920],[530,1010],[610,1400],[720,1470],[1360,1090],[1830,1080],[2200,350],[2380,260],[2740,300],[2940,250],[3270,400],[3410,600],[3450,1000],[3470,1900],[3320,2160],[3100,2230],[2750,2240],[2160,2260]];
@@ -266,7 +290,18 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  burstMesh.instanceMatrix.setUsage(T.DynamicDrawUsage);burstMesh.frustumCulled=false;scene.add(burstMesh);
  const burstParts=Array.from({length:24},()=>({life:0})),dummy=new T.Object3D();let burstCursor=0;
  function burst(x,z,color=0xf6d793){if(reducedMotion)return;for(let i=0;i<10;i++){const p=burstParts[burstCursor%24],angle=i*Math.PI*2/10;Object.assign(p,{x,z,y:25,dx:Math.cos(angle)*38,dz:Math.sin(angle)*38,dy:40+Math.random()*25,life:1});burstMesh.setColorAt(burstCursor%24,new T.Color(color));burstCursor++}burstMesh.instanceColor.needsUpdate=true}
+ let lastVillageLightPhase='',nextVillageLightPoll=0;
  function render({state,actor,npcs:ns,animals:as,peers={},time,dt,goal,path}){
+  if(time>=nextVillageLightPoll){
+   nextVillageLightPoll=time+25;
+   const mood=v43LightMood(new Date());
+   if(mood.phase!==lastVillageLightPhase){
+    lastVillageLightPhase=mood.phase;
+    scene.background.setHex(mood.background);
+    skyAmbient.intensity=mood.hemisphere;sun.intensity=mood.sun;
+    renderer.shadowMap.needsUpdate=true;
+   }
+  }
   for(let i=0;i<burstParts.length;i++){const p=burstParts[i];p.life=Math.max(0,p.life-dt*1.4);if(p.life){p.x+=p.dx*dt;p.z+=p.dz*dt;p.dy-=110*dt;p.y+=p.dy*dt}dummy.position.set(p.x||0,Math.max(2,p.y||0),p.z||0);dummy.scale.setScalar(p.life);dummy.updateMatrix();burstMesh.setMatrixAt(i,dummy.matrix)}burstMesh.instanceMatrix.needsUpdate=true;
   if(!reducedMotion){for(let i=0;i<treeGroups.length;i++){const g=treeGroups[i];if(g.visible)g.rotation.z=Math.sin(time*.9+i*1.7)*.009}destination.scale.setScalar(1+Math.sin(time*3)*.09)}
 
@@ -282,7 +317,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   playerLabel.position.set(actor.x,143,actor.y);
   playerSpeech.position.set(actor.x,194,actor.y);
   if(playerSpeech.visible&&Date.now()>playerPhraseUntil)playerSpeech.visible=false;
-  ns.forEach((n,i)=>{villagers[i].animate({x:n.x,y:n.y,dir:0},dt,time+i)});
+  ns.forEach((n,i)=>{villagers[i].animate({x:n.x,y:n.y,vx:n.vx||0,vy:n.vy||0,stride:n.walkCycle||0,dir:0},dt,time+i)});
   as.forEach((n,i)=>{residents[i].animate({x:n.x,y:n.y,vx:n.moving?n.dx-n.x:0,vy:n.moving?n.dy-n.y:0,stride:(n.travel||0)/70*Math.PI*2,dir:0},dt,time+i)});
   as.forEach((n,i)=>{const m=questMarkers[i];if(m){m.visible=!!n.questMark;m.position.set(n.x,195+Math.sin(time*3+i)*5,n.y)}});
   updateGuests(peers,dt,time);
@@ -304,5 +339,5 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,burst,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(595-46,880)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{burstMesh.geometry.dispose();burstMesh.material.dispose();for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();for(const guest of guestAvatars.values())if(guest.pet)guest.pet.dispose();renderer.dispose();previewRenderer?.dispose()}};
+ return {render,burst,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,daypart:lastVillageLightPhase,residentMotion:villagers.length,displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(595-46,880)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{burstMesh.geometry.dispose();burstMesh.material.dispose();for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();for(const guest of guestAvatars.values())if(guest.pet)guest.pet.dispose();renderer.dispose();previewRenderer?.dispose()}};
 }
