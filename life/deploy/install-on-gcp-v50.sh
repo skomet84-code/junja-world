@@ -32,7 +32,8 @@ fi
 cd /opt/junja-village/life
 npm install --omit=dev --no-audit --no-fund
 cp deploy/junja-village.service /etc/systemd/system/junja-village.service
-chown -R junja:junja /opt/junja-village
+chown -R root:root /opt/junja-village
+chmod -R a+rX /opt/junja-village
 systemctl daemon-reload
 systemctl enable --now junja-village
 systemctl --no-pager status junja-village || true
