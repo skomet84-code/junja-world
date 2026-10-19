@@ -6,6 +6,7 @@ import {currentProfession} from '../professions-v39.js';
 import {buildWorkshop,upgradeWorkshop,manufactureWorkshopItem,workshopView,businessWeekBeginning,WORKSHOP_TYPES} from '../business-v40.js';
 import {makeCheckpoint,validateCheckpointChain} from '../economy-integrity-v37.js';
 import {relocateWorkshop} from '../workshop-plots-v41.js';
+import {chargeEnergy,projectEnergy} from '../action-energy-v47.js';
 
 const livePool=new pg.Pool({connectionString:process.env.VILLAGE_DATABASE_URL||process.env.DATABASE_URL,ssl:{rejectUnauthorized:false},max:3});
 const hash=s=>createHash('sha256').update(s).digest('hex');
@@ -76,7 +77,8 @@ export function makeBusinessHandler({pool=livePool,now=()=>new Date()}={}){
     const [proof,ranking,checked]=await Promise.all([activity(c,key,account.state),weekly(c,time),
      read.rows.length?audit(c,key,account,false):Promise.resolve({audit:{ok:false,reason:'not_created'}})]);
     return send(res,200,{ok:true,trial:true,coins:account.state.coins,version:Number(account.version),
-     business:workshopView(account.state,proof,time),rankings:ranking,audit:checked.audit});
+     business:workshopView(account.state,proof,time),rankings:ranking,audit:checked.audit,
+     energy:process.env.ENABLE_VILLAGE_ENERGY_V47==='true'?projectEnergy(account.state,time):null});
    }
    const {requestId,action,role,site}=req.body||{};
    if(typeof requestId!=='string'||!uuid.test(requestId))return send(res,400,{error:'중복 거래 방지 요청번호가 필요해요'});
@@ -95,13 +97,20 @@ export function makeBusinessHandler({pool=livePool,now=()=>new Date()}={}){
     if(previous.rows[0].request_hash!==requestHash)fail('같은 요청번호로 다른 거래는 불가능해요');
     await c.query('COMMIT');tx=false;
     return send(res,200,{ok:true,replayed:true,receipt:previous.rows[0].receipt,coins:record.state.coins,
-      business:workshopView(record.state,await activity(c,key,record.state),time)});
+      business:workshopView(record.state,await activity(c,key,record.state),time),
+      energy:process.env.ENABLE_VILLAGE_ENERGY_V47==='true'?projectEnergy(record.state,time):null});
    }
    const snapshot=await audit(c,key,record,true);
    const proof=await activity(c,key,record.state);
    const change=action==='build'?buildWorkshop(record.state,role,proof,time):
     action==='upgrade'?upgradeWorkshop(record.state,role,proof):
     action==='place'?relocateWorkshop(record.state,role,site,time):manufactureWorkshopItem(record.state,role,proof);
+   // Charge energy only after the real server manufacture succeeds. A shortage
+   // throws and rolls back the entire craft/fee/inventory transaction.
+   if(action==='produce'&&process.env.ENABLE_VILLAGE_ENERGY_V47==='true'){
+    const used=chargeEnergy(change.next,'business_produce',time);
+    change.next=used.next;
+   }
    const version=Number(record.version)+1;if(!Number.isSafeInteger(version))fail('저장 버전 한도 초과',500);
    const receipt={action:action==='produce'?'business_produce':action==='build'?'business_build':action==='place'?'business_place':'business_upgrade',
     detail:change.detail,delta:change.delta,balance:change.next.coins,role,site:action==='place'?site:null,product:change.product||null,level:change.level,
@@ -117,7 +126,8 @@ export function makeBusinessHandler({pool=livePool,now=()=>new Date()}={}){
     VALUES($1,$2,$3::jsonb,$4,$5,$6)`,[key,version,JSON.stringify(next.state),next.previous_hash,next.state_hash,requestId]);
    await c.query('COMMIT');tx=false;
    return send(res,200,{ok:true,version,receipt,coins:change.next.coins,
-    business:workshopView(change.next,await activity(c,key,change.next),time)});
+    business:workshopView(change.next,await activity(c,key,change.next),time),
+    energy:process.env.ENABLE_VILLAGE_ENERGY_V47==='true'?projectEnergy(change.next,time):null});
   }catch(e){
    if(tx&&c){try{await c.query('ROLLBACK')}catch{}}
    if(e.status&&e.status<500)return send(res,e.status,{error:e.message});
