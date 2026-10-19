@@ -53,7 +53,7 @@ try{
  assert.equal(concurrent.filter(x=>!x.data.replayed).length,1);
  row=await account();assert.equal(row.state.actionEnergyV47.current,26);
  assert.equal(row.state.actionEnergyV47.packs,1);
- assert.equal(row.state.coins,8200-20-1200);
+ assert.equal(row.state.coins,state.coins-20-1200);
  const manufactured=await query(business,'POST',{action:'produce',role:'farmer',requestId:randomUUID()});
  assert.equal(manufactured.code,200,JSON.stringify(manufactured.data));
  row=await account();assert.equal(row.state.actionEnergyV47.current,18,'Professional craft deducts 8 energy');
@@ -63,7 +63,7 @@ try{
  // Verify arbitrary client-supplied fake price is ignored by server.
  const second=await query(farm,'POST',{action:'energy_buy',payload:{packSize:9999,price:0},requestId:randomUUID()});
  assert.equal(second.code,200);
- row=await account();assert.equal(row.state.coins,8200-40-1200-130-1200);
+ row=await account();assert.equal(row.state.coins,state.coins-40-1200-130-1200);
  assert.equal(row.state.actionEnergyV47.packs,2);
  assert.equal(row.state.actionEnergyV47.current,41);
  const third=await purchase();assert.equal(third.code,200);
@@ -77,7 +77,7 @@ try{
  assert.equal(log.find(x=>x.action==='energy_buy').n,3);
  assert.equal((await query(farm,'POST',{action:'energy_buy',requestId:randomUUID()},{origin:'https://evil.example'})).code,403);
  await pool.query("UPDATE village_economy_v36_accounts SET state=jsonb_set(state,'{coins}','999999'::jsonb) WHERE user_key='owner'");
- assert.equal((await action('plant',{index:1,crop:'lettuce'})).code,409,'Fail closed on tampered wallet');
+ assert.equal((await action('plant',{index:2,crop:'lettuce'})).code,409,'Fail closed on tampered wallet');
  console.log('PASS v47 disposable PostgreSQL: atomic farming + manufacturing energy, seven concurrent one-time refills, 3/day quota, price forgery rejection and v37 chain');
 }finally{
  for(const [key,value] of Object.entries(old)){if(value===undefined)delete process.env[key];else process.env[key]=value}
