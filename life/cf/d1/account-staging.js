@@ -51,6 +51,26 @@ export async function handleAccountD1(request,env){
  const data=method==='POST'?await bodyJson(request):{};
  if(!data||typeof data!=='object'||Array.isArray(data))return send({error:'잘못된 요청'},400);
  try{
+  // Explicit one-time bootstrap only, with a secret supplied in the Cloudflare
+  // dashboard (never in git/chat). Fresh D1 has no inherited administrator.
+  if(action==='admin_setup'&&method==='POST'){
+   const secret=String(env.VILLAGE_ADMIN_SETUP_TOKEN||''),supplied=String(data.setupCode||'');
+   if(secret.length<24||secret.length!==supplied.length||
+      !timingSafeEqual(Buffer.from(secret),Buffer.from(supplied)))
+    return send({error:'운영자 설정 인증에 실패했어요'},403);
+   const password=String(data.password||'');
+   if(password.length<8||password.length>128)return send({error:'운영자 비밀번호는 8~128자여야 해요'},400);
+   const existing=await db.prepare("SELECT id FROM village_users WHERE role='admin' OR username='admin_junja2' LIMIT 1").first();
+   if(existing)return send({error:'운영자 계정이 이미 존재해요. 복구 절차를 이용해 주세요'},409);
+   const salt=randomBytes(16).toString('hex'),hash=await passwordHash(password,salt),
+    id=randomUUID(),at=now();
+   try{
+    await db.prepare(`INSERT INTO village_users
+      (id,username,nickname,password_salt,password_hash,role,created_at)
+      VALUES(?,?,?,?,?,'admin',?)`).bind(id,'admin_junja2','준자',salt,hash,at).run();
+   }catch(e){if(/UNIQUE|constraint/i.test(String(e)))return send({error:'운영자 계정이 이미 존재해요'},409);throw e}
+   return send({ok:true,message:'준자 최고관리자 계정 준비 완료. 이제 로그인해 주세요'},201);
+  }
   if(action==='register'&&method==='POST'){
    const username=String(data.username||'').trim().toLowerCase(),password=String(data.password||'');
    const nickname=String(data.nickname||username).trim();
