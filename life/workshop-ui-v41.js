@@ -1,5 +1,6 @@
 // JUNJA v41 mobile-friendly business district UI. Server owns all placement, inventory and sales.
 import {mountWorkshopVillage} from './workshop-world-v41.js';
+import {mountResidentDemand} from './resident-demand-ui-v44.js';
 import {villagePlots,WORKSHOP_ROLES,WORKSHOP_SITES,DEFAULT_WORKSHOP_SLOTS} from './workshop-plots-v41.js';
 const mk=(tag,label)=>{const el=document.createElement(tag);if(label!==undefined)el.textContent=String(label);return el};
 const add=(parent,tag,text)=>{const e=mk(tag,text);parent.append(e);return e};
@@ -17,7 +18,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
  const controls=add(host,'div');
  const actionPanel=add(host,'section');actionPanel.style.cssText='background:#edf3e9;padding:10px;border-radius:14px;margin-top:8px';
  const selector=add(host,'section');
- let scene=null,removed=false,self=null,owner=null,visitorList=[],busy=false,pending=null,current=null;
+ let scene=null,removed=false,self=null,owner=null,visitorList=[],busy=false,pending=null,current=null,residentShop=null;
  const button=(label,fn,disabled=false)=>{
   const b=mk('button',label);b.type='button';b.style.cssText=btnStyle;b.disabled=disabled||busy;b.onclick=fn;return b;
  };
@@ -81,6 +82,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
   }else add(actionPanel,'p','방문 중에는 생산·재배치·골드/재고 변경이 허용되지 않습니다.');
  }
  function renderControls(readOnly,buildings,who){
+  residentShop?.dispose();residentShop=null;
   controls.replaceChildren();selector.replaceChildren();
   const first=add(controls,'h3','📍 '+who+'의 사업장');
   if(!buildings.length)add(controls,'p','아직 지어진 사업장이 없어요.');
@@ -115,6 +117,12 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
     line.append(choose);
     line.append(button('이 자리로 옮기기',()=>transact('place',b.role,Number(choose.value)),busy));
    }
+   const demandHost=add(selector,'section');
+   demandHost.style.cssText='margin-top:12px;padding:10px;border-radius:14px;background:#f8f6e9';
+   residentShop=mountResidentDemand(demandHost,{onSold:receipt=>{
+    note.textContent='✅ '+receipt.detail+' · 실수령 '+currency(receipt.net);
+    fetchJSON('/api/business-v40').then(data=>{if(!removed)self=data}).catch(()=>{});
+   }});
   }
  }
  async function viewSelf(recreate){
@@ -158,6 +166,6 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
   }finally{busy=false}
  }
  load();
- return {dispose(){removed=true;keepScene();host.replaceChildren()},refresh:load,
+ return {dispose(){removed=true;residentShop?.dispose();keepScene();host.replaceChildren()},refresh:load,
   enterRole:role=>scene?.enter(role),stats:()=>scene?.stats()};
 }
