@@ -7,7 +7,7 @@ const roleLabels={farmer:'농부',chef:'요리사',merchant:'상인'};
 export function openBusinessCenter(host,{back}={}){
  if(!host)throw Error('사업장 화면이 준비되지 않았습니다');
  host.replaceChildren();
- add(host,'h2','🏡 나만의 사업장 · v40 시험판');
+ add(host,'h2','🏭 나의 사업장 · 시험 경제');
  add(host,'p','주민 직업 경력과 전문 생산품은 시험 경제 서버에만 저장돼요. 운영 중인 캐릭터의 재산에는 영향을 주지 않습니다.');
  const status=add(host,'p','직업 사업장 확인 중…');
  status.style.cssText='background:#f1f3e5;border-radius:12px;padding:12px;font-weight:700';

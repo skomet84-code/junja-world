@@ -21,7 +21,7 @@ export function mountHomeStudioV48(host,{getHome,getCoins,onBuy,onArrange,back}=
   if(room>=view.level)room=0;
   if(!view.items.includes(selected))selected=view.items[0]||'sofa';
   const data=homeRoomV48(home,room);
-  add(host,'h2','🏡 나의 로열 하우스 · v48');
+  add(host,'h2','🏡 나의 로열 하우스');
   add(host,'p','기존 집 레벨과 보유 가구를 이어받아 3D로 꾸미는 공간이야. 이동과 배치는 무료야.');
   const info=add(host,'section');info.className='v48-home-info';
   add(info,'strong',prestige.title+' · '+prestige.score+'점');

@@ -13,7 +13,7 @@ const currency=n=>Number(n).toLocaleString('ko-KR')+'G';
 export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 돌아가기',look={}}={}){
  if(!host)throw Error('사업장 구역 화면을 찾지 못했습니다');
  host.replaceChildren();
- add(host,'h2','🏘️ 준자마을 3D 사업장 거리 · v46');
+ add(host,'h2','🏘️ 준자마을 사업장 거리');
  add(host,'p','사업장 터치를 통해 직접 걸어가고, 실내를 둘러볼 수 있어요. 방문은 열람만 가능하며 다른 주민의 재산을 변경할 수 없습니다.');
  const note=add(host,'p','서버 사업장 기록을 확인하는 중…');
  note.style.cssText='padding:12px;background:#f2f3e4;border-radius:12px;font-weight:700';
@@ -60,7 +60,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
    self=mine;visitorList=guests.visitable||[];
    await viewSelf(false);
    note.textContent=mine.audit?.ok?'✅ 서버 복구 장부 검증 완료 · 시험 골드 '+currency(mine.coins):
-     mine.audit?.reason==='not_created'?'🌱 아직 개업한 사업장이 없어요. 먼저 v40에서 건설해 주세요.':
+     mine.audit?.reason==='not_created'?'🌱 아직 개업한 사업장이 없어요. 생산 → 나의 사업장에서 먼저 건설해 주세요.':
      '⚠️ 저장 장부를 확인해야 합니다 · '+(mine.audit?.reason||'미확인');
   }catch(e){
    if(!removed)warning(e.message);
@@ -151,7 +151,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
   owner=null;safeScene(buildings,false,'나');
   renderControls(false,buildings,'나');
   actionPanel.replaceChildren();
-  add(actionPanel,'p',buildings.length?'건물을 터치하거나 이동 버튼을 누르면 캐릭터가 걸어가요.':'v39에서 직업을 키우고 v40에서 먼저 사업장을 건설해 보세요.');
+  add(actionPanel,'p',buildings.length?'건물을 터치하거나 이동 버튼을 누르면 캐릭터가 걸어가요.':'생활 → 직업과 계약에서 직업을 키우고, 생산 → 나의 사업장에서 건설해 보세요.');
  }
  async function visitPlayer(key){
   if(busy||removed)return;
