@@ -2,6 +2,7 @@
 import {mountWorkshopVillage} from './workshop-world-v41.js';
 import {mountResidentDemand} from './resident-demand-ui-v44.js';
 import {mountCustomerLoyalty} from './customer-loyalty-ui-v45.js';
+import {mountBusinessHonors} from './business-honors-ui-v46.js';
 import {villagePlots,WORKSHOP_ROLES,WORKSHOP_SITES,DEFAULT_WORKSHOP_SLOTS} from './workshop-plots-v41.js';
 const mk=(tag,label)=>{const el=document.createElement(tag);if(label!==undefined)el.textContent=String(label);return el};
 const add=(parent,tag,text)=>{const e=mk(tag,text);parent.append(e);return e};
@@ -11,7 +12,7 @@ const currency=n=>Number(n).toLocaleString('ko-KR')+'G';
 export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 돌아가기',look={}}={}){
  if(!host)throw Error('사업장 구역 화면을 찾지 못했습니다');
  host.replaceChildren();
- add(host,'h2','🏘️ 준자마을 3D 사업장 거리 · v41');
+ add(host,'h2','🏘️ 준자마을 3D 사업장 거리 · v46');
  add(host,'p','사업장 터치를 통해 직접 걸어가고, 실내를 둘러볼 수 있어요. 방문은 열람만 가능하며 다른 주민의 재산을 변경할 수 없습니다.');
  const note=add(host,'p','서버 사업장 기록을 확인하는 중…');
  note.style.cssText='padding:12px;background:#f2f3e4;border-radius:12px;font-weight:700';
@@ -19,7 +20,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
  const controls=add(host,'div');
  const actionPanel=add(host,'section');actionPanel.style.cssText='background:#edf3e9;padding:10px;border-radius:14px;margin-top:8px';
  const selector=add(host,'section');
- let scene=null,removed=false,self=null,owner=null,visitorList=[],busy=false,pending=null,current=null,residentShop=null,loyaltyPanel=null;
+ let scene=null,removed=false,self=null,owner=null,visitorList=[],busy=false,pending=null,current=null,residentShop=null,loyaltyPanel=null,honorsPanel=null;
  const button=(label,fn,disabled=false)=>{
   const b=mk('button',label);b.type='button';b.style.cssText=btnStyle;b.disabled=disabled||busy;b.onclick=fn;return b;
  };
@@ -85,6 +86,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
  function renderControls(readOnly,buildings,who){
   residentShop?.dispose();residentShop=null;
   loyaltyPanel?.dispose();loyaltyPanel=null;
+  honorsPanel?.dispose();honorsPanel=null;
   controls.replaceChildren();selector.replaceChildren();
   const first=add(controls,'h3','📍 '+who+'의 사업장');
   if(!buildings.length)add(controls,'p','아직 지어진 사업장이 없어요.');
@@ -123,16 +125,19 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
    demandHost.style.cssText='margin-top:12px;padding:10px;border-radius:14px;background:#f8f6e9';
    residentShop=mountResidentDemand(demandHost,{onSold:receipt=>{
     note.textContent='✅ '+receipt.detail+' · 실수령 '+currency(receipt.net);
-    loyaltyPanel?.refresh();
+    loyaltyPanel?.refresh();honorsPanel?.refresh();
     fetchJSON('/api/business-v40').then(data=>{if(!removed)self=data}).catch(()=>{});
    }});
    const loyaltyHost=add(selector,'section');
    loyaltyHost.style.cssText='margin-top:12px;padding:11px;border-radius:15px;background:#faf4fc';
    loyaltyPanel=mountCustomerLoyalty(loyaltyHost,{onComplete:receipt=>{
     note.textContent='💜 '+receipt.detail+' · '+currency(receipt.net)+' 정산 완료';
-    residentShop?.refresh();
+    residentShop?.refresh();honorsPanel?.refresh();
     fetchJSON('/api/business-v40').then(data=>{if(!removed)self=data}).catch(()=>{});
    }});
+   const honorsHost=add(selector,'section');
+   honorsHost.style.cssText='margin-top:12px;padding:11px;border-radius:15px;background:#f1f8ef';
+   honorsPanel=mountBusinessHonors(honorsHost);
   }
  }
  async function viewSelf(recreate){
@@ -168,6 +173,7 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
    pending=null;
    note.textContent='✅ '+j.receipt.detail+(j.replayed?' · 중복 요청 1회 처리':'');
    self=await fetchJSON('/api/business-v40');
+   honorsPanel?.refresh();
    if(removed||!host.isConnected)return;
    await viewSelf(true);
   }catch(e){
@@ -176,6 +182,6 @@ export function openWorkshopPlaza(host,{back,backLabel='← 개인 농장으로 
   }finally{busy=false}
  }
  load();
- return {dispose(){removed=true;residentShop?.dispose();loyaltyPanel?.dispose();keepScene();host.replaceChildren()},refresh:load,
+ return {dispose(){removed=true;residentShop?.dispose();loyaltyPanel?.dispose();honorsPanel?.dispose();keepScene();host.replaceChildren()},refresh:load,
   enterRole:role=>scene?.enter(role),stats:()=>scene?.stats()};
 }
