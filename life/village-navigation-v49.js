@@ -20,7 +20,9 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
   {id:'gather',icon:'🌲',label:'채집',description:'숲으로 이동해 재료 모으기',travel:true},
   {id:'daily',icon:'📅',label:'오늘의 할 일',description:'일일 미션과 업적 확인'},
   {id:'career',icon:'🏅',label:'직업과 계약',description:'전문 분야를 키우고 일일 계약 받기',trial:true},
-  {id:'hunt',icon:'⚔️',label:'사냥터',description:'몬스터·스킬·장비 성장'}
+  {id:'hunt',icon:'⚔️',label:'사냥터',description:'몬스터·스킬·장비 성장'},
+  {id:'festival',icon:'🎪',label:'축제·주간 의뢰',description:'이번 주 축제와 출석 이벤트'},
+  {id:'social',icon:'👫',label:'친구와 소통',description:'친구 말풍선·함께 플레이'}
  ]),
  production:Object.freeze([
   {id:'craft',icon:'🧵',label:'제작소',description:'채집 재료로 도구와 선물 제작'},
