@@ -23,7 +23,7 @@ export class VillageRoom extends DurableObject{
   if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')return json({error:'WebSocket 업그레이드가 필요해요'},426);
   const pair=new WebSocketPair();const [client,server]=Object.values(pair);
   this.ctx.acceptWebSocket(server);
-  server.serializeAttachment({id:crypto.randomUUID(),room:null,createdAt:Date.now(),lastPos:0,lastChat:0});
+  server.serializeAttachment({id:crypto.randomUUID(),room:null,createdAt:Date.now(),lastPos:0,lastChat:0,trustedNick:request.headers.get('x-village-verified-nick')||null});
   return new Response(null,{status:101,webSocket:client});
  }
  webSocketMessage(ws,raw){
@@ -47,7 +47,7 @@ export class VillageRoom extends DurableObject{
    if(others.length>=MAX_ROOM_PLAYERS){
     send(ws,{type:'error',message:'방이 가득 찼어요 (최대 8명)'});return;
    }
-   const desired=sanitizeText(msg.nick,12)||'새싹 친구';
+   const desired=sanitizeText(p.trustedNick||msg.nick,12)||'새싹 친구';
    const used=new Set(others.map(s=>socketState(s)?.nick));
    let nick=desired;
    if(used.has(nick))for(let i=2;i<100;i++){
