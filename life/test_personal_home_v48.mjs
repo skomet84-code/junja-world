@@ -60,7 +60,7 @@ assert.equal(homeAction(final.next,'style',{kind:'floor',id:'royal'},{}).next.ho
 assert.throws(()=>homeAction(final.next,'upgrade',{},{}),/최고/);
 const hacked=structuredClone(p.next);hacked.houseV48.owned.leaf_plant=0;
 assert.throws(()=>houseView(hacked,{}),/손상/);
-const forged=structuredClone(p.next);forged.houseV48.placed[1].slot=5;
+const forged=structuredClone(p.next);forged.houseV48.placed[0].slot=5;
 assert.throws(()=>houseView(forged,{}),/올바르지/);
 const invented=structuredClone(p.next);invented.houseV48.placed.push({slot:6,item:'royal_piano',turn:0});
 assert.throws(()=>houseView(invented,{}),/소유하지/);
