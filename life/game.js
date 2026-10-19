@@ -887,7 +887,7 @@ function openNpc(npc){
  const esc=s=>String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
  completeDaily();
  openModal('<span class="titlebadge">VILLAGER FRIENDSHIP · '+esc(npc.name)+'</span><h2>💗 '+esc(npc.name)+'와의 우정</h2>'+
-  '<p>'+esc(npc.text)+'</p><p>🌤️ '+esc(npcDailyLine(npc.name))+'</p><div class="mini-card"><strong>친밀도 +heart+' · '+ '💗'.repeat(Math.min(5,Math.floor(heart/7)+1))+
+  '<p>'+esc(npc.text)+'</p><p>🌤️ '+esc(npcDailyLine(npc.name))+'</p><div class="mini-card"><strong>친밀도 '+heart+' · '+ '💗'.repeat(Math.min(5,Math.floor(heart/7)+1))+
   '</strong><p>하루 한 번 대화하고 선물을 건네면서 진짜 친구가 돼보세요. 매일 부탁도 달라져요.</p>'+
   '<div class="pill-row"><button class="pill-btn" id="friendTalk" '+(talked?'disabled':'')+'>💬 '+(talked?'오늘 인사 완료':'오늘의 이야기')+'</button>'+
   '<button class="pill-btn alt" id="friendGift" '+(gifted?'disabled':'')+'>🎁 '+(gifted?'오늘 선물 완료':'꽃 선물 180G')+'</button></div></div>'+
