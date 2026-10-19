@@ -42,6 +42,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/business-honors-v46.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/ws.js",
       "use": "@vercel/node"
     },
@@ -109,6 +113,10 @@
     {
       "src": "/api/customer-loyalty-v45",
       "dest": "/api/customer-loyalty-v45.js"
+    },
+    {
+      "src": "/api/business-honors-v46",
+      "dest": "/api/business-honors-v46.js"
     },
     {
       "src": "/api/ws",
