@@ -167,7 +167,7 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 .fashion-item .garment-preview{margin:0 auto}
 @media(max-width:550px){.panel:has(#fittingHost){padding-top:11px}.panel:has(#fittingHost) h2{font-size:20px}.panel:has(#fittingHost)>.titlebadge{font-size:9px}.panel:has(#fittingHost) .goods{margin-top:4px}}
 </style></head><body><canvas id="game" aria-label="모여봐요 반말방숲 입체 게임 필드"></canvas><div id="shade"></div>
-<div class="hud top"><div class="profile"><div class="portrait">🌿</div><div><div class="name" id="name">새싹</div><div class="rank" id="level">Lv. 1 · 초보 낚시꾼</div><div class="xp"><i id="xp"></i></div></div></div><div class="wallet"><i class="gold">★</i><span id="coins">800</span><span style="font-size:10px;color:#fff6">G</span></div></div>
+<div class="hud top"><div class="profile"><div class="portrait">🌿</div><div><div class="name" id="name">새싹</div><div class="rank" id="level">Lv. 1 · 초보 낚시꾼</div><div class="xp"><i id="xp"></i></div></div></div><div class="v47-wallet-stack"><div class="wallet"><i class="gold">★</i><span id="coins">800</span><span style="font-size:10px;color:#fff6">G</span></div><button id="energyHudV47" class="v47-hud-energy" type="button" aria-label="시험 행동력 조회·충전">⚡ 행동력</button></div></div>
 <div class="hud left"><div class="quest"><div class="eyebrow">✦ 오늘의 의뢰</div><strong id="questText">첫 생활 목표 확인하기</strong><span id="questNext">수첩을 눌러 다음 활동을 확인해요</span><div class="questbar"><i id="questProgress"></i></div><em id="questCount">0 / 1</em></div></div>
 <div class="minimap" id="mapButton" role="button" tabindex="0" aria-label="미니맵"><canvas id="mini" width="176" height="140"></canvas><span>🌸 모여봐요 반말방숲 · 지도</span></div>
 <div class="season-bar"><span class="hud mini-pill" id="worldClock">🌸 봄날 · 맑음</span></div><div class="welcome" id="welcome">🌸 작은 친구들이 마을에 찾아왔어요!</div>
@@ -212,4 +212,75 @@ document.getElementById('villageGateRegister').onclick=()=>openAccount(true);
 window.villageGateEnter=function(user){if(!user)return;status.textContent='환영해요, '+user.nickname+'!';gate.hidden=true;window.startVillageGame?.()};
 window.villageGateLogout=function(){gate.hidden=false;status.textContent='계정으로 로그인하면 입장할 수 있어요.'};
 })();
-</script></body></html>
+</script><style>
+/* v47: disciplined 8-button responsive quick bar; every touch target is at least 44px. */
+.v47-wallet-stack{display:grid;justify-items:end;gap:5px;max-width:46vw}
+.v47-hud-energy{min-height:32px;min-width:104px;padding:6px 11px;background:#fff8e7f2;border:1px solid #eadcb9;
+ color:#665933;border-radius:999px;box-shadow:0 3px 15px #344d3d24;font-size:12px;font-weight:850;white-space:nowrap;touch-action:manipulation}
+.v47-hud-energy:focus-visible,.act:focus-visible{outline:3px solid #c49a52;outline-offset:3px}
+.hud.actions{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));align-items:stretch;gap:clamp(3px,.75vw,8px);
+ left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));
+ bottom:calc(12px + env(safe-area-inset-bottom));max-width:650px;margin:0 auto;padding:7px;
+ background:#fbf7e8dd;border:1px solid #fffef1;border-radius:21px;
+ backdrop-filter:blur(14px);box-shadow:0 9px 28px #213d3044}
+.hud.actions>.act{width:100%;min-width:0!important;min-height:62px;max-width:none;flex:none;
+ box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:4px;padding:6px 2px;line-height:1.15;box-shadow:0 2px 0 #c3ccb1,0 4px 12px #39554122;
+ border:1px solid #fffdf0;border-radius:13px}
+.hud.actions>.act .em{font-size:24px;line-height:27px;display:block}
+.hud.actions>.act small{font-size:10px;line-height:1.2;white-space:nowrap;text-align:center;
+ letter-spacing:-.25px;overflow:visible}
+.hud.actions>.act.primary{background:linear-gradient(145deg,#f9e7b8,#efce87)}
+.hud.actions>.act:active{transform:translateY(2px)}
+.panel{min-width:0;overflow-wrap:anywhere;scrollbar-width:thin}
+.panel button,.panel select,.panel input{touch-action:manipulation;max-width:100%;min-height:42px}
+.panel .card-grid,.panel .goods{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.panel .mini-card,.panel .item{min-width:0}
+.panel .pill-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:7px}
+.panel .pill-row>button{width:100%;margin:0}
+.v47-energy-card{padding:14px;border:1px solid #e4dcc2;border-radius:19px;
+ background:linear-gradient(160deg,#fff9e9,#eff3e6);box-shadow:0 6px 20px #60754c1c}
+.v47-energy-title{color:#5e734f!important;margin-top:10px}
+.v47-energy-card strong{display:block;font-size:22px;color:#6e7950;text-align:center}
+.v47-energy-card p{margin:10px 0;color:#677c68;line-height:1.55}
+.v47-energy-track{width:100%;height:16px;border-radius:99px;background:#e5dfcf;
+ overflow:hidden;box-shadow:inset 0 2px 5px #8f9c7e33;margin:11px 0}
+.v47-energy-fill{display:block;height:100%;border-radius:99px;
+ background:linear-gradient(90deg,#9abf75,#e6c875);transition:width .4s ease}
+.v47-buy-button{display:block;width:100%;min-height:46px;border-radius:13px;
+ background:linear-gradient(135deg,#f1ddae,#e1bf83);color:#584b35;font-weight:850}
+.v47-buy-button:disabled{opacity:.55}
+.v47-energy-notes{padding:9px 10px;background:#eff5e9;color:#596e57;border-radius:12px;
+ font-size:12px;line-height:1.65}
+@media(max-width:550px){
+ .top{align-items:flex-start}
+ .profile{max-width:54vw;min-width:0}
+ .profile>div:last-child{min-width:0}
+ .name{max-width:115px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .v47-wallet-stack{gap:5px}
+ .v47-hud-energy{font-size:10px;padding:5px 9px;min-height:30px}
+ .left{top:calc(118px + env(safe-area-inset-top))}
+ .quest{max-width:min(170px,44vw)}
+ .minimap{top:calc(114px + env(safe-area-inset-top))}
+ .season-bar{top:calc(76px + env(safe-area-inset-top))}
+ .season-bar .mini-pill{max-width:200px}
+ .social-status{bottom:calc(94px + env(safe-area-inset-bottom))}
+ .hint{bottom:calc(109px + env(safe-area-inset-bottom));max-width:85vw}
+ .hunt-shortcut,.festival-shortcut{bottom:calc(103px + env(safe-area-inset-bottom));font-size:11px;padding:9px}
+ .modal{padding:10px}
+ .modal .panel{max-height:calc(100dvh - 24px);width:min(480px,100%);border-radius:19px;padding:15px 12px}
+}
+@media(max-width:370px){
+ .hud.actions{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:5px;max-width:330px}
+ .hud.actions>.act{min-height:52px}
+ .hud.actions>.act .em{font-size:21px;line-height:23px}
+ .hud.actions>.act small{font-size:10px}
+ .social-status{bottom:calc(147px + env(safe-area-inset-bottom))}
+ .hint{bottom:calc(166px + env(safe-area-inset-bottom))}
+ .hunt-shortcut,.festival-shortcut{bottom:calc(155px + env(safe-area-inset-bottom))}
+ .v47-hud-energy{min-width:89px}
+ .panel .card-grid,.panel .goods{gap:6px}
+ .panel .mini-card{padding:8px}
+}
+@media(max-height:600px){.hud.actions>.act{min-height:46px}.left{display:none}.minimap{display:none}}
+</style></body></html>
