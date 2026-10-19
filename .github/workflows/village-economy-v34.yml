@@ -11,6 +11,7 @@ on:
       - feat/village-business-workshops-v40
       - feat/village-walkable-workshops-v41
       - feat/village-business-portal-v42
+      - feat/village-lively-world-v43
   pull_request:
     branches:
       - village-progression-v30
