@@ -89,8 +89,35 @@ export default{
    const id=env.VILLAGE_ROOMS.idFromName('village-room-relay-v50');
    return env.VILLAGE_ROOMS.get(id).fetch(request);
   }
+  // Preserve the existing authoritative PostgreSQL account and economy APIs.
+  // The Cloudflare worker is a same-origin reverse proxy, not a second wallet DB.
+  // Configure VILLAGE_API_ORIGIN in Cloudflare secrets to the verified Vercel API host.
+  // Fail closed if it is missing; never silently switch to local guest saves.
   if(u.pathname.startsWith('/api/')){
-   return json({error:'정식 저장 서버 연결 전입니다. 사용자 데이터를 변경하지 않았어요',reason:'migration_incomplete'},503);
+   const allowed=new Set(['/api/account','/api/economy-v36','/api/economy-v37',
+    '/api/market-v38','/api/professions-v39','/api/business-v40',
+    '/api/workshop-visits-v41','/api/resident-demand-v44',
+    '/api/customer-loyalty-v45','/api/business-honors-v46','/api/share-image']);
+   if(!allowed.has(u.pathname))return json({error:'알 수 없는 API 경로'},404);
+   const origin=env.VILLAGE_API_ORIGIN;
+   if(!origin)return json({error:'정식 저장 API 연결 전입니다. 데이터는 변경되지 않았어요',reason:'migration_incomplete'},503);
+   let base;
+   try{
+    base=new URL(origin);
+    if(base.protocol!=='https:'||base.username||base.password||base.search||base.hash||base.pathname!=='/')
+     throw Error('invalid origin');
+   }catch{return json({error:'API 서버 설정 오류',reason:'invalid_api_origin'},503)}
+   const target=new URL(u.pathname+u.search,base);
+   const headers=new Headers(request.headers);
+   headers.delete('host');
+   headers.delete('origin');
+   headers.delete('referer');
+   headers.delete('x-forwarded-host');
+   const upstream=await fetch(new Request(target,request),{redirect:'manual',headers});
+   const responseHeaders=new Headers(upstream.headers);
+   responseHeaders.set('cache-control','no-store');
+   responseHeaders.delete('access-control-allow-origin');
+   return new Response(upstream.body,{status:upstream.status,headers:responseHeaders});
   }
   if(u.pathname==='/'||u.pathname==='/index.html'){
    return env.ASSETS.fetch(new Request(new URL('/index.html',request.url),request));
