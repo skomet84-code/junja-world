@@ -1,0 +1,36 @@
+name: Village v50 Cloudflare Free Preview CI
+on:
+  push:
+    branches: [feat/village-v50-cloudflare-cutover]
+  pull_request:
+    branches: [feat/village-v50-economy-release]
+permissions:
+  contents: read
+jobs:
+  static-and-websocket:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Install game and worker build tools
+        working-directory: life
+        run: |
+          npm install --ignore-scripts --no-package-lock
+          npm install --no-save --no-package-lock wrangler@4.45.0
+      - name: All village regression tests including Cloudflare protocol
+        working-directory: life
+        run: npm test
+      - name: Package browser-safe assets
+        working-directory: life
+        run: npm run build
+      - name: Confirm Cloudflare worker bundles without credentials
+        working-directory: life
+        run: npx wrangler deploy --config cf/wrangler.jsonc --dry-run --outdir /tmp/junja-cf-preview
+      - name: Check browser modules included
+        working-directory: life
+        run: test -f public/village-economy-guide-v50.js && test -f public/village-navigation-v49.js
