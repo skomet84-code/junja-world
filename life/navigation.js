@@ -70,7 +70,7 @@ function navigator({width,height,walkable,cell=32}){
   const raw=[target];for(let k=end;k!==-1;k=parent.get(k)){if(k===undefined)return [];raw.unshift(point(k))}
   const smooth=[];let anchor=from,i=0;while(i<raw.length){let j=i;while(j+1<raw.length&&safeClear(anchor,raw[j+1]))j++;smooth.push(raw[j]);anchor=raw[j];i=j+1}return smooth;
  }
- function advance(actor,path,dt,speed=190){
+ function advance(actor,path,dt,speed=205){
   actor.blocked=false;let budget=speed*Math.max(0,Math.min(.05,dt)),distance=0;actor.vx=actor.vy=0;
   while(path.length&&budget>0){const p=path[0],dx=p.x-actor.x,dy=p.y-actor.y,d=Math.hypot(dx,dy);if(d<.001){actor.x=p.x;actor.y=p.y;path.shift();continue}
    const step=Math.min(d,budget),nx=actor.x+dx/d*step,ny=actor.y+dy/d*step;if(!clear(actor,{x:nx,y:ny})){actor.blocked=true;path.length=0;break}
