@@ -61,11 +61,11 @@ try{
     if(a.x<b.x+b.w-1&&b.x<a.x+a.w-1&&a.y<b.y+b.h-1&&b.y<a.y+a.h-1)overlaps.push([i,j]);
    }
    return {boxes,overlaps,actions:root.getBoundingClientRect().toJSON(),
-    scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth};
+    scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth,cssGrid:getComputedStyle(root).gridTemplateColumns,media550:matchMedia('(max-width:550px)').matches};
   });
   assert.equal(layout.boxes.length,8,'Seven base actions + estate action must be uniformly laid out');
   assert.equal(layout.overlaps.length,0,JSON.stringify(layout.overlaps));
-  assert(layout.boxes.every(b=>b.w>=44&&b.h>=44),'Each icon needs at least a 44px touch target: '+width+' '+JSON.stringify(layout.boxes.map(b=>({w:b.w,h:b.h,label:b.label}))));
+  assert(layout.boxes.every(b=>b.w>=44&&b.h>=44),'Touch targets: '+width+' '+JSON.stringify(layout));
   assert(layout.scrollWidth<=width,'No horizontal scrolling/overflow on mobile');
   assert(layout.actions.x>=0&&layout.actions.x+layout.actions.width<=width,'Dock stays on screen');
   assert(new Set(layout.boxes.map(x=>Math.round(x.y))).size===2,'All phone widths use an aligned accessible 4x2 dock');
