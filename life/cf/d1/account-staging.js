@@ -2,6 +2,7 @@
 // NOT production ready: admin transfers, experimental economy, and authenticated
 // browser validation must be ported/tested before the Vercel bridge is removed.
 import {createHash,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
+import {handleAccountExtras} from './account-extensions.js';
 const send=(data,status=200,headers={})=>Response.json(data,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...headers}});
 const sha=s=>createHash('sha256').update(s).digest('hex');
 // Fresh start only. WebCrypto PBKDF2 avoids PostgreSQL's legacy scrypt dependency.
@@ -21,7 +22,7 @@ async function bodyJson(request){
  if(raw.length>200000)throw Object.assign(Error('요청 데이터가 너무 커요'),{status:413});
  try{return JSON.parse(raw)}catch{throw Object.assign(Error('JSON 요청을 확인해 주세요'),{status:400})}
 }
-async function userForSession(request,db){
+export async function userForSession(request,db){
  const token=cookie(request,'village_session');
  if(!HEX64.test(token))return null;
  return db.prepare('SELECT u.id,u.username,u.nickname,u.role FROM village_sessions s JOIN village_users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?')
@@ -40,6 +41,13 @@ export async function handleAccountD1(request,env){
  if(!env?.DB)return send({error:'D1 데이터베이스 연결 없음 · 기존 저장은 변경하지 않았어요'},503);
  if(!['GET','POST'].includes(request.method))return send({error:'지원하지 않는 요청'},405);
  const url=new URL(request.url),action=url.searchParams.get('action')||'me',db=env.DB,method=request.method;
+ if(method==='POST'){
+  const origin=request.headers.get('origin');
+  if((origin&&origin!==url.origin)||request.headers.get('sec-fetch-site')==='cross-site')
+   return send({error:'다른 사이트의 요청은 허용하지 않아요'},403);
+  if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))
+   return send({error:'JSON 요청만 처리할 수 있어요'},415);
+ }
  const data=method==='POST'?await bodyJson(request):{};
  if(!data||typeof data!=='object'||Array.isArray(data))return send({error:'잘못된 요청'},400);
  try{
@@ -126,8 +134,10 @@ export async function handleAccountD1(request,env){
     return send({error:'동시 저장 충돌을 막았어요. 재접속해 주세요',reason:'version_conflict'},409);
    return send({ok:true,version:nextVersion});
   }
-  // Strictly fail closed. Do not silently pretend economy/admin APIs work.
-  return send({error:'D1 이관 시험 중: 해당 기능은 아직 활성화되지 않았어요. 기존 서버의 운영 데이터는 보존돼요',reason:'staging_only'},503);
+  const extra=await handleAccountExtras({action,request,db,user,data,url});
+  if(extra)return extra;
+  // Strictly fail closed. No Vercel or Neon fallback is allowed.
+  return send({error:'Cloudflare 전용 서버에서 이 기능은 아직 준비 중이에요',reason:'not_implemented'},503);
  }catch(error){
   console.error('D1 staging account action failed',action,error?.name);
   return send({error:'이관 시험 서버 오류 · 기존 데이터는 변경하지 않았어요'},503);
