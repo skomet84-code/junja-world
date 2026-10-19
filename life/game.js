@@ -473,7 +473,8 @@ function openVillageMenuV49(section='home'){
     case 'farm':case 'storage':return openPersonalEstate();
     case 'fishing':return goStation('pier');
     case 'gather':return goStation('forest');
-    case 'craft':return openCraft();
+    case 'craft':return goStation('workshop');
+    case 'energy':return document.getElementById('energyHudV47')?.click();
     case 'orders':return openEstateOrders();
     case 'daily':return openJournal();
     case 'career':return openV49Component('life','v49Profession','직업과 계약',openProfessionCenter);
