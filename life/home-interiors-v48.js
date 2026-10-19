@@ -63,7 +63,8 @@ export function buyHomeItemV48(home,id,coins){
  // Existing code limits furniture owned by home tier. Do not bypass room capacity.
  if(s.items.length>=s.level*HOME_SLOTS_V48)err('집의 가구 보관 공간이 부족해요');
  const next=structuredClone(home);
- next.furniture=[...s.items,id];
+ // Retain unknown legacy/future item IDs unchanged in the original collection.
+ next.furniture=[...new Set([...(Array.isArray(home.furniture)?home.furniture:[]),id])];
  next.decorV48=[...s.arrangements];
  const refreshed=normalizeHomeV48(next);
  next.decorV48=refreshed.arrangements;
