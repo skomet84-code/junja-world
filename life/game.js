@@ -1444,7 +1444,10 @@ async function useWorldEnergy(kind){
 }
 const energyHudController=mountEnergyHud(document.getElementById('energyHudV47'),{open:()=>{
  openModal('<span class="titlebadge">행동력 · 마을 활동</span><div id="energyModalV47"></div>');
- energyModal=mountEnergyPanel(document.getElementById('energyModalV47'),{onChange:()=>energyHudController.refresh()});
+ energyModal=mountEnergyPanel(document.getElementById('energyModalV47'),{
+  onChange:()=>energyHudController.refresh(),
+  onEarnGold:()=>openV49Component('production','v55ServerGoldCycle','서버 농장·가공·납품',openSecureEconomyLab)
+ });
 }});
 document.getElementById('close').onclick=closeModal;els.modal.addEventListener('click',e=>{if(e.target===els.modal)closeModal()});
 
