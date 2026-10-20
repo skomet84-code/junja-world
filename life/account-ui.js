@@ -1,5 +1,4 @@
 // v50 mobile-safe account controls. Always show the result of a tap.
-window.__villageAccountUiLoaded=true;
 const $=id=>document.getElementById(id);
 const layer=$('accountLayer'),message=$('accountMessage');
 const loginButton=$('accountLogin'),registerButton=$('accountRegister');
@@ -141,3 +140,6 @@ $('accountGiveItem').onclick=()=>{
  if(!recipient)return say('대상 회원을 먼저 선택해줘');
  if(confirm(recipient+'에게 '+$('accountItem').selectedOptions[0].textContent+' 지급할까요?'))action('admin_character',{recipient,mode:'item',item});
 };
+
+// Flag successful completion of all account and admin control bindings.
+window.__villageAccountUiLoaded=true;
