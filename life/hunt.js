@@ -544,10 +544,18 @@ function update(time,dt){
    else continue;
   }
   const d=Math.hypot(mob.x-hero.x,mob.z-hero.z);
-  if(d<215&&d>58){
-   const speed=mob.model.boss?34:30;
-   mob.x+=(hero.x-mob.x)/d*speed*dt;mob.z+=(hero.z-mob.z)/d*speed*dt;
-  }else if(d>280){const to=Math.hypot(mob.homeX-mob.x,mob.homeZ-mob.z);if(to>8){mob.x+=(mob.homeX-mob.x)/to*15*dt;mob.z+=(mob.homeZ-mob.z)/to*15*dt}}
+  const ranged=mob.model.pattern==='ranged',keepDistance=ranged?126:58;
+  const berserk=mob.model.boss&&healthRatio(mob)<.4;
+  if(d<255&&d>keepDistance){
+   const speed=(mob.model.boss?42:mob.model.elite?58:ranged?39:33)*(berserk?1.35:1);
+   if(d>0){mob.x+=(hero.x-mob.x)/d*speed*dt;mob.z+=(hero.z-mob.z)/d*speed*dt}
+  }else if(ranged&&d<90&&d>1){
+   // Ranged enemies retreat from melee, forcing a deliberate approach.
+   mob.x-=(hero.x-mob.x)/d*22*dt;mob.z-=(hero.z-mob.z)/d*22*dt;
+  }else if(d>285){
+   const to=Math.hypot(mob.homeX-mob.x,mob.homeZ-mob.z);
+   if(to>8){mob.x+=(mob.homeX-mob.x)/to*16*dt;mob.z+=(mob.homeZ-mob.z)/to*16*dt}
+  }
   mob.root.position.set(mob.x,0,mob.z);
   const hitRemaining=Math.max(0,(mob.hitFlashUntil-now)/260);
   const breathing=1+Math.sin(time*(mob.model.boss?1.5:3.1)+mob.index)*.028;
@@ -556,16 +564,39 @@ function update(time,dt){
   mob.body.rotation.z=Math.sin(time*1.5+mob.index)*.035+hitRemaining*(mob.index%2?-.13:.13);
   mob.ui.quaternion.copy(camera.quaternion);
   if(mob.hp>0)mob.hpFill.material.color.setHex(hitRemaining>.05?0xffe7a1:mob.model.boss?0xf6c875:0x93ddb0);
-  if(d<70&&now>mob.attackAt&&now>hero.hurtAt+350){
-   mob.attackAt=now+(mob.model.boss?2200:2550);hero.hurtAt=now;
-   const amount=incomingDamage(areaIndex,mob.model.boss,s.defense);
-   hero.hp=Math.max(0,hero.hp-amount);floatNumber(hero.x,hero.z,'-'+amount,'#ff9e98');
-   effect(hero.x,hero.z,0xf79c8a);
-   if(hero.hp<=0){
-    hero.hp=s.maxHp;hero.mp=s.maxMp;
-    hero.x=0;hero.z=145;hero.moveX=0;hero.moveZ=145;target=null;hero.hurtAt=now+2400;
-    toast('💛 잠시 기절했지만 안전하게 회복했어요. 코인과 아이템은 그대로예요.');
+  const strikeRange=mob.model.boss?150:ranged?155:mob.model.elite?106:85;
+  if(mob.windupUntil&&now>=mob.windupUntil){
+   mob.windupUntil=0;
+   const aimed=mob.windupTarget||{x:mob.x,z:mob.z};
+   const hitRadius=mob.model.boss?76:ranged?60:mob.model.elite?65:46;
+   const evaded=Math.hypot(hero.x-aimed.x,hero.z-aimed.z)>hitRadius;
+   if(evaded){if(mob.model.boss||mob.model.elite)floatNumber(hero.x,hero.z,'✨ 회피!','#b8ffe0')}
+   else if(now>hero.hurtAt+350){
+    hero.hurtAt=now;
+    const damage=incomingDamage(areaIndex,mob.model.boss,s.defense);
+    const amount=hunterDamage(damage,level(),currentZone.level,{boss:mob.model.boss,elite:mob.model.elite});
+    hero.hp=Math.max(0,hero.hp-amount);
+    floatNumber(hero.x,hero.z,'-'+amount,'#ff9e98');
+    effect(hero.x,hero.z,0xf79c8a);
+    if(hero.hp<=0){
+     state.hunt.defeats=(Number(state.hunt.defeats)||0)+1;
+     hero.hp=Math.max(1,Math.ceil(s.maxHp*.6));hero.mp=Math.ceil(s.maxMp*.55);
+     hero.x=0;hero.z=145;hero.moveX=0;hero.moveZ=145;target=null;hero.hurtAt=now+2400;
+     toast('💛 안전 지점에서 회복했어! 체력이 60%라 물약과 회피가 필요해.');
+     save();
+    }
    }
+  }
+  if(!mob.windupUntil&&d<strikeRange&&now>=mob.attackAt){
+   // Clearly telegraphed aimed attacks. Walking out of the warning ring dodges
+   // the damage; elite, ranged, and berserk bosses have different timing.
+   const delay=mob.model.boss?(berserk?680:1100):mob.model.elite?850:ranged?980:700;
+   mob.windupTarget={x:hero.x,z:hero.z};
+   mob.windupUntil=now+delay;
+   mob.attackAt=now+(mob.model.boss?(berserk?1900:2800):mob.model.elite?2200:ranged?2800:3100);
+   effect(hero.x,hero.z,mob.model.boss?0xf2b478:ranged?0xc7b0ff:0xffe29f,delay/1000,true);
+   if(mob.model.boss||mob.model.elite||ranged)
+    floatNumber(mob.x,mob.z,mob.model.boss?'👑 광역 공격 예고!':ranged?'✨ 원거리 공격 예고!':'⚠️ 돌진 예고!','#ffd5a5');
   }
  }
  for(let i=fx.length-1;i>=0;i--){
