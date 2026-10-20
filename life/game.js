@@ -14,7 +14,7 @@ import {openWorkshopPlaza} from './workshop-ui-v41.js';
 import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
 import {createWorldEnergySpend} from './world-energy-v53.js?v=v53-world-energy-release';
 import {mountHomeStudioV48} from './home-studio-ui-v48.js';
-import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js?v=v51-decor-placement-20261020';
+import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js?v=v55-quick-farm-20261020';
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
 import {updateVillageResidents,npcDailyLine,v43Daypart} from './village-life-v43.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
