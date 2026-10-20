@@ -50,7 +50,7 @@ const job=async action=>{
 };
 let joined=await job({action:'register',role:'farmer',requestId:licenseRequest});
 assert.equal(joined.status,200,JSON.stringify(joined));
-assert.equal(joined.data.coins,1250);
+assert.equal(joined.data.coins,4750);
 joined=await job({action:'register',role:'farmer',requestId:licenseRequest});
 assert.equal(joined.status,200);
 assert.equal(joined.data.replayed,true);
@@ -59,7 +59,7 @@ assert.equal(joined.status,409,'no work proof means no daily reward');
 career=await fetch(base+'/api/professions-v39',{headers:{cookie}});
 careerData=await career.json();
 assert.equal(careerData.profession.active,'farmer');
-assert.equal(careerData.coins,1250);
+assert.equal(careerData.coins,4750);
 
 // The same user can browse personal workshops. A rank-1 farmer cannot
 // build a rank-2 facility, and a denied attempt must not deduct money.
@@ -75,7 +75,7 @@ const buildAttempt=await fetch(base+'/api/business-v40',{
 assert.equal(buildAttempt.status,409,'unskilled farmer cannot construct workshop');
 businessResponse=await fetch(base+'/api/business-v40',{headers:{cookie}});
 businessData=await businessResponse.json();
-assert.equal(businessData.coins,1250);
+assert.equal(businessData.coins,4750);
 assert.equal(businessData.business.workshops.farmer,undefined);
 
 // Server-authored career quest progress and exact-once trial reward.
