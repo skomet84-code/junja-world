@@ -39,6 +39,14 @@ export default {
    return json({error:'통합 서버에서 이 기능을 준비하고 있어요',reason:'not_implemented'},503);
   }
   const path=url.pathname==='/'?'/index.html':url.pathname;
-  return env.ASSETS.fetch(new Request(new URL(path,url),request));
+  const asset=await env.ASSETS.fetch(new Request(new URL(path,url),request));
+  // Keep the landing page and account controls fresh after emergency fixes,
+  // especially in iOS Safari / embedded Kakao webviews with long-lived caches.
+  if(asset.ok&&(path==='/index.html'||path==='/account-ui.js')){
+   const headers=new Headers(asset.headers);
+   headers.set('cache-control','no-store, max-age=0');
+   return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
+  }
+  return asset;
  }
 };
