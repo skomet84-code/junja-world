@@ -3,7 +3,7 @@
 import {economyDay} from './secure-economy-v36.js';
 export const ENERGY_MAX=100,ENERGY_REGEN_SECONDS=360;
 export const ENERGY_PACK=25,ENERGY_PRICE_G=1200,ENERGY_PACKS_PER_DAY=3;
-export const ENERGY_COSTS=Object.freeze({plant:2,harvest:4,craft:6,order:3,business_produce:8});
+export const ENERGY_COSTS=Object.freeze({plant:2,harvest:4,gather:3,fish:5,craft:6,order:3,business_produce:8});
 const MILLISECONDS=ENERGY_REGEN_SECONDS*1000,MAX_COIN=1_000_000_000_000;
 const deny=(message,status=409)=>{const e=new Error(message);e.status=status;throw e};
 const asTime=now=>{const m=now instanceof Date?now.getTime():NaN;if(!Number.isFinite(m))deny('서버 행동력 시각을 확인할 수 없어요',500);return m};
