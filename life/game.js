@@ -649,7 +649,7 @@ hud();
 // browser progress. Otherwise brand-new accounts have no cloud save until
 // a state change and can reappear at Lv.1 on another device.
 if(accountScope)queueCloudSave();
-setInterval(save,5500);
+setInterval(save,60000); // v55: passive position autosave every 1 min; all purchases/awards retain immediate save()
 if(accountScope){
  const lastAdminRevision=Number(state.__adminRevision)||0;
  async function pullAdminChanges(){
@@ -667,7 +667,7 @@ if(accountScope){
    }
   }catch{}
  }
- setInterval(pullAdminChanges,12000);
+ setInterval(pullAdminChanges,60000); // v55: poll admin revisions every minute, never overwrite concurrent cloud save
  pullAdminChanges();
 }
 if(accountScope){
@@ -910,7 +910,6 @@ function connectSocial(){
 }
 
 async function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){
-  if(!await useWorldEnergy('harvest'))return;
   let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
  const cards=Object.entries(crops).map(([k,v])=>`<div class="mini-card"><span class="emoji">${v.icon}</span><strong>${v.name}</strong><p>성장 ${v.seconds}초 · 수확 ${v.price+lifeBonus('harvest')}G</p><p>보유 씨앗 ${state.seeds[k]||0}개</p><button data-seed="${k}">${state.seeds[k]>0?'씨앗 선택 · 심기':'씨앗 부족'}</button></div>`).join('');
  if(b.crop){const q=crops[b.crop];let progress=Math.min(100,Math.round((Date.now()-b.at)/(q.seconds*1000)*100));openModal(`<span class="titlebadge">FARMING</span><h2>🌿 작물이 자라고 있어요</h2><p>${q.icon} ${q.name} · 자라는 중 (${progress}%)</p><div class="mini-progress"><i style="width:${progress}%"></i></div><p>남은 시간 ${Math.max(0,Math.ceil(q.seconds-(Date.now()-b.at)/1000))}초. 게임을 종료해도 자라요.</p><button class="pill-btn" id="farmClose">확인</button>`);document.getElementById('farmClose').onclick=closeModal;return}
@@ -943,7 +942,6 @@ async function runFarmBatchV55(mode,seed){
     addXp(4);party(bedCenters[index].x,bedCenters[index].y,8);
    }else{
     if(!bed?.crop||cropStage(bed)<3)continue;
-    if(!await useWorldEnergy('harvest'))break;
     const crop=crops[bed.crop];
     state.beds[index]={crop:null,at:0};
     earn(crop.price+lifeBonus('harvest'),'harvest','텃밭 빠른 수확');
@@ -967,9 +965,9 @@ function openFastFarmV55(){
  const options=Object.entries(crops).map(([id,c])=>
   '<option value="'+id+'">'+c.icon+' '+c.name+' · 씨앗 '+(state.seeds[id]||0)+'개</option>').join('');
  openModal('<span class="titlebadge">FARM V55 · 21 PLOTS</span><h2>🌱 텃밭 빠른 작업</h2>'+
-  '<p>21칸을 한 번에 관리해요. 한 번 누르면 최대 5칸만 작업하고, 매 칸마다 서버 행동력과 저장을 확인해요.</p>'+
+  '<p>21칸을 한 번에 관리해요. 한 번 누르면 최대 5칸만 작업해요. 심기는 칸마다 서버 행동력을 확인하고, 수확은 무료야. 각 칸의 저장은 유지해.</p>'+
   '<div class="mini-card"><strong>🌱 심은 밭 '+planted+'/21 · 빈 밭 '+empty+' · 바로 수확 가능 '+ready.length+'개 이상</strong>'+
-  '<p>심기 -2⚡/칸 · 수확 -4⚡/칸 · 행동력이 부족하면 그 자리에서 중단해요.</p></div>'+
+  '<p>심기 -2⚡/칸 · 수확 무료 · 심을 때 행동력이 부족하면 자동 중단해요.</p></div>'+
   '<label for="v55SeedSelection">심을 작물</label><select id="v55SeedSelection" style="display:block;width:100%;padding:13px;margin:8px 0 14px;border-radius:12px;background:#fff">'+options+'</select>'+
   '<div class="pill-row"><button class="pill-btn" data-v55-batch="plant">🌱 최대 5칸 심기</button>'+
   '<button class="pill-btn" data-v55-batch="harvest">🧺 익은 작물 최대 5칸 수확</button>'+
@@ -1520,8 +1518,7 @@ function openPersonalEstate(){
  els.panelBody.querySelectorAll('[data-plot]').forEach(btn=>btn.onclick=async()=>{
   const i=Number(btn.dataset.plot),p=e.plots[i],c=p&&ESTATE_BY_ID[p.id];
   if(c){if(Date.now()<p.at+c[3]*1000){toast('⏳ '+estateClock(Math.ceil((p.at+c[3]*1000-Date.now())/1000))+' 남았어요');return}
-   if(!await useWorldEnergy('harvest'))return;
-   e.stock[c[0]]=(Number(e.stock[c[0]])||0)+1;e.plots[i]=null;recordEstateHarvest(state);state.xp+=Math.max(1,Math.floor(c[3]/90));save();toast(c[1]+' '+c[2]+' 수확!');openPersonalEstate();return}
+    e.stock[c[0]]=(Number(e.stock[c[0]])||0)+1;e.plots[i]=null;recordEstateHarvest(state);state.xp+=Math.max(1,Math.floor(c[3]/90));save();toast(c[1]+' '+c[2]+' 수확!');openPersonalEstate();return}
   const selected=document.getElementById('estateCrop')?.value,crop=ESTATE_BY_ID[selected];
   if(!crop)return;if(state.coins<crop[4]){toast('씨앗 구매 골드가 부족해요');return}
   if(!await useWorldEnergy('plant'))return;
