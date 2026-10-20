@@ -20,7 +20,7 @@ jobs:
         working-directory: life
         run: |
           npm install --ignore-scripts --no-package-lock --no-audit --no-fund
-          npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund wrangler@4.45.0
+          npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund wrangler@4.151.2
       - name: Verify bundled Workers and save handling syntax
         working-directory: life
         run: |
