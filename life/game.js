@@ -1437,17 +1437,24 @@ function openPersonalEstate(){
  }
  const upgrade=document.getElementById('estateUpgrade');
  if(upgrade)upgrade.onclick=()=>{const cost=next.cost;if(state.coins<cost){toast('농장 구매에 필요한 골드가 부족해요');return}if(!spend(cost,'개인 농장 구매·확장'))return;e.tier++;save();toast('🌿 내 농장이 확장됐어요!');openPersonalEstate()};
- els.panelBody.querySelectorAll('[data-plot]').forEach(btn=>btn.onclick=()=>{
+ els.panelBody.querySelectorAll('[data-plot]').forEach(btn=>btn.onclick=async()=>{
   const i=Number(btn.dataset.plot),p=e.plots[i],c=p&&ESTATE_BY_ID[p.id];
   if(c){if(Date.now()<p.at+c[3]*1000){toast('⏳ '+estateClock(Math.ceil((p.at+c[3]*1000-Date.now())/1000))+' 남았어요');return}
+   if(!await useWorldEnergy('harvest'))return;
    e.stock[c[0]]=(Number(e.stock[c[0]])||0)+1;e.plots[i]=null;recordEstateHarvest(state);state.xp+=Math.max(1,Math.floor(c[3]/90));save();toast(c[1]+' '+c[2]+' 수확!');openPersonalEstate();return}
   const selected=document.getElementById('estateCrop')?.value,crop=ESTATE_BY_ID[selected];
   if(!crop)return;if(state.coins<crop[4]){toast('씨앗 구매 골드가 부족해요');return}
+  if(!await useWorldEnergy('plant'))return;
   if(!spend(crop[4],crop[2]+' 씨앗'))return;
   e.plots[i]={id:selected,at:Date.now()};save();toast(crop[1]+' 심기 완료');openPersonalEstate();
  });
  els.panelBody.querySelectorAll('[data-sell]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.sell,c=ESTATE_BY_ID[id];if(!c||!(e.stock[id]>0))return;e.stock[id]--;earn(c[5],'farm',c[2]+' 판매');save();openPersonalEstate()});
- els.panelBody.querySelectorAll('[data-recipe]').forEach(btn=>btn.onclick=()=>{const i=Number(btn.dataset.recipe),r=ESTATE_RECIPES[i];if(!r)return;if(!r.build){const result=manufactureEstateProduct(state,ESTATE_PRODUCTS[i]?.id);if(!result.ok){toast(result.error);return}save();hud();toast(result.product.name+' 제작 완료! 주문 납품이나 판매에 이용해요');openPersonalEstate();return}if(e.buildings.includes(r.name)){toast('이미 건설한 건물이에요');return}if(Object.entries(r.needs).some(([id,n])=>(e.stock[id]||0)<n)){toast('필요한 농작물이 부족해요');return}for(const [id,n] of Object.entries(r.needs))e.stock[id]-=n;e.buildings.push(r.name);save();toast(r.name+' 건설 완료!');openPersonalEstate()});
+ els.panelBody.querySelectorAll('[data-recipe]').forEach(btn=>btn.onclick=async()=>{const i=Number(btn.dataset.recipe),r=ESTATE_RECIPES[i];if(!r)return;if(!r.build){
+   if(Object.entries(r.needs).some(([id,n])=>(e.stock[id]||0)<n)){toast('제작 재료가 부족해요');return}
+   if(!await useWorldEnergy('craft'))return;
+   const result=manufactureEstateProduct(state,ESTATE_PRODUCTS[i]?.id);if(!result.ok){toast(result.error);return}save();hud();toast(result.product.name+' 제작 완료! 주문 납품이나 판매에 이용해요');openPersonalEstate();return}if(e.buildings.includes(r.name)){toast('이미 건설한 건물이에요');return}if(Object.entries(r.needs).some(([id,n])=>(e.stock[id]||0)<n)){toast('필요한 농작물이 부족해요');return}
+  if(!await useWorldEnergy('craft'))return;
+  for(const [id,n] of Object.entries(r.needs))e.stock[id]-=n;e.buildings.push(r.name);save();toast(r.name+' 건설 완료!');openPersonalEstate()});
 }
 
 function openEstateOrders(){
@@ -1473,7 +1480,10 @@ function openEstateOrders(){
  '<p style="font-size:11px">현재는 개인 계정 저장을 사용하는 경제 시험판입니다. 금액은 활동별 하루 보상 조정 규칙이 적용됩니다. 사용자 간 거래는 서버 정산 구축 후 개방할 예정입니다.</p>'+
  '<button id="estateBackToFarm" class="pill-btn ghost">🌳 개인 농장으로 돌아가기</button>');
  document.getElementById('estateBackToFarm').onclick=openPersonalEstate;
- els.panelBody.querySelectorAll('[data-estate-make]').forEach(btn=>btn.onclick=()=>{
+ els.panelBody.querySelectorAll('[data-estate-make]').forEach(btn=>btn.onclick=async()=>{
+  const chosen=ESTATE_PRODUCTS.find(p=>p.id===btn.dataset.estateMake);
+  if(!chosen||Object.entries(chosen.needs).some(([id,n])=>(estateState().stock[id]||0)<n)||state.coins<chosen.fee){toast('제작 재료 또는 골드가 부족해요');return}
+  if(!await useWorldEnergy('craft'))return;
   const r=manufactureEstateProduct(state,btn.dataset.estateMake);
   if(!r.ok){toast(r.error);return}
   save();hud();toast(r.product.name+' 제작 완료');openEstateOrders();
@@ -1483,7 +1493,10 @@ function openEstateOrders(){
   if(!r.ok){toast(r.error);return}
   save();hud();toast(r.product.name+' 판매 · +'+estateFmt(r.amount)+(r.softCapped?' (하루 수입 조정)':''));openEstateOrders();
  });
- els.panelBody.querySelectorAll('[data-estate-order]').forEach(btn=>btn.onclick=()=>{
+ els.panelBody.querySelectorAll('[data-estate-order]').forEach(btn=>btn.onclick=async()=>{
+  const selected=estateOrderProgress(state).orders.find(x=>x.id===btn.dataset.estateOrder);
+  if(!selected||selected.complete||!selected.ready){toast('납품할 주문이나 재료를 다시 확인해 줘');return}
+  if(!await useWorldEnergy('order'))return;
   const r=fulfillEstateOrder(state,btn.dataset.estateOrder,lifeLevel());
   if(!r.ok){toast(r.error);return}
   save();hud();toast('📦 납품 완료! '+estateFmt(r.amount)+' · 명성 +'+r.order.rep+(r.softCapped?' · 수익 한도 적용':''));
@@ -1758,7 +1771,7 @@ function fishFailure(msg){
  els.fishing.classList.remove('open');fishPhase='idle';castMode=false;hookedFish=null;reelProfile=null;
  toast('💨 '+msg);
 }
-function fishingAction(){
+async function fishingAction(){
  if(fishPhase==='bite'){
   fishPhase='reel';fishAttempts=0;reelMisses=0;gaugePos=0;gaugeDir=1;
   reelDeadline=performance.now()+(reelProfile?.seconds||18)*1000;
@@ -1773,6 +1786,9 @@ function fishingAction(){
   fishAttempts++;party(player.x,player.y-30,8);
   if(fishAttempts>=reelProfile.hits){
    const f=hookedFish;
+   fishPhase='settling';els.fishAction.disabled=true;
+   const paid=await useWorldEnergy('fish');els.fishAction.disabled=false;
+   if(!paid){fishFailure('행동력 확인 후 다시 낚시해 줘');return}
    const isFirst=!state.collection.includes(f.name);
    state.fish++;state.dailyFish++;state.collection.push(f.name);
    const fishLength=Math.round((18+(f.size||1)*37)*(0.78+Math.random()*.72)*10)/10;
@@ -1832,7 +1848,7 @@ function autoFishPanel(){
  els.panelBody.querySelectorAll('[data-autofish-buy]').forEach(b=>b.onclick=()=>{const r=buyAutoFish(state,b.dataset.autofishBuy);toast(r.ok?'🎣 이용권 구매 완료':r.error||'골드 부족');save();hud();autoFishPanel()});
  const toggle=document.getElementById('autoFishToggle');if(toggle)toggle.onclick=()=>{if(autoFishRunning){autoFishRunning=false;toast('자동낚시 일시정지')}else if(!autoFishState(state).remainingMs){toast('먼저 이용권을 구매하세요')}else{autoFishRunning=true;autoFishLast=performance.now();autoFishNext=performance.now()+11000;fishPhase='idle';els.fishing.classList.remove('open');toast('🎣 자동낚시 시작!')}closeModal();save()};
 }
-function autoFishTick(){
+async function autoFishTick(){
  const now=performance.now(),elapsed=Math.max(0,Math.min(1000,now-autoFishLast));autoFishLast=now;
  if(!autoFishRunning){updateFishingTimerBadge();return}
  const a=autoFishState(state);
@@ -1848,6 +1864,7 @@ function autoFishTick(){
  const fish=FISH[fishRoll(Math.random(),state.fishingGear.equipped,lifeLevel())];
  // The manual difficulty still matters: larger fish are harder to land automatically.
  if(Math.random()<Math.min(.8,Math.max(.08,(fish.size||1)*.13)))return;
+ if(!await useWorldEnergy('fish')){autoFishRunning=false;toast('⚡ 행동력 부족으로 자동낚시 정지');save();return}
  const result=autoFishCatch(state,fish,lifeLevel());
  if(!result.ok){autoFishRunning=false;toast('🎒 자동낚시 정지: '+(result.error||'보관 또는 판매 실패'));save();return}
  state.fish++;state.dailyFish++;state.collection.push(fish.name);const gainedXp=36+Math.min(18,Math.max(0,Number(fish.size)||0)*5);state.xp+=gainedXp;autoFishState(state).xpEarned=(autoFishState(state).xpEarned||0)+gainedXp;
