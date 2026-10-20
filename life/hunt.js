@@ -134,6 +134,9 @@ function makeMonster(model){
  else if(kind==='dragon'){sphere(body,c,0,25,0,26,20,24);sphere(body,light,0,48,16,19,16,23);const h1=makeMesh(body,cone,dark,-12,67,15,7,16,7),h2=makeMesh(body,cone,dark,12,67,15,7,16,7);for(const x of [-24,24]){const wing=sphere(body,light,x,38,-11,13,23,5);wing.rotation.z=x>0?-.4:.4}sphere(body,dark,0,14,-25,7,10,19)}
  else if(kind==='ghost'){sphere(body,c,0,31,0,22,28,21);sphere(body,light,0,51,0,15,8,15);for(const x of [-11,0,11])sphere(body,c,x,8,0,8,13,9)}
  else if(kind==='fairy'){sphere(body,c,0,26,0,16,21,14);sphere(body,light,0,48,0,18,18,17);for(const x of [-19,19]){let wing=sphere(body,0xf4eafa,x,32,-4,11,22,4);wing.rotation.z=x>0?-.45:.45}}
+ else if(kind==='wolf'){sphere(body,c,0,23,0,27,15,21);sphere(body,light,0,39,13,16,13,14);sphere(body,0xf9eee5,0,32,25,10,7,9);
+  for(const x of [-13,13]){makeMesh(body,cone,dark,x,56,11,9,18,8);box(body,dark,x,7,0,8,16,9)}
+  const tail=sphere(body,light,0,27,-22,8,8,24);tail.rotation.x=-.3}
  else if(kind==='acorn'){sphere(body,c,0,27,0,20,24,18);sphere(body,dark,0,47,0,24,10,22);makeMesh(body,cone,dark,0,61,0,8,13,8)}
  else {sphere(body,c,0,27,0,20,23,19)}
  // Sculpted features and small silhouette-specific accessories: not flat painted cut-outs.
@@ -190,12 +193,12 @@ function decorate(zone){
  const ground=new T.Mesh(groundGeo,mat(zone.ground));ground.rotation.x=-Math.PI/2;ground.position.y=-1;worldDecor.add(ground);
  const border=new T.Mesh(new T.RingGeometry(570,650,8,1,Math.PI/8),mat(zone.tree));border.rotation.x=-Math.PI/2;border.position.y=-.5;worldDecor.add(border);
  for(let i=0;i<44;i++){let a=i*2.399963,rad=350+((i*49)%205),x=Math.cos(a)*rad,z=Math.sin(a)*rad;
-  if(zone.id==='crystal'||zone.id==='ruins'){const c=zone.id==='crystal'?0xa4c6ec:0xd3c2a4;const tall=23+(i%6)*7;
+  if(['crystal','ruins','frost','astral'].includes(zone.id)){const c=zone.id==='crystal'?0xa4c6ec:zone.id==='ruins'?0xd3c2a4:zone.id==='frost'?0xdff3ff:0x9d91ff;const tall=23+(i%6)*7;
    const crystal=makeMesh(worldDecor,cone,c,x,tall/2,z,13,tall,13);crystal.rotation.z=Math.sin(i)*.15}
   else makeTree(worldDecor,x,z,i*29,zone);
  }
  for(let i=0;i<140;i++){const a=i*2.399963,r=40+(i*71)%550,x=Math.cos(a)*r,z=Math.sin(a)*r;
-  const color=i%4===0?0xf9dabf:i%4===1?0xeaf0c5:i%4===2?0xbddbc7:0xeac2e5;
+  const color=zone.id==='frost'?i%2?0xe5f9ff:0xb9e0f2:zone.id==='astral'?i%2?0xf3d8ff:0xaba1ed:i%4===0?0xf9dabf:i%4===1?0xeaf0c5:i%4===2?0xbddbc7:0xeac2e5;
   sphere(worldDecor,color,x,1.7,z,2.5,2,2.5);
  }
 }
