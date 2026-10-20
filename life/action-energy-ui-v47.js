@@ -2,6 +2,12 @@
 // This is the segregated TRIAL economy; no client editing of saved character XP/gold.
 const node=(tag,value)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=String(value);return e};
 const viewG=n=>Number(n||0).toLocaleString('ko-KR')+'G';
+const kstToday=()=>{
+ const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{
+  timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'
+ }).formatToParts(new Date()).map(x=>[x.type,x.value]));
+ return p.year+'-'+p.month+'-'+p.day;
+};
 const html=(p,tag,text)=>{const x=node(tag,text);p.append(x);return x};
 export function mountEnergyPanel(host,{onChange=()=>{},onEarnGold=()=>{}}={}){
  if(!host)throw Error('행동력 표시 영역을 찾을 수 없습니다');
@@ -89,7 +95,10 @@ export function mountEnergyPanel(host,{onChange=()=>{},onEarnGold=()=>{}}={}){
   }finally{busy=false;render()}
  }
  buy.onclick=purchase;
- const timer=setInterval(()=>{if(!host.isConnected){alive=false;clearInterval(timer);return}if(alive)render()},10000); // no detached-modal timers, NO HTTP polling
+ const timer=setInterval(()=>{if(!host.isConnected){alive=false;clearInterval(timer);return}if(!alive)return;
+  if(snapshot&&snapshot.day!==kstToday()){snapshot=null;buy.disabled=true;void refresh();return}
+  render()
+ },10000); // no detached-modal timers, NO HTTP polling
  refresh();
  return {refresh,dispose(){alive=false;clearInterval(timer);host.replaceChildren()}};
 }
