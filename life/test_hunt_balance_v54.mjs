@@ -56,7 +56,7 @@ const src=readFileSync(new URL('./hunt.js',import.meta.url),'utf8');
 assert(src.includes('masteryEnemy(model,level(),zone.level,{elite})'));
 assert(src.includes("const mastery=registerHuntKill(state.hunt,HUNT_ZONES,areaIndex"));
 assert(src.includes("if(!trial.ok)return;"),'boss cannot appear without zone kill/elite challenge');
-assert(src.includes('const permit=zoneAccess(state.hunt,HUNT_ZONES,index,level())'));
+assert(src.includes('permit=zoneAccess(state.hunt,HUNT_ZONES,index,level())'));
 assert(src.includes('windupUntil'), 'attack telegraph used');
 assert(src.includes('Math.hypot(hero.x-aimed.x,hero.z-aimed.z)'), 'dodging ring avoids hit');
 assert(src.includes("dailyHuntContracts(state.hunt,HUNT_ZONES,i,today())"));
