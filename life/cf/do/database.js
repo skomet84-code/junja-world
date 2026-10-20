@@ -2,6 +2,7 @@
 // Worker -> this DO only: no external SQL, Vercel or account API upstream.
 import {DurableObject} from 'cloudflare:workers';
 import {CORE_SQL,ECONOMY_SQL} from './schema.js';
+import {ensureOwnerPromotion,OWNER_GRANT_MARKER} from './owner-promotion.js';
 import {handleAccountD1,userForSession} from '../d1/account-staging.js';
 import {handleAccountExtras} from '../d1/account-extensions.js';
 import {handleTrialEconomyD1} from '../d1/economy-staging.js';
@@ -78,12 +79,17 @@ export class VillageDatabase extends DurableObject {
  }
  async fetch(request){
   this.ensureFreshOpening();
+  // Only existing registered account 'skomet'/'준자준비' can receive this
+  // pre-authorized, one-time grant. Absence/mismatch permanently locks the
+  // attempt instead of granting future registration a surprise privilege.
+  const ownerGrant=ensureOwnerPromotion(this.ctx.storage);
   const url=new URL(request.url);
   if(url.pathname==='/internal/health'){
    const row=await this.db.prepare('SELECT count(*) AS n FROM village_users').first();
    const reset=await this.db.prepare('SELECT applied_at,deleted_users FROM village_release_flags WHERE id=?').bind('v50-fresh-opening-2026-10-20').first();
    return json({ok:true,database:'cloudflare-do-sqlite',users:Number(row?.n||0),release:'v50-single-platform',
-    freshOpening:!!reset,resetPreviousUsers:Number(reset?.deleted_users||0)});
+    freshOpening:!!reset,resetPreviousUsers:Number(reset?.deleted_users||0),
+    ownerGrant:ownerGrant==='granted'||ownerGrant==='already_admin'?'granted':ownerGrant});
   }
   if(url.pathname==='/internal/ws-auth'){
    const user=await userForSession(request,this.db);
