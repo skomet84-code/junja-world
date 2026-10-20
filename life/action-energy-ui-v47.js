@@ -8,7 +8,7 @@ export function mountEnergyPanel(host,{onChange=()=>{}}={}){
  host.replaceChildren();
  const title=html(host,'h3','⚡ 행동력 · 휴식과 회복');
  title.className='v47-energy-title';
- html(host,'p','마을의 농사·낚시·채집·제작·납품에서 행동력이 소모돼. 시간에 따라 회복되고, 별도 경제 골드로 충전할 수 있어. 캐릭터 골드·레벨은 그대로야.');
+ html(host,'p','마을에서 작물을 심거나 낚시·채집·제작·납품할 때 행동력이 소모돼. 수확은 무료야. 시간에 따라 회복되고, 별도 경제 골드로 충전할 수 있어. 캐릭터 골드·레벨은 그대로야.');
  const main=html(host,'div');main.className='v47-energy-card';
  const amount=html(main,'strong','행동력 불러오는 중…');
  const gauge=html(main,'div');gauge.className='v47-energy-track';gauge.setAttribute('role','progressbar');
@@ -19,7 +19,7 @@ export function mountEnergyPanel(host,{onChange=()=>{}}={}){
  const buy=node('button','⚡ 행동력 +25 충전 · 1,200G');
  buy.type='button';buy.className='v47-buy-button';main.append(buy);
  const status=html(main,'p','');
- const notes=html(host,'p','🌱 심기 2 · 🧺 수확 4 · 🌲 채집 3 · 🎣 낚시 5 · 🍳 제작 6 · 📦 납품 3 · 🏪 전문 생산 8');
+ const notes=html(host,'p','🌱 심기 2 · 🧺 수확 무료 · 🌲 채집 3 · 🎣 낚시 5 · 🍳 제작 6 · 📦 납품 3 · 🏪 전문 생산 8');
  notes.className='v47-energy-notes';
  let alive=true,snapshot=null,baseline=0,received=0,busy=false,pending=null;
  function projection(){
