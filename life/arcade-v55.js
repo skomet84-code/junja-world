@@ -35,11 +35,12 @@ export function playArcade(state,{choice='sun',date=new Date(),rng=null}={}){
  const fee=debit(state,ARCADE_RULES_V55.entry,'arcade','달빛 게임장 · 행운의 카드',date);
  if(!fee.ok)return {ok:false,error:fee.error||'게임 참가비가 부족해'};
  const success=roll<ARCADE_RULES_V55.winChance/100;
+ const drawn=success?choice:(choice==='sun'?'moon':'sun');
  const payout=success?credit(state,ARCADE_RULES_V55.payout,'arcade','달빛 게임장 · 행운의 카드 당첨',1,date):null;
  p.plays++;p.spent+=ARCADE_RULES_V55.entry;
  if(success){p.wins++;p.won+=payout?.amount||0}
  p.last=choice+':'+(success?'win':'lose');
- return {ok:true,success,spent:ARCADE_RULES_V55.entry,won:payout?.amount||0,
+ return {ok:true,success,drawn,choice,spent:ARCADE_RULES_V55.entry,won:payout?.amount||0,
   net:(payout?.amount||0)-ARCADE_RULES_V55.entry,plays:p.plays,
   remaining:ARCADE_RULES_V55.playsPerDay-p.plays,
   note:'가상 G만 사용 · 45% 당첨 확률 · 1회 100G · 최대 200G 보상(경제 일일 상한 적용)'};
