@@ -19,7 +19,7 @@ const healthy=await response.json();
 assert.equal(healthy.database,'cloudflare-do-sqlite');
 response=await fetch(base+'/api/account?action=me');
 assert.equal(response.status,401);
-let r=await call('register',{username:name,nickname:'new'+name,password});
+let r=await call('register',{username:name,nickname:name.slice(0,12),password});
 assert.equal(r.status,201,JSON.stringify(r.json));
 r=await call('login',{username:name,password:'definitely-wrong'});
 assert.equal(r.status,401);
