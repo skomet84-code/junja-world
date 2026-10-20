@@ -7,6 +7,7 @@ const source=readFileSync(new URL('./admin-panel.js',import.meta.url),'utf8')
  .replace("import {CATALOG} from './fashion-catalog.js';","const CATALOG=[];");
 const elements=new Map();
 function element(id){
+ for(const e of elements.values())if(e.id===id)return e;
  if(!elements.has(id)){
   const e={id,style:{},dataset:{},value:'',textContent:'',innerHTML:'',hidden:false,
    append(){},replaceChildren(){},setAttribute(){},addEventListener(){},
