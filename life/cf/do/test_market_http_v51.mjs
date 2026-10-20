@@ -78,4 +78,30 @@ businessData=await businessResponse.json();
 assert.equal(businessData.coins,1250);
 assert.equal(businessData.business.workshops.farmer,undefined);
 
-console.log('PASS v51 local Cloudflare Worker market + career + business: authenticated routes, catalog pricing, no phantom listings, idempotent license and no unearned rewards');
+// Server-authored career quest progress and exact-once trial reward.
+let questsResponse=await fetch(base+'/api/quests-v51');
+assert.equal(questsResponse.status,401,'anonymous players cannot inspect other quests');
+questsResponse=await fetch(base+'/api/quests-v51',{headers:{cookie}});
+assert.equal(questsResponse.status,200);
+let questData=await questsResponse.json();
+const careerQuest=questData.quests.find(q=>q.id==='welcome_career');
+assert.equal(careerQuest.done,1,'registered career must produce server quest receipt');
+assert.equal(careerQuest.claimable,true);
+const questRequestId=randomUUID();
+async function claimCareer(){
+ const res=await fetch(base+'/api/quests-v51',{
+  method:'POST',headers:{cookie,origin:base,'content-type':'application/json'},
+  body:JSON.stringify({questId:'welcome_career',requestId:questRequestId})
+ });return {status:res.status,data:await res.json()};
+}
+let questReward=await claimCareer();
+assert.equal(questReward.status,200,JSON.stringify(questReward.data));
+assert.equal(questReward.data.gold,320);
+questReward=await claimCareer();
+assert.equal(questReward.status,200);
+assert.equal(questReward.data.replayed,true);
+questsResponse=await fetch(base+'/api/quests-v51',{headers:{cookie}});
+questData=await questsResponse.json();
+assert.equal(questData.quests.find(q=>q.id==='welcome_career').claimed,true);
+
+console.log('PASS v51 local Cloudflare Worker market + career + business + quests: authenticated routes, catalog pricing, no phantom listings, idempotent license and no unearned rewards');
