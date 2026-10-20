@@ -9,6 +9,7 @@ import {EQUIPMENT,SKILL_PRICES,initCombat,purchaseSkill,purchaseEquipment,equipI
 import {POTIONS,ensurePotions,purchasePotion,consumePotion} from './combat-potions-v29.js';
 import {initHuntMastery,zoneAccess,bossAccess,masteryEnemy,hunterDamage,registerHuntKill,dailyHuntContracts,claimHuntContract,HUNT_MASTERY_GATES} from './hunt-balance-v54.js?v=v55-six-regions-20261020';
 import {registerHuntWeekV55,weeklyHuntChallengesV55,claimHuntWeekV55,koreaHuntWeekV55} from './hunt-weekly-v55.js';
+import {HUNT_LOOT_PRICES_V55,huntLootQuoteV55,sellHuntLootV55} from './hunt-loot-market-v55.js';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
@@ -284,9 +285,9 @@ function zoneMenu(){
  openModal('<div class="hero">⚔️ v54 사냥 대개편 · <strong>숙련 '+mastery.score+'</strong><br>생활 레벨과 별개로 전투를 익혀 새 구역에 도전해! 기존 레벨·장비·전리품은 유지돼.</div>'+
   '<h2>🗺️ 모험가 도전 지도</h2><p>각 구역에서 정예를 포함한 몬스터를 토벌하고 보스를 이겨 다음 구역을 해금해. 몬스터의 공격 경고가 보이면 움직여 피할 수 있어.</p>'+
   '<div class="grid">'+rows+'</div><button id="huntContracts" class="wide">📜 오늘의 토벌 의뢰 · 사냥 목표 보기</button>'+
-  '<button id="viewHuntLoot" class="wide">🎁 전리품 공방 열기</button><button id="returnVillage" class="wide">🏡 준자마을로 돌아가기</button>');
+  '<button id="viewHuntLoot" class="wide">🎁 전리품 공방 열기</button><button id="openHuntSalvageShop" class="wide">💰 전리품 판매소</button><button id="returnVillage" class="wide">🏡 준자마을로 돌아가기</button>');
  document.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>startZone(+b.dataset.zone));
- addShopLinks();$('viewHuntLoot').onclick=craftMenu;$('returnVillage').onclick=goHome;
+ addShopLinks();$('viewHuntLoot').onclick=craftMenu;$('openHuntSalvageShop').onclick=openHuntSalvageShopV55;$('returnVillage').onclick=goHome;
  $('huntContracts').onclick=openHuntContracts;
 }
 function openHuntWeekV55(){
@@ -416,6 +417,52 @@ function claimOverflow(){
  else toast('가방 공간을 더 확보해야 해요');
 }
 function bagFreeSafe(){return Math.max(0,bagCapacity(state)-bagUsed(state))}
+function openHuntSalvageShopV55(){
+ const stock=state.hunt.materials||{};
+ const lots=Object.keys(stock).filter(name=>HUNT_LOOT_PRICES_V55[name]&&Number(stock[name])>0)
+  .sort((a,b)=>HUNT_LOOT_PRICES_V55[a].unitPrice-HUNT_LOOT_PRICES_V55[b].unitPrice);
+ const cards=lots.map(name=>{
+  const q=huntLootQuoteV55(state,name);
+  const key=encodeURIComponent(name);
+  const price=q.unitPrice.toLocaleString('ko-KR');
+  const protection=q.reserve>0?
+   '<p>🔒 코스튬 제작 예약 '+q.reserve+'개 · 현재 남는 재료 '+q.surplus+'개</p>':
+   '<p>✅ 제작 예약 없음 · 지금 바로 판매 가능</p>';
+  const normal=q.surplus;
+  return '<article class="craft-card"><strong>'+q.icon+' '+q.name+(q.rarity==='boss'?' · 👑 보스 희귀 재료':'')+'</strong>'+
+   '<p>보유 '+q.have+'개 · 개당 기본 '+price+'G · '+q.zone+'</p>'+protection+
+   '<button data-hunt-sell="'+key+'" data-qty="1" '+(normal>=1?'':'disabled')+'>💰 1개 팔기</button>'+
+   '<button data-hunt-sell="'+key+'" data-qty="5" '+(normal>=5?'':'disabled')+'>💰 5개 팔기</button>'+
+   '<button data-hunt-sell="'+key+'" data-qty="'+Math.min(20,normal)+'" '+(normal>0?'':'disabled')+'>📦 남는 재료 최대 20개</button>'+
+   (q.reserve>0&&q.have>0?'<button data-hunt-sell-protected="'+key+'" data-qty="1">⚠️ 제작 예약 재료 1개 판매</button>':'')+
+   '</article>';
+ }).join('');
+ const leftover=Object.entries(stock).filter(([name,qty])=>Number(qty)>0&&!HUNT_LOOT_PRICES_V55[name]);
+ openModal('<h2>💰 모험가 전리품 판매소</h2>'+
+  '<p>잡은 몬스터의 재료를 마을 골드(G)로 바꿔 장비·물약·코스튬을 구입해! 아직 만들지 않은 의상 제작 재료는 기본 보호해.</p>'+
+  '<div class="hero"><strong>현재 마을 골드 '+Math.floor(state.coins).toLocaleString('ko-KR')+'G</strong>'+
+  '<p>가방 사용 '+bagUsed(state)+'/'+bagCapacity(state)+'칸 · 판매 시 그만큼 공간이 비워져.</p></div>'+
+  '<div class="grid">'+(cards||'<p>판매 가능한 재료가 없어. 사냥하고 다시 와 줘!</p>')+'</div>'+
+  (leftover.length?'<p class="item-note">※ 과거 미등록 재료 '+leftover.length+'종은 임의 가격으로 판매하지 않아. 전리품 공방에서는 확인할 수 있어.</p>':'')+
+  '<p class="item-note">ℹ️ 기본 매입가를 보여줘. 기존 마을 물가 안정 시스템에 따라 하루 판매량이 많으면 실제 지급 골드는 낮아질 수 있어. 친구 간 거래소의 별도 골드와는 합산되지 않아.</p>'+
+  '<button id="lootVendorCraft" class="wide">🎁 재료로 의상 제작하기</button>'+
+  '<button id="lootVendorMap" class="wide">🗺️ 사냥터 선택으로</button>');
+ document.querySelectorAll('[data-hunt-sell],[data-hunt-sell-protected]').forEach(btn=>btn.onclick=()=>{
+  const name=decodeURIComponent(btn.dataset.huntSell||btn.dataset.huntSellProtected);
+  const quantity=Number(btn.dataset.qty);
+  const protectedItem=btn.hasAttribute('data-hunt-sell-protected');
+  const quote=huntLootQuoteV55(state,name,{includeProtected:protectedItem});
+  if(!quote||!(quantity>0))return;
+  if(protectedItem&&!confirm('⚠️ '+name+'은(는) 아직 만들지 않은 의상에 필요한 재료야. 정말 '+quantity+'개를 판매할까?'))return;
+  const sale=sellHuntLootV55(state,name,quantity,{includeProtected:protectedItem,level:level()});
+  if(!sale.ok){toast('⚠️ '+sale.error);return}
+  save();updateHud();
+  toast('💰 '+name+' '+sale.sold+'개 판매 · 실제 +'+sale.earned.toLocaleString('ko-KR')+'G'+(sale.reduced?' · 일일 시장 한도 적용':''));
+  openHuntSalvageShopV55();
+ });
+ $('lootVendorCraft').onclick=craftMenu;
+ $('lootVendorMap').onclick=zoneMenu;
+}
 function craftMenu(){
  const bag=state.hunt.materials||{},owned=state.fashion.owned||[];
  const recipes=HUNT_CRAFTS.map(r=>{
@@ -425,7 +472,7 @@ function craftMenu(){
   return '<article class="craft-card"><strong>'+r.icon+' '+r.name+'</strong><p>완성 아이템: '+displayName+'</p><p>'+cost+'</p><p>제작비 '+r.coins.toLocaleString()+'G</p><button data-craft="'+r.id+'" '+(got||!possible?'disabled':'')+'>'+(got?'✅ 소장 중':possible?'제작하고 옷장에 보관':'재료 부족')+'</button></article>';
  }).join('');
  const supplies=Object.entries(bag).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(([id,n])=>'<span class="item-pill">'+id+' × '+n+'</span>').join('');
- openModal('<h2>🎁 사냥 전리품 공방</h2><p>사냥 재료를 모아 기존 준자마을 의상을 제작해 보세요. 제작한 의상은 마을 옷장에서도 바로 착용할 수 있어요.</p><h3>🎒 전리품 보관함</h3><div>'+(supplies||'<p>아직 모은 재료가 없어요.</p>')+'</div><h3>👑 테마 코스튬 제작</h3><div class="grid">'+recipes+'</div><button id="potionShopLink" class="wide">🧪 HP/MP 물약 상점</button><button id="collectHuntOverflow" class="wide">📦 임시 보관함 회수</button><button id="backHuntMap" class="wide">🗺️ 사냥터 선택</button>');
+ openModal('<h2>🎁 사냥 전리품 공방</h2><p>사냥 재료를 모아 기존 준자마을 의상을 제작해 보세요. 제작한 의상은 마을 옷장에서도 바로 착용할 수 있어요.</p><h3>🎒 전리품 보관함</h3><div>'+(supplies||'<p>아직 모은 재료가 없어요.</p>')+'</div><h3>👑 테마 코스튬 제작</h3><div class="grid">'+recipes+'</div><button id="openLootSellerV55" class="wide">💰 사냥 전리품 판매소 · 남는 재료 팔기</button><button id="potionShopLink" class="wide">🧪 HP/MP 물약 상점</button><button id="collectHuntOverflow" class="wide">📦 임시 보관함 회수</button><button id="backHuntMap" class="wide">🗺️ 사냥터 선택</button>');
  document.querySelectorAll('[data-craft]').forEach(b=>b.onclick=()=>{
   const r=HUNT_CRAFTS.find(x=>x.id===b.dataset.craft);
   if(!r||!canCraft(r,state.hunt.materials,state.fashion.owned,state.coins))return;
@@ -436,6 +483,7 @@ function craftMenu(){
  $('backHuntMap').onclick=zoneMenu;
  addShopLinks();$('potionShopLink').onclick=potionShop;
  $('collectHuntOverflow').onclick=claimOverflow;
+ $('openLootSellerV55').onclick=openHuntSalvageShopV55;
 }
 async function goHome(){save();clearTimeout(cloudSaveTimer);if(!await syncHuntSave()){toast('저장 확인 후 돌아갈 수 있어요. 잠시 후 다시 눌러주세요');return}location.assign('/?room='+encodeURIComponent(room))}
 function floatNumber(x,z,label,color='#ffeaa5'){
