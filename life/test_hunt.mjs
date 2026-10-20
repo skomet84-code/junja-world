@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import {HUNT_ZONES,HUNT_BOSSES,HUNT_SKILLS,HUNT_CRAFTS,MAX_ACTIVE_ENEMIES,huntLevel,combatStats,enemyDamage,canCraft,zoneUnlocked,dailyBossKey} from './hunt-data.js';
-assert.equal(HUNT_ZONES.length,4,'four hunt maps');
-assert.deepEqual(HUNT_ZONES.map(z=>z.level),[3,8,15,25]);
-assert.equal(HUNT_ZONES.reduce((n,z)=>n+z.mobs.length,0),20,'20 authored enemy types');
-assert.equal(new Set(HUNT_ZONES.flatMap(z=>z.mobs.map(m=>m.id))).size,20,'unique monster ids');
-assert.equal(HUNT_BOSSES.length,4,'four daily bosses');
+assert.equal(HUNT_ZONES.length,6,'six hunt maps');
+assert.deepEqual(HUNT_ZONES.map(z=>z.level),[3,8,15,25,38,52]);
+assert.equal(HUNT_ZONES.reduce((n,z)=>n+z.mobs.length,0),30,'30 authored enemy types');
+assert.equal(new Set(HUNT_ZONES.flatMap(z=>z.mobs.map(m=>m.id))).size,30,'unique monster ids');
+assert.equal(HUNT_BOSSES.length,6,'six daily bosses');
 assert.equal(MAX_ACTIVE_ENEMIES,7,'avoid rendering 20 monsters at once');
 assert.equal(HUNT_SKILLS.length,3,'three basic skill buttons');
 assert.deepEqual(HUNT_SKILLS.map(s=>s.cooldown),[3,7,20]);
