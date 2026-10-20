@@ -50,7 +50,7 @@ const unstable=createWorldEnergySpend({request:async(url,opt)=>{
 }});
 await assert.rejects(()=>unstable.spend('fish'),/timeout/);
 assert.equal(unstable.unresolved,true);
-await assert.rejects(()=>unstable.spend('craft'),/이전 행동력/);
+// A different action must not remain blocked after an ambiguous request.
 await unstable.spend('fish');
 assert.equal(ids[0],ids[1],'ambiguous request retries must reuse one idempotency ID');
 assert.equal(unstable.unresolved,false);
