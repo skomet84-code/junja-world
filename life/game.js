@@ -633,7 +633,7 @@ hud();
 // browser progress. Otherwise brand-new accounts have no cloud save until
 // a state change and can reappear at Lv.1 on another device.
 if(accountScope)queueCloudSave();
-setInterval(save,12000); // Quiet background movement snapshots; gameplay achievements still save immediately.
+setInterval(save,60000); // Quiet once-per-minute movement snapshots; planting/harvest/transactions still save immediately.
 if(accountScope){
  const lastAdminRevision=Number(state.__adminRevision)||0;
  async function pullAdminChanges(){
@@ -894,7 +894,7 @@ function connectSocial(){
 }
 
 async function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){
-  if(!await useWorldEnergy('harvest'))return;
+  // Harvesting is free: energy was already paid when planting.
   let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
  const cards=Object.entries(crops).map(([k,v])=>`<div class="mini-card"><span class="emoji">${v.icon}</span><strong>${v.name}</strong><p>성장 ${v.seconds}초 · 수확 ${v.price+lifeBonus('harvest')}G</p><p>보유 씨앗 ${state.seeds[k]||0}개</p><button data-seed="${k}">${state.seeds[k]>0?'씨앗 선택 · 심기':'씨앗 부족'}</button></div>`).join('');
  if(b.crop){const q=crops[b.crop];let progress=Math.min(100,Math.round((Date.now()-b.at)/(q.seconds*1000)*100));openModal(`<span class="titlebadge">FARMING</span><h2>🌿 작물이 자라고 있어요</h2><p>${q.icon} ${q.name} · 자라는 중 (${progress}%)</p><div class="mini-progress"><i style="width:${progress}%"></i></div><p>남은 시간 ${Math.max(0,Math.ceil(q.seconds-(Date.now()-b.at)/1000))}초. 게임을 종료해도 자라요.</p><button class="pill-btn" id="farmClose">확인</button>`);document.getElementById('farmClose').onclick=closeModal;return}
@@ -1442,7 +1442,7 @@ function openPersonalEstate(){
  els.panelBody.querySelectorAll('[data-plot]').forEach(btn=>btn.onclick=async()=>{
   const i=Number(btn.dataset.plot),p=e.plots[i],c=p&&ESTATE_BY_ID[p.id];
   if(c){if(Date.now()<p.at+c[3]*1000){toast('⏳ '+estateClock(Math.ceil((p.at+c[3]*1000-Date.now())/1000))+' 남았어요');return}
-   if(!await useWorldEnergy('harvest'))return;
+   // No second energy charge on personal-farm harvest.
    e.stock[c[0]]=(Number(e.stock[c[0]])||0)+1;e.plots[i]=null;recordEstateHarvest(state);state.xp+=Math.max(1,Math.floor(c[3]/90));save();toast(c[1]+' '+c[2]+' 수확!');openPersonalEstate();return}
   const selected=document.getElementById('estateCrop')?.value,crop=ESTATE_BY_ID[selected];
   if(!crop)return;if(state.coins<crop[4]){toast('씨앗 구매 골드가 부족해요');return}
