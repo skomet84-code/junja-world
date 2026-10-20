@@ -42,13 +42,48 @@ export class VillageDatabase extends DurableObject {
   const sql=ctx.storage.sql;
   sql.exec(CORE_SQL);
   sql.exec(ECONOMY_SQL);
+  // This one-time opening marker lives inside the same durable SQLite database.
+  // Subsequent deployments MUST NOT repeat the opening reset.
+  sql.exec(`CREATE TABLE IF NOT EXISTS village_release_flags (
+   id TEXT PRIMARY KEY NOT NULL,
+   applied_at TEXT NOT NULL,
+   deleted_users INTEGER NOT NULL CHECK(deleted_users>=0)
+  )`);
   this.db=createSqliteAdapter(ctx);
  }
+ ensureFreshOpening(){
+  const sql=this.ctx.storage.sql,marker='v50-fresh-opening-2026-10-20';
+  const old=sql.exec('SELECT id FROM village_release_flags WHERE id=?',marker).toArray()[0];
+  if(old)return;
+  // User explicitly authorized clearing all Cloudflare game characters and
+  // registrations for the official new opening. Neon/Vercel are untouched.
+  // The delete order respects every foreign key (including experimental economy).
+  // This whole operation is atomic. If anything fails it rolls back instead
+  // of partially deleting accounts or breaking registration.
+  this.ctx.storage.transactionSync(()=>{
+   const already=sql.exec('SELECT id FROM village_release_flags WHERE id=?',marker).toArray()[0];
+   if(already)return;
+   const before=Number(sql.exec('SELECT count(*) AS n FROM village_users').one().n||0);
+   for(const name of [
+    'village_market_v38_requests','village_market_v38_listings',
+    'village_economy_v37_checkpoints','village_economy_v36_events',
+    'village_economy_v36_accounts',
+    'village_wallet_transfers','village_wallets','village_sessions',
+    'village_presence','village_saves','village_live_peers',
+    'village_auth_limits','village_users'
+   ])sql.exec('DELETE FROM '+name);
+   sql.exec('INSERT INTO village_release_flags(id,applied_at,deleted_users) VALUES(?,?,?)',
+    marker,new Date().toISOString(),before);
+  });
+ }
  async fetch(request){
+  this.ensureFreshOpening();
   const url=new URL(request.url);
   if(url.pathname==='/internal/health'){
    const row=await this.db.prepare('SELECT count(*) AS n FROM village_users').first();
-   return json({ok:true,database:'cloudflare-do-sqlite',users:Number(row?.n||0),release:'v50-single-platform'});
+   const reset=await this.db.prepare('SELECT applied_at,deleted_users FROM village_release_flags WHERE id=?').bind('v50-fresh-opening-2026-10-20').first();
+   return json({ok:true,database:'cloudflare-do-sqlite',users:Number(row?.n||0),release:'v50-single-platform',
+    freshOpening:!!reset,resetPreviousUsers:Number(reset?.deleted_users||0)});
   }
   if(url.pathname==='/internal/ws-auth'){
    const user=await userForSession(request,this.db);
