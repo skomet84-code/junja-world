@@ -413,9 +413,9 @@ function floatNumber(x,z,label,color='#ffeaa5'){
  el.style.left=(v.x*.5+.5)*innerWidth+'px';el.style.top=(-v.y*.5+.5)*innerHeight+'px';
  document.body.appendChild(el);setTimeout(()=>el.remove(),790);
 }
-function effect(x,z,color=0xfbe7a9){
- const mesh=new T.Mesh(new T.RingGeometry(12,15,32),new T.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false,side:T.DoubleSide}));
- mesh.position.set(x,2,z);mesh.rotation.x=-Math.PI/2;scene.add(mesh);fx.push({mesh,ttl:.42});
+function effect(x,z,color=0xfbe7a9,duration=.42,wide=false){
+ const mesh=new T.Mesh(new T.RingGeometry(wide?46:12,wide?51:15,32),new T.MeshBasicMaterial({color,transparent:true,opacity:.86,depthWrite:false,side:T.DoubleSide}));
+ mesh.position.set(x,2,z);mesh.rotation.x=-Math.PI/2;scene.add(mesh);fx.push({mesh,ttl:duration,life:duration});
 }
 function hitBurst(x,z,critical=false){
  // Reuses a tiny low-poly shared geometry. Transient mesh count is bounded on mobile.
@@ -459,7 +459,7 @@ function mobHit(m,damage){
   // mastery score measures actual combat progress and unlocks tougher regions.
   state.xp+=m.model.xp;
   hero.hp=clamp(hero.hp+(boss?20:m.model.elite?8:3),0,stats().maxHp);
-  m.root.visible=false;m.deadUntil=performance.now()+(boss?Infinity:7000);
+  m.root.visible=false;m.deadUntil=performance.now()+(boss?Infinity:m.model.elite?13000:9000);m.windupUntil=0;
   if(!added)toast('📦 전리품이 임시 보관함에 저장됐어요');
   if(boss){state.hunt.bossDates[dailyBossKey(currentZone.id,today())]=true;
    toast('🏆 '+m.model.name+' 토벌! 숙련 +'+mastery.points+' · '+loot+' 획득 · 다음 구역 도전 가능')}
