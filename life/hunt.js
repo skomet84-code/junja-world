@@ -37,7 +37,11 @@ state.hunt.kills=Math.max(0,state.hunt.kills||0);
 initHuntMastery(state.hunt,HUNT_ZONES);
 ensurePotions(state);initBag(state);initCombat(state);
 state.hunt.potionCooldowns=state.hunt.potionCooldowns||{};
-const level=()=>huntLevel(state.xp),stats=()=>equippedStats(state),today=()=>new Date().toLocaleDateString('en-CA');
+const level=()=>huntLevel(state.xp),stats=()=>equippedStats(state);
+const today=()=>{
+ const fields=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
+ return fields.year+'-'+fields.month+'-'+fields.day;
+};
 let cloudSaveTimer=null;
 const saveNotice=document.createElement('div');saveNotice.id='huntSaveStatus';saveNotice.style.cssText='position:fixed;top:70px;left:12px;z-index:90;background:#fff7e5;color:#31543c;padding:6px 10px;border-radius:12px;font-size:12px';document.body.append(saveNotice);
 const saveQueue=createSaveQueue({version:restored.version,
