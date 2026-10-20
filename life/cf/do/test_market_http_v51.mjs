@@ -36,4 +36,29 @@ response=await fetch(base+'/api/market-v38',{headers:{cookie}});
 market=await response.json();
 assert.equal(market.listings.filter(x=>x.seller_key===market.me).length,0);
 assert.equal(market.version,0,'refused listing does not create market account versions');
-console.log('PASS v51 local Cloudflare Worker market: auth, browse, server-catalog pricing, no phantom listings');
+// The adjacent v39 career service must also run on the SAME account/SQLite DB.
+let career=await fetch(base+'/api/professions-v39',{headers:{cookie}});
+assert.equal(career.status,200);
+let careerData=await career.json();
+assert.equal(careerData.profession.active,null);
+const licenseRequest=randomUUID();
+const job=async action=>{
+ const res=await fetch(base+'/api/professions-v39',{
+  method:'POST',headers:{cookie,origin:base,'content-type':'application/json'},
+  body:JSON.stringify(action)
+ });return {status:res.status,data:await res.json()};
+};
+let joined=await job({action:'register',role:'farmer',requestId:licenseRequest});
+assert.equal(joined.status,200,JSON.stringify(joined));
+assert.equal(joined.data.coins,1250);
+joined=await job({action:'register',role:'farmer',requestId:licenseRequest});
+assert.equal(joined.status,200);
+assert.equal(joined.data.replayed,true);
+joined=await job({action:'claim',requestId:randomUUID()});
+assert.equal(joined.status,409,'no work proof means no daily reward');
+career=await fetch(base+'/api/professions-v39',{headers:{cookie}});
+careerData=await career.json();
+assert.equal(careerData.profession.active,'farmer');
+assert.equal(careerData.coins,1250);
+
+console.log('PASS v51 local Cloudflare Worker market + career: authenticated routes, catalog pricing, no phantom listings, idempotent license and no unearned rewards');
