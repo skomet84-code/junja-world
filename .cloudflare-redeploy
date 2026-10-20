@@ -1,7 +1,7 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 78cfd8b6f2d8b9e1ecf0fc1b95109ed65c6c847c
-Reason: OWNER-REQUESTED v53 clean main quest progression and premium fish collection visuals. Replace all five attendance-gated main chapters 18/28/36/43/49 with craft/harvest milestones; preserve all 50 chapter IDs, rewards and existing state.chapter index. Restore 70 fish full silhouettes in Kakao/Safari by removing vulnerable SVG fragment paint URLs and improving full-body highlights, display sizes, locked silhouette contrast. Change confusing "시험" economy badge to "별도" with transparent explanation of separated trial balance. iPhone/Kakao cache-bust for fish/life/quest JS modules.
-Safeguards: NO SQLite schema migration, database reset, user/admin/account deletion or save modification. Keep all existing player XP/coins/fish catches/items, 5000G new user starting wallet, v52 farm 21 fields, all other v51 economy APIs.
-Release QA: https://github.com/skomet84-code/junja-world/actions/runs/39410234278 SUCCESS.
+Release commit: 88da125a3319ae5a81a29c02b0c9be000a327bcd
+Reason: User-reported action energy remains 100/100 while playing. v53.1-world-energy fixes real main village planting (2), harvesting (4), gathering (3), manual and automated fishing (5), crafting (6), delivery (3) via authenticated Cloudflare DO SQLite energy charges. Server fixed costs, fail closed if unauthenticated/unavailable/exhausted, exact-once request IDs and HUD refresh. Keep 100 energy max / +1 per 6min / trial-gold top-up. DO NOT delete/reset/migrate DB, accounts, progress, 21 plots, levels, skomet/Junja admin, 5000G starter or any fish/art/quest data. Preserve previous v53 features.
+Release QA: https://github.com/skomet84-code/junja-world/actions/runs/39414086995 PASS including actual local Cloudflare SQLite account + energy API/insufficient/idempotency + existing full save/multiplayer.
+Cloudflare config: life/cf/wrangler.jsonc; same Durable Object IDs, same production URL.
 Requested: 2026-10-20 KST
