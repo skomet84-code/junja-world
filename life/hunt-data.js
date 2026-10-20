@@ -31,7 +31,9 @@ export const HUNT_CRAFTS=Object.freeze([
  {id:'forest-look',name:'숲속 탐험 코디',icon:'🌲',requires:[['젤리 조각',12],['숲의 조각',9],['왕의 도토리',1]],coins:1500,gives:'fashion_outfit_19'},
  {id:'crystal-style',name:'수정동굴 코디',icon:'💎',requires:[['수정 파편',14],['반짝 광석',11],['왕의 수정',1]],coins:3500,gives:'fashion_outfit_22'},
  {id:'moonlight-style',name:'달빛 마법 코디',icon:'🌙',requires:[['달빛 가루',16],['마법 꽃잎',13],['달빛 보석',1]],coins:5500,gives:'fashion_outfit_24'},
- {id:'ancient-look',name:'황금 전설 코디',icon:'👑',requires:[['태고의 석편',18],['황금 결정',15],['고대 용의 심장',1]],coins:15000,gives:'fashion_outfit_31'}
+ {id:'ancient-look',name:'황금 전설 코디',icon:'👑',requires:[['태고의 석편',18],['황금 결정',15],['고대 용의 심장',1]],coins:15000,gives:'fashion_outfit_31'},
+ {id:'winter-royal',name:'빙하 왕관세트',icon:'❄️',requires:[['서리 가루',23],['빙결 핵',18],['영원의 서리심장',1]],coins:135000,gives:'fashion_outfit_35'},
+ {id:'starlight-astra',name:'별빛 아스트라',icon:'🌌',requires:[['시간 조각',28],['별빛 정수',24],['시간의 왕관석',1]],coins:265000,gives:'fashion_outfit_36'}
 ].map(x=>Object.freeze({...x,requires:Object.freeze(x.requires.map(t=>Object.freeze(t)))})));
 export const MAX_ACTIVE_ENEMIES=7; // 6 regular/elites + 1 boss per arena, mobile GPU safe
 export function huntLevel(xp){return Math.max(1,1+Math.floor((Number(xp)||0)/160))}
