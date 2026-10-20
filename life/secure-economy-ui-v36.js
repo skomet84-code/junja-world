@@ -12,12 +12,12 @@ const txt=(parent,text,tag='p')=>{const el=make(tag,text);parent.append(el);retu
 export function openSecureEconomyLab(host,{back}={}){
  if(!host)throw Error('서버 경제 연구소 화면을 찾을 수 없어요');
  host.replaceChildren();
- host.append(make('h2','🔐 준자마을 서버 경제 연구소'));
- style(txt(host,'시험장 전용 골드와 창고를 사용합니다. 기존 캐릭터의 레벨, 골드, 농장에는 영향을 주지 않아요.'),'font-weight:700;color:#637a64');
+ host.append(make('h2','🌿 서버 농장 · 제작 · 주문 경제'));
+ style(txt(host,'행동력 충전용 골드를 여기서 벌 수 있어. 🌱 작물 심기 → ⏳ 성장 → 🧺 수확 → 💰 판매 또는 🍳 가공 → 📦 주민 납품 → ⚡ 행동력 충전! 기존 캐릭터의 메인 골드·레벨은 별도로 유지돼.'),'font-weight:700;color:#637a64');
  const notification=style(make('p','준자마을 계정 확인 중…'),'background:#f3f3e6;padding:12px;border-radius:12px');
  host.append(notification);
  const energyHost=make('section');host.append(energyHost);
- const energyPanel=mountEnergyPanel(energyHost);
+ const energyPanel=mountEnergyPanel(energyHost,{onEarnGold:()=>contents.scrollIntoView({behavior:'smooth',block:'start'})});
  const contents=make('div');host.append(contents);
  let snapshot=null,busy=false,retry=null;
  const link=(caption,handler)=>{
@@ -64,7 +64,11 @@ export function openSecureEconomyLab(host,{back}={}){
   contents.replaceChildren();
   if(!snapshot)return;
   const s=snapshot;
-  txt(contents,'💰 시범 경제 잔액 '+format(s.coins)+' · 명성 '+s.reputation+'점','h3');
+  txt(contents,'💰 별도 경제 잔액 '+format(s.coins)+' · 명성 '+s.reputation+'점','h3');
+  const guide=style(make('section'),'padding:12px 14px;border:1px solid #c8dcb5;border-radius:14px;background:#eef7e6;margin:12px 0;line-height:1.65;');
+  txt(guide,'🌳 돈벌이 → 성장으로 이어지는 경제 순환','strong');
+  txt(guide,'1. 씨앗 구매 후 심기(행동력 소비) → 2. 성장 후 수확(무료) → 3. 재고 판매·가공·주문으로 별도 골드 벌기 → 4. ⚡ 행동력 충전. 자주 충전할수록 그날 가격이 2배 올라가니 휴식도 전략이야.');
+  contents.append(guide);
   const crops=s.catalog;
   const holder=make('div');
   holder.append(txt(document.createDocumentFragment(),'심을 작물: ','strong'));
