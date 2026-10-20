@@ -9,6 +9,7 @@ import {handleTrialEconomyD1} from '../d1/economy-staging.js';
 import {handleMarketV51} from './market-v51.js';
 import {handleProfessionsV51} from './professions-v51.js';
 import {handleBusinessV51} from './business-v51.js';
+import {handleQuestsV51,installV51QuestSchema} from './quests-v51.js';
 
 // The D1-style shim deliberately implements only the methods used by the
 // staging handlers, running against Cloudflare's synchronous SQLite storage.
@@ -46,6 +47,7 @@ export class VillageDatabase extends DurableObject {
   const sql=ctx.storage.sql;
   sql.exec(CORE_SQL);
   sql.exec(ECONOMY_SQL);
+  installV51QuestSchema(sql);
   // This one-time opening marker lives inside the same durable SQLite database.
   // Subsequent deployments MUST NOT repeat the opening reset.
   sql.exec(`CREATE TABLE IF NOT EXISTS village_release_flags (
@@ -104,6 +106,7 @@ export class VillageDatabase extends DurableObject {
   if(url.pathname==='/api/market-v38')return handleMarketV51(request,this.ctx.storage,this.db);
   if(url.pathname==='/api/professions-v39')return handleProfessionsV51(request,this.ctx.storage,this.db);
   if(url.pathname==='/api/business-v40')return handleBusinessV51(request,this.ctx.storage,this.db);
+  if(url.pathname==='/api/quests-v51')return handleQuestsV51(request,this.ctx.storage,this.db);
   return json({error:'지원하지 않는 API'},404);
  }
 }
