@@ -3,6 +3,7 @@ import {restoreProfile,createSaveQueue} from './save-client.js';
 import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactureEstateProduct,sellEstateProduct,estateOrderProgress,fulfillEstateOrder} from './estate-trade-v34.js';
 import {createWorld} from './world3d.js';
 import {FARM_BED_CENTERS,migrateVillageBeds,VILLAGE_WALK_SPEED} from './farm-plots-v52.js';
+import {planFarmBatchV55,FARM_BATCH_LIMIT_V55} from './farm-batch-v55.js';
 import {mountEstateWorld} from './estate-world-v35.js';
 import {openSecureEconomyLab} from './secure-economy-ui-v37.js';
 import {openPlayerMarket} from './player-market-ui-v38.js';
@@ -494,6 +495,7 @@ function openVillageMenuV49(section='home'){
     case 'goal':return openJourney();
     case 'go-goal':return q?goStation(q.station):openJourney();
     case 'farm':case 'storage':return openPersonalEstate();
+    case 'quickfarm':return openFastFarmV55();
     case 'fishing':return goStation('pier');
     case 'gather':return goStation('forest');
     case 'craft':return goStation('workshop');
@@ -899,6 +901,68 @@ async function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[
  openModal(`<span class="titlebadge">FARMING</span><h2>🌱 씨앗을 심을까요?</h2><p>씨앗을 선택하면 즉시 심어요.</p><div class="card-grid">${cards}</div><button class="pill-btn ghost" id="buySeedLink">씨앗 상점 열기</button>`);els.panelBody.querySelectorAll('[data-seed]').forEach(btn=>btn.onclick=async()=>{const type=btn.dataset.seed;if(!(state.seeds[type]>0)){toast('씨앗이 부족해요. 상점에서 구매해요');return}
   if(!await useWorldEnergy('plant'))return;
   state.seeds[type]--;state.beds[i]={crop:type,at:Date.now()};addXp(4);closeModal();toast('🌱 '+crops[type].name+' 심기 완료!');party(bedCenters[i].x,bedCenters[i].y,8);save()});document.getElementById('buySeedLink').onclick=openFarmShop;
+}
+let farmBatchBusyV55=false;
+async function runFarmBatchV55(mode,seed){
+ if(farmBatchBusyV55)return;
+ const at=Date.now();
+ const planned=planFarmBatchV55(state.beds,crops,{
+  mode,seed,stock:state.seeds[seed]||0,now:at,limit:FARM_BATCH_LIMIT_V55
+ });
+ if(!planned.length){toast(mode==='plant'?'🌱 씨앗이 부족하거나 빈 밭이 없어':'🌿 수확할 작물이 아직 없어');return}
+ farmBatchBusyV55=true;
+ const buttons=els.panelBody.querySelectorAll('[data-v55-batch]');
+ buttons.forEach(b=>b.disabled=true);
+ let successful=0;
+ try{
+  for(const index of planned){
+   const bed=state.beds[index];
+   if(mode==='plant'){
+    if(!bed||bed.crop||(state.seeds[seed]||0)<1)break;
+    if(!await useWorldEnergy('plant'))break;
+    // The server committed an energy debit; finish exactly one crop operation
+    // and immediately queue a normal cloud save before the next debit.
+    state.seeds[seed]--;
+    state.beds[index]={crop:seed,at:Date.now()};
+    addXp(4);party(bedCenters[index].x,bedCenters[index].y,8);
+   }else{
+    if(!bed?.crop||cropStage(bed)<3)continue;
+    if(!await useWorldEnergy('harvest'))break;
+    const crop=crops[bed.crop];
+    state.beds[index]={crop:null,at:0};
+    earn(crop.price+lifeBonus('harvest'),'harvest','텃밭 빠른 수확');
+    state.harvest++;state.dailyHarvest++;addXp(16);
+    party(bedCenters[index].x,bedCenters[index].y,10);
+    completeDaily();checkAchievements();
+   }
+   successful++;
+   save();
+  }
+ }finally{
+  farmBatchBusyV55=false;
+  toast((mode==='plant'?'🌱 심기':'🧺 수확')+' '+successful+'개 완료'+(successful<planned.length?' · 행동력·재고 확인 필요':''));
+  openFastFarmV55();
+ }
+}
+function openFastFarmV55(){
+ const ready=planFarmBatchV55(state.beds,crops,{mode:'harvest',now:Date.now()});
+ const empty=state.beds.filter(b=>!b.crop).length;
+ const planted=state.beds.filter(b=>b.crop).length;
+ const options=Object.entries(crops).map(([id,c])=>
+  '<option value="'+id+'">'+c.icon+' '+c.name+' · 씨앗 '+(state.seeds[id]||0)+'개</option>').join('');
+ openModal('<span class="titlebadge">FARM V55 · 21 PLOTS</span><h2>🌱 텃밭 빠른 작업</h2>'+
+  '<p>21칸을 한 번에 관리해요. 한 번 누르면 최대 5칸만 작업하고, 매 칸마다 서버 행동력과 저장을 확인해요.</p>'+
+  '<div class="mini-card"><strong>🌱 심은 밭 '+planted+'/21 · 빈 밭 '+empty+' · 바로 수확 가능 '+ready.length+'개 이상</strong>'+
+  '<p>심기 -2⚡/칸 · 수확 -4⚡/칸 · 행동력이 부족하면 그 자리에서 중단해요.</p></div>'+
+  '<label for="v55SeedSelection">심을 작물</label><select id="v55SeedSelection" style="display:block;width:100%;padding:13px;margin:8px 0 14px;border-radius:12px;background:#fff">'+options+'</select>'+
+  '<div class="pill-row"><button class="pill-btn" data-v55-batch="plant">🌱 최대 5칸 심기</button>'+
+  '<button class="pill-btn" data-v55-batch="harvest">🧺 익은 작물 최대 5칸 수확</button>'+
+  '<button class="pill-btn ghost" id="v55SeedShop">🛒 씨앗 상점</button></div>'+
+  '<p class="item-note">이미 심은 작물은 보존하고 빈 자리만 이용해요. 실제 마을 골드·XP와 서버 행동력은 기존대로 적용돼요.</p>');
+ els.panelBody.querySelectorAll('[data-v55-batch]').forEach(b=>b.onclick=()=>{
+  void runFarmBatchV55(b.dataset.v55Batch,document.getElementById('v55SeedSelection')?.value||'carrot');
+ });
+ document.getElementById('v55SeedShop').onclick=openFarmShop;
 }
 function farmAll(){let p=bedCenters.findIndex((_,i)=>state.beds[i].crop&&cropStage(state.beds[i])===3);if(p>=0){moveTo(bedCenters[p].x,bedCenters[p].y+56,{type:'farm',idx:p});toast('🌿 수확할 밭으로 이동해요');return}const v=bedCenters.findIndex((_,i)=>!state.beds[i].crop);if(v>=0){moveTo(bedCenters[v].x,bedCenters[v].y+56,{type:'farm',idx:v});toast('🌱 빈 밭으로 이동해요');return}openFarmShop()}
 function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*6).toLocaleString()}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${(o.cost*6).toLocaleString()}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*6;if(state.coins<cost){toast('코인이 부족해요');return}spend(cost,'씨앗 3개');state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
