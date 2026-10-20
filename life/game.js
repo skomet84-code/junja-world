@@ -11,7 +11,7 @@ import {openBusinessCenter} from './business-ui-v40.js';
 import {mountQuestsV51} from './quests-ui-v51.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
 import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
-import {createWorldEnergySpend} from './world-energy-v53.js?v=v53-world-energy-release';
+import {createWorldEnergySpend} from './world-energy-v53.js?v=v54-energy-reconcile';
 import {mountHomeStudioV48} from './home-studio-ui-v48.js';
 import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js?v=v51-decor-placement-20261020';
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
