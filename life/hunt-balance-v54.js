@@ -1,12 +1,14 @@
 // v54 combat progression and quest contracts. Client-side combat is NOT
 // server-authoritative yet; do not misrepresent hunter medals as audited currency.
 // This module preserves the old character XP and all preexisting hunt saves.
-export const HUNT_MASTERY_GATES=Object.freeze([0,26,72,150]);
+export const HUNT_MASTERY_GATES=Object.freeze([0,26,72,150,270,430]);
 export const HUNT_BOSS_TRIALS=Object.freeze([
  Object.freeze({kills:10,elites:2}),
  Object.freeze({kills:16,elites:3}),
  Object.freeze({kills:22,elites:4}),
- Object.freeze({kills:30,elites:5})
+ Object.freeze({kills:30,elites:5}),
+ Object.freeze({kills:38,elites:6}),
+ Object.freeze({kills:46,elites:8})
 ]);
 export const HUNT_DAILY_TASKS=Object.freeze([
  Object.freeze({id:'patrol',label:'정찰 토벌',property:'kills',required:8,reward:140}),
@@ -56,6 +58,7 @@ export function zoneAccess(hunt,zones,index,level){
 export function bossAccess(hunt,zones,index){
  const zone=zones[index],save=initHuntMastery(hunt,zones),p=save.areas[zone.id];
  const goals=HUNT_BOSS_TRIALS[index];
+ if(!goals)return {ok:false,kills:p.kills,elites:p.elites,neededKills:999999,neededElites:999999,cleared:p.cleared};
  return {ok:p.kills>=goals.kills&&p.elites>=goals.elites,
   kills:p.kills,elites:p.elites,neededKills:goals.kills,neededElites:goals.elites,
   cleared:p.cleared};
