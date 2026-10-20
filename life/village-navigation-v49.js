@@ -11,6 +11,7 @@ export const VILLAGE_NAV_V49=Object.freeze([
 export const VILLAGE_ACTIONS_V49=Object.freeze({
  home:Object.freeze([
   {id:'goal',icon:'📖',label:'다음 생활 목표',description:'현재 진행 중인 목표·보상 확인'},
+  {id:'arcade',icon:'🎡',label:'마을 게임장',description:'하루 5번 · 게임 골드 100G 행운 룰렛'},
   {id:'farm',icon:'🌾',label:'농장',description:'작물을 심고 수확하기'},
   {id:'quickfarm',icon:'🌱',label:'텃밭 빠른 작업',description:'21칸 텃밭 · 작물 5개씩 심고 수확하기'},
   {id:'craft',icon:'🧵',label:'제작소',description:'제작소까지 걸어가서 재료 가공',travel:true},
@@ -27,6 +28,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
   {id:'daily',icon:'📅',label:'오늘의 할 일',description:'일일 미션과 업적 확인'},
   {id:'career',icon:'🏅',label:'직업과 계약',description:'전문 분야를 키우고 일일 계약 받기',trial:true},
   {id:'hunt',icon:'⚔️',label:'사냥터',description:'몬스터·스킬·장비 성장'},
+  {id:'arcade',icon:'🎡',label:'마을 게임장',description:'가볍게 즐기는 골드 룰렛 · 현금 사용 불가'},
   {id:'festival',icon:'🎪',label:'축제·주간 의뢰',description:'이번 주 축제와 출석 이벤트'},
   {id:'social',icon:'👫',label:'친구와 소통',description:'친구 말풍선·함께 플레이'}
  ]),
