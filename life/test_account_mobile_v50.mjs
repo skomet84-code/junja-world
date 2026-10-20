@@ -48,7 +48,7 @@ elems.accountNick.value='QA22';
 elems.accountPassword.value='not-real-password';
 replies.push(response(201,{ok:true,message:'회원가입 완료'}));
 const pending=elems.accountRegister.onclick();
-assert.match(elems.accountMessage.textContent,/처리 중/);
+assert.match(elems.accountMessage.textContent,/만드는 중/);
 assert.equal(elems.accountLogin.disabled,true);
 await pending;
 assert.match(elems.accountMessage.textContent,/회원가입 완료/);
