@@ -70,7 +70,7 @@ export async function handleTrialEconomyD1(request,env,mode){
   let change,energy=null;
   if(mode==='v36'&&action==='world_spend'){
    const kind=payload.kind;
-   if(!['plant','harvest','gather','fish','craft','order','business_produce'].includes(kind))
+   if(!['plant','gather','fish','craft','order','business_produce'].includes(kind))
     return send({error:'이 행동에는 행동력을 사용할 수 없어요'},400);
    const charged=chargeEnergy(state,kind,time);
    change={next:charged.next,receipt:{action,kind,detail:'마을 활동 · '+kind+' · 행동력 -'+charged.cost,
@@ -82,7 +82,8 @@ export async function handleTrialEconomyD1(request,env,mode){
     delta:purchased.delta,balance:purchased.next.coins,day:purchased.energy.day,at:time.toISOString()}};
    energy=purchased.energy;
   }else{
-   const charged=mode==='v36'?chargeEnergy(state,action,time):null;
+   // Harvesting a mature crop is free. Planting still consumes server energy.
+   const charged=mode==='v36'&&action!=='harvest'?chargeEnergy(state,action,time):null;
    change=economyAction(charged?.next||state,action,payload,time);
    if(mode==='v36')energy=projectEnergy(change.next,time);
   }
