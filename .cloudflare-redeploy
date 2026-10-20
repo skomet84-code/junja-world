@@ -1,5 +1,6 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 7dac4fc16cf018f18bef01b4ef47896f535419c8
-Reason: Restore missing action-energy-v47.js and secure-economy-v36.js browser assets.
+Release commit: 2022b2ca96beb9950a95514dced5c83b431495cc
+Reason: v50 single-platform cutover: Cloudflare SQLite Durable Object accounts/saves and realtime multiplayer. Fresh start approved, no Vercel/Neon runtime calls.
+Use Wrangler CLI 4.151.2; deploy config: life/cf/wrangler.jsonc
 Requested: 2026-10-20 KST
