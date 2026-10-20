@@ -53,6 +53,9 @@ jobs:
           node test_v53_no_attendance_fish.mjs
           node --check world-energy-v53.js
           node test_world_energy_v53.mjs
+          node --check action-energy-v47.js
+          node --check action-energy-ui-v47.js
+          node --check secure-economy-ui-v36.js
           node test_action_energy_v47.mjs
           node --check hunt-balance-v54.js
           node --check hunt.js
@@ -104,3 +107,4 @@ jobs:
           node cf/do/test_multiplayer_local.mjs
           node cf/do/test_market_http_v51.mjs
           node cf/do/test_world_energy_http_v53.mjs
+          node cf/do/test_energy_doubling_http_v55.mjs
