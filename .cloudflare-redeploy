@@ -1,7 +1,7 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 88da125a3319ae5a81a29c02b0c9be000a327bcd
-Reason: User-reported action energy remains 100/100 while playing. v53.1-world-energy fixes real main village planting (2), harvesting (4), gathering (3), manual and automated fishing (5), crafting (6), delivery (3) via authenticated Cloudflare DO SQLite energy charges. Server fixed costs, fail closed if unauthenticated/unavailable/exhausted, exact-once request IDs and HUD refresh. Keep 100 energy max / +1 per 6min / trial-gold top-up. DO NOT delete/reset/migrate DB, accounts, progress, 21 plots, levels, skomet/Junja admin, 5000G starter or any fish/art/quest data. Preserve previous v53 features.
-Release QA: https://github.com/skomet84-code/junja-world/actions/runs/39414086995 PASS including actual local Cloudflare SQLite account + energy API/insufficient/idempotency + existing full save/multiplayer.
-Cloudflare config: life/cf/wrangler.jsonc; same Durable Object IDs, same production URL.
+Release commit: 23bed2a8ac8c657f7ef9a0f6a8b582ef15f3475b
+Reason: User-requested full v54 hunt rebalance: monster XP bounded <25, elites <35, bosses <150 to stop instant 4-region mastery; independent persistent hunter proficiency, boss trial kills & elite objectives, preserved historical boss kills and gear, stronger level-adaptive enemies, telegraphed dodgeable enemy attacks, ranged/elite rush/berserk boss phase, three daily guild contracts per region. Existing level/XP/coins/item collections unchanged, no Cloudflare SQLite reset or schema changes. Preserve skomet/준자 admin, v53.1 energy patch, v53 fish and quest changes, v52 21 crops and 5000G new starter.
+Mobile hunt entry script rev v54-hunt-rebalance-20261020, hunt-balance-v54.js added to static bundle with no-store. IMPORTANT: Old trial economy remains separate from main hunt currency; this v54 does not add audited remote hunt reward ledger.
+QA: https://github.com/skomet84-code/junja-world/actions/runs/39416405040 SUCCESS including full existing game, save, Cloudflare SQLite and multiplayer tests and new hunt progression assertions.
 Requested: 2026-10-20 KST
