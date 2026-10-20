@@ -24,7 +24,7 @@ assert(game.includes("await useWorldEnergy('gather')"),'gather must be charged b
 assert(game.includes("async function fishingAction()"),'manual fishing must await spend before granting fish');
 assert(game.includes("async function autoFishTick()"),'auto-fishing cannot bypass energy budget');
 assert(game.includes("fishPhase='settling'"),'stop fishing timer during server settlement');
-assert(website.includes("game.js?v=v53-energy-spend-20261020"),'force fresh browser bundle');
+assert(website.includes("game.js?v=v54-energy-recovery-save-ui-20261020"),'force fresh iPhone browser bundle');
 assert(v36.includes("action==='world_spend'"),'Cloudflare economy must acknowledge world costs');
 assert(v36.includes("kind:p.kind"),'server cost uses canonical kind, no client-supplied cost');
 let calls=[],confirm=[],next={current:98,max:100};
@@ -50,7 +50,7 @@ const unstable=createWorldEnergySpend({request:async(url,opt)=>{
 }});
 await assert.rejects(()=>unstable.spend('fish'),/timeout/);
 assert.equal(unstable.unresolved,true);
-await assert.rejects(()=>unstable.spend('craft'),/이전 행동력/);
+// A different action must not remain blocked after an ambiguous request.
 await unstable.spend('fish');
 assert.equal(ids[0],ids[1],'ambiguous request retries must reuse one idempotency ID');
 assert.equal(unstable.unresolved,false);

@@ -46,7 +46,20 @@ export async function handleTrialEconomyD1(request,env,mode){
   if(request.method==='GET'){
    const events=current?(await db.prepare('SELECT receipt FROM village_economy_v36_events WHERE user_key=? ORDER BY id DESC LIMIT 8').bind(key).all()).results||[]:[];
    const result={ok:true,trial:true,version,economy:economyView(state,time),receipts:events.map(x=>parsed(x.receipt,{})),audit};
-   if(mode==='v36')result.energy=projectEnergy(state,time);
+   if(mode==='v36'){
+    result.energy=projectEnergy(state,time);
+    // Read-only, authenticated reconciliation of an uncertain action charge.
+    // Never retry or mint an old activity merely to learn whether it happened.
+    const lookup=url.searchParams.get('requestId');
+    if(lookup!==null){
+     if(!uuid.test(lookup))return send({error:'행동력 요청번호 형식 오류'},400);
+     const event=current?await db.prepare('SELECT receipt,action FROM village_economy_v36_events WHERE user_key=? AND request_id=?')
+      .bind(key,lookup).first():null;
+     const receipt=event?parsed(event.receipt,{}):null;
+     result.transaction={found:Boolean(event),kind:event?.action==='world_spend'?receipt?.kind||null:null,
+      isWorldSpend:event?.action==='world_spend'};
+    }
+   }
    return send(result);
   }
   const raw=await request.text();
