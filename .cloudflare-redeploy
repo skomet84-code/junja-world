@@ -1,6 +1,6 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: bbaf3b76f9ecead545c357165202842276743654
-Reason: Restore visible 👑 admin crown to the verified skomet/준자 owner. Fix legacy admin_junja2-only display rule and broken self-grant target, verify role from server on page load and pageshow.
-Testing: https://github.com/skomet84-code/junja-world/actions/runs/39376894430 success including admin crown and server save/multiplayer regressions.
+Release commit: e63e5d8b5e5fcda9333331b58ac1cc403bf068c5
+Reason: Show admin crown to actual verified skomet user (not former admin_junja2), select current logged-in admin on self-grant, refresh server-auth role after iOS resume, and cache-bust admin-panel.js so Kakao/iPhone cannot reuse hidden old crown code. No database/user changes.
+Tests: https://github.com/skomet84-code/junja-world/actions/runs/39377080285 PASS.
 Requested: 2026-10-20 KST
