@@ -9,7 +9,7 @@ const validKey=s=>typeof s==='string'&&/^[-a-zA-Z0-9]{16,80}$/.test(s);
 const validAmount=n=>Number.isSafeInteger(n)&&n>0&&n<=1000000000000;
 const now=()=>new Date().toISOString();
 export async function handleAccountExtras({action,request,db,user,data,url}){
- const owner=user.role==='admin'&&user.username==='admin_junja2';
+ const owner=user.role==='admin';
  if(action==='online'&&request.method==='GET'){
   const rows=await db.prepare(`SELECT u.username,u.nickname,u.role,p.x,p.y,
    COALESCE(CAST(json_extract(s.profile,'$.xp') AS REAL),p.xp,0) AS xp
