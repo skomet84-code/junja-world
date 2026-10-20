@@ -7,6 +7,7 @@ import {initEconomy,credit,debit} from './economy-v28.js';
 import {initBag,bagCapacity,bagUsed,canStore,addBagItems} from './inventory-v29.js';
 import {EQUIPMENT,SKILL_PRICES,initCombat,purchaseSkill,purchaseEquipment,equipItem,equippedStats,skillStatus,spendSkill,incomingDamage} from './combat-progression-v30.js';
 import {POTIONS,ensurePotions,purchasePotion,consumePotion} from './combat-potions-v29.js';
+import {initHuntMastery,zoneAccess,bossAccess,masteryEnemy,hunterDamage,registerHuntKill,dailyHuntContracts,claimHuntContract,HUNT_MASTERY_GATES} from './hunt-balance-v54.js';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
@@ -32,6 +33,7 @@ state.hunt=state.hunt&&typeof state.hunt==='object'?state.hunt:{};
 state.hunt.materials=state.hunt.materials||{};
 state.hunt.bossDates=state.hunt.bossDates||{};
 state.hunt.kills=Math.max(0,state.hunt.kills||0);
+initHuntMastery(state.hunt,HUNT_ZONES);
 ensurePotions(state);initBag(state);initCombat(state);
 state.hunt.potionCooldowns=state.hunt.potionCooldowns||{};
 const level=()=>huntLevel(state.xp),stats=()=>equippedStats(state),today=()=>new Date().toLocaleDateString('en-CA');
@@ -120,7 +122,7 @@ function makeMesh(parent,geo,color,x,y,z,sx,sy,sz){const m=new T.Mesh(geo,mat(co
 function sphere(parent,color,x,y,z,sx,sy=sx,sz=sx){return makeMesh(parent,globe,color,x,y,z,sx,sy,sz)}
 function box(parent,color,x,y,z,sx,sy,sz){return makeMesh(parent,roundBox,color,x,y,z,sx,sy,sz)}
 function makeMonster(model){
- const boss=model.boss,scale=boss?1.65:1,kind=model.kind,c=model.color;
+ const boss=model.boss,scale=boss?1.65:model.elite?1.3:1,kind=model.kind,c=model.color;
  const root=new T.Group(),body=new T.Group();root.add(body);body.scale.setScalar(scale);
  const dark=new T.Color(c).multiplyScalar(.7),light=new T.Color(c).lerp(new T.Color(0xffffff),.25);
  const eyes=0x253a3c,glint=0xfffbed;
@@ -170,8 +172,8 @@ function makeMonster(model){
  }
  const smile=new T.Mesh(eyeRingGeo,mat(0x74534a));smile.position.set(0,20,20);smile.scale.set(4,3,1);smile.rotation.z=-.25;body.add(smile);
  const halo=new T.Mesh(shadowGeo,new T.MeshBasicMaterial({color:0x293a35,transparent:true,opacity:.13,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.7;halo.scale.setScalar(boss?57:28);root.add(halo);
- if(boss){
-  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;const g=sphere(body,0xf7dc89,Math.cos(a)*26,72+Math.sin(a*2)*5,Math.sin(a)*12,4,8,4);g.rotation.z=a}
+ if(boss||model.elite){
+  for(let i=0;i<(boss?7:4);i++){const a=i*Math.PI*2/7;const g=sphere(body,0xf7dc89,Math.cos(a)*26,72+Math.sin(a*2)*5,Math.sin(a)*12,4,8,4);g.rotation.z=a}
   const gem=sphere(body,0xffe48a,0,59,20,7,9,4);
   for(const x of [-17,0,17])makeMesh(body,cone,0xf6d889,x,79,0,8,16,8);
  }
@@ -199,7 +201,7 @@ function decorate(zone){
 }
 function spawnMonster(model,x,z,index){
  const m=makeMonster(model);m.root.position.set(x,0,z);scene.add(m.root);
- return {...m,model,x,z,homeX:x,homeZ:z,maxHp:model.hp,hp:model.hp,lastHit:0,attackAt:0,deadUntil:0,index,velX:0,velZ:0,hitFlashUntil:0,hitCount:0};
+ return {...m,model,x,z,homeX:x,homeZ:z,maxHp:model.hp,hp:model.hp,lastHit:0,attackAt:0,deadUntil:0,index,velX:0,velZ:0,hitFlashUntil:0,hitCount:0,windupUntil:0};
 }
 function clearZone(){
  for(const m of monsters){scene.remove(m.root);m.labelTexture?.dispose();m.root.traverse(o=>{if(o.material?.type==='SpriteMaterial'||o.material?.type==='MeshBasicMaterial'&&o.material.depthTest===false)o.material.dispose()})}
