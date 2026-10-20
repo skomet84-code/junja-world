@@ -25,7 +25,12 @@ const one=(sql,q,...a)=>sql.exec(q,...a).toArray()[0]||null;
 const rows=(sql,q,...a)=>sql.exec(q,...a).toArray();
 const parse=s=>{try{return JSON.parse(s)}catch{const e=new Error('경제 장부가 유효하지 않아 보상 지급을 중단했어');e.status=409;throw e}};
 const reject=(message,status=409)=>{let e=new Error(message);e.status=status;throw e};
-const localDay=date=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(date).replaceAll('/','-');
+const localDay=date=>{
+ const fields=Object.fromEntries(new Intl.DateTimeFormat('en-US',{
+  timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'
+ }).formatToParts(date).map(part=>[part.type,part.value]));
+ return fields.year+'-'+fields.month+'-'+fields.day;
+};
 function dayStart(day){return new Date(day+'T00:00:00+09:00').toISOString()}
 const claimKey=(quest,day)=>quest.scope==='once'?'once:'+quest.id:day+':'+quest.id;
 function currentProgress(sql,user,quest,start){
