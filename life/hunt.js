@@ -7,7 +7,7 @@ import {initEconomy,credit,debit} from './economy-v28.js';
 import {initBag,bagCapacity,bagUsed,canStore,addBagItems} from './inventory-v29.js';
 import {EQUIPMENT,SKILL_PRICES,initCombat,purchaseSkill,purchaseEquipment,equipItem,equippedStats,skillStatus,spendSkill,incomingDamage} from './combat-progression-v30.js';
 import {POTIONS,ensurePotions,purchasePotion,consumePotion} from './combat-potions-v29.js';
-import {initHuntMastery,zoneAccess,bossAccess,masteryEnemy,hunterDamage,registerHuntKill,dailyHuntContracts,claimHuntContract,HUNT_MASTERY_GATES} from './hunt-balance-v54.js';
+import {initHuntMastery,zoneAccess,bossAccess,masteryEnemy,hunterDamage,registerHuntKill,dailyHuntContracts,claimHuntContract,HUNT_MASTERY_GATES} from './hunt-balance-v54.js?v=v54-hunt-20261020';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
