@@ -1,0 +1,61 @@
+name: Village v50 Single Cloudflare Platform
+on:
+  push:
+    branches: [feat/village-v50-cloudflare-single-platform]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unified-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install game and Wrangler build tools
+        working-directory: life
+        run: |
+          npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+          npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund wrangler@4.45.0
+      - name: Verify bundled Workers and save handling syntax
+        working-directory: life
+        run: |
+          node --check cf/do/database.js
+          node --check cf/do/worker-unified.js
+          node --check cf/do/schema.js
+          node --check cf/d1/account-staging.js
+          node --check cf/d1/account-extensions.js
+          node --check cf/d1/economy-staging.js
+          node --check game.js
+          node cf/d1/test_account_staging.mjs
+      - name: Build v50 game and run complete existing suite
+        working-directory: life
+        run: |
+          npm test
+          node test_login_gate_v50.mjs
+          npm run build
+      - name: Bundle a separate Cloudflare-only Worker with no external API
+        working-directory: life
+        run: |
+          npx wrangler deploy --config cf/do/wrangler.preview.jsonc --dry-run --outdir /tmp/junja-unified-package
+          if grep -R -l 'junja-village-friends.vercel.app' /tmp/junja-unified-package; then
+            echo 'FAIL old Vercel API is still bundled into single-platform Worker'
+            exit 1
+          fi
+      - name: Test real Wrangler local Durable Objects and SQLite (no remote changes)
+        working-directory: life
+        run: |
+          set -euo pipefail
+          npx wrangler dev --config cf/do/wrangler.preview.jsonc --local --port 8788 --ip 127.0.0.1 > /tmp/junja-unified-dev.log 2>&1 &
+          WRANGLER_PID=$!
+          trap 'kill $WRANGLER_PID || true; tail -100 /tmp/junja-unified-dev.log' EXIT
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:8788/health > /tmp/junja-health.json; then break; fi
+            sleep 2
+          done
+          cat /tmp/junja-health.json
+          node cf/do/test_unified_local.mjs
