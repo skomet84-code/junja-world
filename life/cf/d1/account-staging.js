@@ -90,7 +90,7 @@ export async function handleAccountD1(request,env){
   if(action==='register'&&method==='POST'){
    const username=String(data.username||'').trim().toLowerCase(),password=String(data.password||'');
    const nickname=String(data.nickname||username).trim();
-   if(!USERNAME.test(username)||['admin_junja','admin_junja2'].includes(username)||password.length<4||password.length>128||!nickname||nickname.length>12)
+   if(!USERNAME.test(username)||['admin_junja','admin_junja2'].includes(username)||password.length<4||password.length>128||!nickname||nickname.length>12||nickname==='준자')
     return send({error:'아이디 4~24자, 비밀번호 4~128자, 닉네임 1~12자로 입력해 주세요'},400);
    const salt=randomBytes(16).toString('hex'),digest=await passwordHash(password,salt),id=randomUUID(),at=now();
    try{
