@@ -27,7 +27,7 @@ const sandbox={
   setItem:(key,val)=>store.set(key,String(val)),
   removeItem:key=>store.delete(key)
  },
- setTimeout,clearTimeout,
+ setTimeout,clearTimeout,AbortController,
  crypto:{randomUUID:()=>'11111111-1111-4111-8111-111111111111'},
  CustomEvent:class{},
  confirm:()=>false,
