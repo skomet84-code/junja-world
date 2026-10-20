@@ -2,6 +2,7 @@ import {installQualityHUD} from './quality-v32.js';
 import {restoreProfile,createSaveQueue} from './save-client.js';
 import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactureEstateProduct,sellEstateProduct,estateOrderProgress,fulfillEstateOrder} from './estate-trade-v34.js';
 import {createWorld} from './world3d.js';
+import {FARM_BED_CENTERS,migrateVillageBeds,VILLAGE_WALK_SPEED} from './farm-plots-v52.js';
 import {mountEstateWorld} from './estate-world-v35.js';
 import {openSecureEconomyLab} from './secure-economy-ui-v37.js';
 import {openPlayerMarket} from './player-market-ui-v38.js';
@@ -49,8 +50,9 @@ if(!['spring','summer','autumn','winter'].includes(state.season))state.season='s
 const seasonLabels={spring:'🌸 봄',summer:'🌿 여름',autumn:'🍂 가을',winter:'❄️ 겨울'};
 const nowDay=()=>new Date().toLocaleDateString('en-CA');
 const crops={carrot:{name:'당근',icon:'🥕',seconds:65,price:54,cost:12,color:'#df8644'},strawberry:{name:'딸기',icon:'🍓',seconds:120,price:106,cost:25,color:'#d74c61'},pumpkin:{name:'호박',icon:'🎃',seconds:220,price:210,cost:47,color:'#ebba52'},lily:{name:'별꽃',icon:'🌼',seconds:300,price:290,cost:68,color:'#f8de9a'}};
-const bedCenters=[];for(let i=0;i<14;i++)bedCenters.push({x:816+i%7*79,y:1171+Math.floor(i/7)*79});
-if(!Array.isArray(state.beds)||state.beds.length!==14)state.beds=bedCenters.map((_,i)=>i<3?{crop:'carrot',at:Date.now()-90000}:{crop:null,at:0});
+// Keep the previous 14 farm plots, adding a third row without resetting planted crops.
+const bedCenters=FARM_BED_CENTERS;
+state.beds=migrateVillageBeds(state.beds);
 if(!state.seeds||typeof state.seeds!=='object')state.seeds={carrot:6,strawberry:2,pumpkin:1,lily:0};
 if(!Array.isArray(state.decorations))state.decorations=[];
 if(!state.home)state.home={wall:'cream',floor:'oak',furniture:['sofa']};
@@ -1288,8 +1290,8 @@ function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers))
   if(els.modal.classList.contains('open')){player.vx=player.vy=0;return}
   // Pointer paths are updated from pointermove events, not a drifting frame loop.
   const kvx=Number(!!(keys.ArrowRight||keys.d||keys.D))-Number(!!(keys.ArrowLeft||keys.a||keys.A)),kvy=Number(!!(keys.ArrowDown||keys.s||keys.S))-Number(!!(keys.ArrowUp||keys.w||keys.W));
-  if(kvx||kvy){if(fishPhase!=='idle')fishFailure('이동하여 낚시를 마쳤어요');stopWalking();const len=Math.hypot(kvx,kvy),target={x:player.x+kvx/len*205*dt,y:player.y+kvy/len*205*dt};if(navigation.clear(player,target)){const moved=navigation.advance(player,[target],dt,205);if(moved>0){player.vx=kvx/len*205;player.vy=kvy/len*205}}}
-  else if(path.length){navigation.advance(player,path,dt);if(player.blocked){stopWalking();toast('길이 막혀 멈췄어요')}else if(!path.length)arrive();}
+  if(kvx||kvy){if(fishPhase!=='idle')fishFailure('이동하여 낚시를 마쳤어요');stopWalking();const len=Math.hypot(kvx,kvy),target={x:player.x+kvx/len*VILLAGE_WALK_SPEED*dt,y:player.y+kvy/len*VILLAGE_WALK_SPEED*dt};if(navigation.clear(player,target)){const moved=navigation.advance(player,[target],dt,VILLAGE_WALK_SPEED);if(moved>0){player.vx=kvx/len*VILLAGE_WALK_SPEED;player.vy=kvy/len*VILLAGE_WALK_SPEED}}}
+  else if(path.length){navigation.advance(player,path,dt,VILLAGE_WALK_SPEED);if(player.blocked){stopWalking();toast('길이 막혀 멈췄어요')}else if(!path.length)arrive();}
   else player.vx=player.vy=0;
   // A fixed follow camera avoids input drift caused by a lagging view transform.
   const halfX=CW/(scale*2),halfY=CH/(scale*2);
