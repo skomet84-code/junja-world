@@ -28,10 +28,25 @@ async function charge(kind,id=randomUUID(),origin=base){
   body:JSON.stringify({action:'world_spend',payload:{kind},requestId:id})});
  return {status:res.status,data:await res.json()};
 }
+const lookup=async(requestId,session=cookie)=>{
+ const res=await fetch(base+'/api/economy-v36?requestId='+encodeURIComponent(requestId),{headers:{cookie:session}});
+ return {status:res.status,data:await res.json()};
+};
+const absent=await lookup(randomUUID());
+assert.equal(absent.status,200);
+assert.deepEqual(absent.data.transaction,{found:false,kind:null,isWorldSpend:false});
+const invalid=await lookup('bad-request-id');
+assert.equal(invalid.status,400);
+const anonymous=await lookup(randomUUID(),'');
+assert.equal(anonymous.status,401);
 let id=randomUUID();
 let result=await charge('plant',id);
 assert.equal(result.status,200,JSON.stringify(result.data));
 assert.equal(result.data.energy.current,98,'real-world planting consumes 2');
+const audited=await lookup(id);
+assert.equal(audited.status,200);
+assert.deepEqual(audited.data.transaction,{found:true,kind:'plant',isWorldSpend:true},'server must locate exact authenticated world energy request');
+assert.equal(audited.data.energy.current,98,'GET reconciliation must not charge again');
 assert.equal(result.data.receipt.delta,0,'spending must never mint main or trial gold');
 result=await charge('plant',id);
 assert.equal(result.status,200);
