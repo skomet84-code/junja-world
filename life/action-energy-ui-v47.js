@@ -1,14 +1,14 @@
-// v47 action-energy mobile card. The server decides regen, balance and pack limits.
+// v55 energy mobile card. Server owns pricing, coins, remaining energy and daily reset.
 // This is the segregated TRIAL economy; no client editing of saved character XP/gold.
 const node=(tag,value)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=String(value);return e};
 const viewG=n=>Number(n||0).toLocaleString('ko-KR')+'G';
 const html=(p,tag,text)=>{const x=node(tag,text);p.append(x);return x};
-export function mountEnergyPanel(host,{onChange=()=>{}}={}){
+export function mountEnergyPanel(host,{onChange=()=>{},onEarnGold=()=>{}}={}){
  if(!host)throw Error('행동력 표시 영역을 찾을 수 없습니다');
  host.replaceChildren();
- const title=html(host,'h3','⚡ 행동력 · 휴식과 회복');
+ const title=html(host,'h3','⚡ 행동력 · 회복과 마을 경제');
  title.className='v47-energy-title';
- html(host,'p','마을에서 작물을 심거나 낚시·채집·제작·납품할 때 행동력이 소모돼. 수확은 무료야. 시간에 따라 회복되고, 별도 경제 골드로 충전할 수 있어. 캐릭터 골드·레벨은 그대로야.');
+ html(host,'p','마을에서 작물을 심거나 낚시·채집·제작·납품할 때 행동력이 소모돼. 서버 행동력을 소비해. 시간 회복 또는 별도 경제 골드로 +25 충전할 수 있어. 하루 횟수 제한은 없지만 구매할 때마다 가격이 2배 올라가고 한국시간 자정에 1,000G로 돌아와. 캐릭터 골드·레벨은 안전하게 분리돼 있어.');
  const main=html(host,'div');main.className='v47-energy-card';
  const amount=html(main,'strong','행동력 불러오는 중…');
  const gauge=html(main,'div');gauge.className='v47-energy-track';gauge.setAttribute('role','progressbar');
@@ -16,10 +16,14 @@ export function mountEnergyPanel(host,{onChange=()=>{}}={}){
  const fill=html(gauge,'span');fill.className='v47-energy-fill';
  const countdown=html(main,'p','');
  const prices=html(main,'p','');
- const buy=node('button','⚡ 행동력 +25 충전 · 1,200G');
+ const buy=node('button','⚡ 행동력 +25 충전 · 1,000G');
  buy.type='button';buy.className='v47-buy-button';main.append(buy);
+ const link=node('button','🌱 충전 골드 벌기 · 서버 농장/제작/납품 보기');
+ link.type='button';link.className='v47-buy-button';
+ link.style.cssText='margin-top:10px;background:#e8f1df;color:#456b4b;border:1px solid #cadfba';
+ main.append(link);link.onclick=()=>onEarnGold();
  const status=html(main,'p','');
- const notes=html(host,'p','🌱 심기 2 · 🧺 수확 무료 · 🌲 채집 3 · 🎣 낚시 5 · 🍳 제작 6 · 📦 납품 3 · 🏪 전문 생산 8');
+ const notes=html(host,'p','🌱 심기 2 · 🧺 서버 시험 농장 수확 무료 · 🌲 채집 3 · 🎣 낚시 5 · 🍳 제작 6 · 📦 납품 3 · 🏪 전문 생산 8');
  notes.className='v47-energy-notes';
  let alive=true,snapshot=null,baseline=0,received=0,busy=false,pending=null;
  function projection(){
@@ -43,9 +47,14 @@ export function mountEnergyPanel(host,{onChange=()=>{}}={}){
   fill.style.width=Math.round(e.current/e.max*100)+'%';
   countdown.textContent=e.current===e.max?'✨ 행동력이 가득 찼어':
    '⏳ 다음 행동력 +1까지 약 '+Math.max(1,Math.ceil(e.nextRegenSeconds/60))+'분';
-  prices.textContent='회복 속도 '+e.regenSeconds/60+'분당 +1 · 충전 '+e.packPrice.toLocaleString('ko-KR')+'G · 오늘 '+e.packsLeft+'회 남음 · 시험 G '+viewG(baseline);
-  buy.textContent='⚡ +'+e.packSize+' 충전 · '+viewG(e.packPrice);
-  buy.disabled=busy||e.packsLeft<=0||e.current>=e.max||baseline<e.packPrice;
+  const available=Number.isSafeInteger(e.packPrice)&&e.packPrice>0;
+  const priced=available?viewG(e.packPrice):'경제 보유 한도 초과';
+  prices.textContent='⏳ '+e.regenSeconds/60+'분당 +1 · 오늘 '+e.packsUsed+'회 구매 · 다음 '+priced+
+   ' · 충전마다 2배 · KST 자정 초기화 · 별도 골드 잔액 '+viewG(baseline);
+  buy.textContent=e.current>=e.max?'⚡ 행동력 최대치 · 충전 불필요':
+   available?'⚡ +'+e.packSize+' 충전 · '+priced+
+    (baseline<e.packPrice?' (별도 골드 부족)':''):'⚡ 다음 충전 금액이 경제 한도를 넘었어';
+  buy.disabled=busy||!available||e.current>=e.max||baseline<e.packPrice;
  }
  async function refresh(){
   if(!alive)return;
@@ -54,7 +63,7 @@ export function mountEnergyPanel(host,{onChange=()=>{}}={}){
    const data=await res.json();
    if(!res.ok)throw Error(data.error||'행동력 서버에 연결할 수 없어요');
    if(!alive||!host.isConnected)return;
-   if(!data.energy)throw Error('시험 행동력 기능이 아직 비활성화되어 있어요');
+   if(!data.energy)throw Error('서버 행동력 기능이 아직 비활성화되어 있어요');
    snapshot=data.energy;baseline=data.economy.coins;received=Date.now();
    status.textContent='✅ 행동력은 서버에 안전하게 저장돼';render();
    onChange(snapshot);
