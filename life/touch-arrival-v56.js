@@ -62,3 +62,32 @@ export function createTouchArrivalFeedback(doc = document) {
  });
  return {press,drag,arrive,cancel,element:cue};
 }
+
+/** Passive visual listeners: do not cancel events, capture pointers or alter game movement. */
+export function installTouchArrivalFeedback(canvas,doc=document){
+ if(!canvas)return null;
+ const cue=createTouchArrivalFeedback(doc);
+ let pointerId=null,startX=0,startY=0,dragging=false;
+ canvas.addEventListener('pointerdown',e=>{
+  if(pointerId!==null||e.button!==0)return;
+  pointerId=e.pointerId;startX=e.clientX;startY=e.clientY;dragging=false;
+  cue.press(e.clientX,e.clientY);
+ },{passive:true});
+ canvas.addEventListener('pointermove',e=>{
+  if(pointerId!==e.pointerId)return;
+  if(Math.hypot(e.clientX-startX,e.clientY-startY)>9)dragging=true;
+  if(dragging)cue.drag(e.clientX,e.clientY);
+ },{passive:true});
+ canvas.addEventListener('pointerup',e=>{
+  if(pointerId!==e.pointerId)return;
+  pointerId=null;cue.arrive(e.clientX,e.clientY);
+ },{passive:true});
+ canvas.addEventListener('pointercancel',e=>{
+  if(pointerId!==e.pointerId)return;
+  pointerId=null;cue.cancel();
+ },{passive:true});
+ const clear=()=>{pointerId=null;cue.cancel()};
+ doc.defaultView?.addEventListener('blur',clear);
+ doc.addEventListener('visibilitychange',()=>{if(doc.hidden)clear()});
+ return cue;
+}
