@@ -31,7 +31,7 @@ function ensureState(state){
  if(!state.stock||typeof state.stock!=='object'||Array.isArray(state.stock))fail('서버 창고 기록을 검증해야 합니다',500);
  if(!Number.isSafeInteger(state.reputation)||state.reputation<0)fail('명성 기록을 검증해야 합니다',500);
 }
-export function startingEconomy(){return {coins:1500,plots:Array(6).fill(null),stock:{},reputation:0,orderDay:'',completed:[],stats:{planted:0,harvested:0,crafted:0,sold:0,delivered:0}}}
+export function startingEconomy(){return {coins:5000,plots:Array(6).fill(null),stock:{},reputation:0,orderDay:'',completed:[],stats:{planted:0,harvested:0,crafted:0,sold:0,delivered:0}}}
 export function economyDay(now=new Date()){return kstDay(now)}
 export function economyView(snapshot,now=new Date()){
  ensureState(snapshot);
