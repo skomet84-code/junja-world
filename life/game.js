@@ -23,7 +23,7 @@ import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallen
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js?v=v53-no-attendance';
 import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js?v=v51-starter-5000';
 import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket,AUTO_SELL_PRICE,purchaseAutoSellTicket,toggleFishProtection} from './inventory-v29.js';
-import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js';
+import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js?v=v55-direct-auto-sale';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -1947,7 +1947,7 @@ function autoFishPanel(){
  openModal('<span class="titlebadge">🎣 FISHING PASS · JUNJA LIFE</span><h2>🐟 반짝반짝 자동낚시</h2><p>🌿 낚시터에서 편하게 물고기를 잡고 골드와 경험치를 모아봐요! 게임 화면이 켜져 있을 때만 작동해요.</p>'+
  '<div style="background:linear-gradient(120deg,#e1f2e9,#fff3d8);border:1px solid #d7dfc6;border-radius:18px;padding:13px;margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;color:#315548;font-weight:750;font-size:13px">'+
  '<div>⏳ 남은 시간<br><strong style="font-size:18px">'+minutes+'분</strong></div><div>🐟 잡은 물고기<br><strong style="font-size:18px">'+a.catches+'마리</strong></div><div>💰 누적 수익<br><strong>'+a.earned.toLocaleString()+'G</strong></div><div>⭐ 누적 경험치<br><strong>'+(a.xpEarned||0).toLocaleString()+'XP</strong></div>'+
- '</div><p style="font-size:13px">💎 전설·신화 물고기는 자동 판매하지 않고 가방에 보관해요. · 보관 '+a.protected+'마리</p>'+
+ '</div><p style="font-size:13px">💰 일반~영웅 즉시 판매 · 💎 전설·신화는 자동 보관 · 보관 '+a.protected+'마리</p>'+
  '<h3 style="margin:15px 0 8px">🎟️ 이용권 고르기</h3><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">'+AUTO_FISH_PASSES.map(p=>'<button style="'+cardStyle+'" data-autofish-buy="'+p.hours+'"><span style="font-size:21px">'+(p.hours>=12?'👑':p.hours>=6?'💎':'🎣')+'</span><span>'+p.hours+'시간권</span><span style="color:#aa7a3d;font-size:13px">'+p.price.toLocaleString()+' G</span></button>').join('')+'</div>'+
  '<p style="margin:12px 0;font-size:13px">현재 '+(autoFishRunning?'🟢 자동낚시 중':'⏸ 대기 중')+' · 보유 '+Math.floor(state.coins).toLocaleString()+'G</p>'+
  '<button class="pill-btn" style="width:100%;background:linear-gradient(120deg,#91c6aa,#c5e5cf);color:#254d3d;border-radius:16px;padding:15px" id="autoFishToggle">'+(autoFishRunning?'⏹ 자동낚시 일시정지':'▶ 자동낚시 시작하기')+'</button>');
@@ -1978,7 +1978,7 @@ async function autoFishTick(){
  state.fishRecords[fish.name].count++;
  if(!state.dailyFishNames.includes(fish.name))state.dailyFishNames.push(fish.name);
  hud();save();
- if(result.protected)toast('🏆 '+fish.name+' 전설급 자동 보관!');
+ if(result.protected)toast('🏆 '+fish.name+' 자동 보관!');else if(result.sold)toast('💰 '+fish.name+' 즉시 판매 +'+result.earned+'G');
 }
 setInterval(autoFishTick,500);
 
