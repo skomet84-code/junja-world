@@ -1,7 +1,7 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: d014137b37b500875966ebda30c62d3dcdfdaac0
-Reason: USER-REQUESTED PUBLIC v51 RELEASE — retain existing Cloudflare account and character SQLite Durable Object, preserve admin skomet/준자, no deletes or account reset. Add market-v38, professions-v39, business-v40 Cloudflare direct APIs plus 10 server-audited quests (6 growth and 4 KST daily) with exact-once trial gold rewards. Static client quest UI linked in life journal.
-CI: https://github.com/skomet84-code/junja-world/actions/runs/39397269333 PASS
-Deployed Worker: junja-world / life/cf/wrangler.jsonc / v51-single-platform
+Release commit: 1d0b3e96e7bcadbdbf49d98adcbf6f823a6d6b40
+Reason: v51 post-release iPhone/Safari/Kakao browser cache fix. Ensure client actually loads quest UI by changing dynamic game.js import to v51-quests-release-20261020 and setting no-store for game.js + quests-ui-v51.js, keeping all existing Cloudflare user account data, gold, XP and admin owner privileges.
+Validation: https://github.com/skomet84-code/junja-world/actions/runs/39397861450 SUCCESS
+No database reset. Existing Cloudflare Durable Object bindings unchanged.
 Requested: 2026-10-20 KST
