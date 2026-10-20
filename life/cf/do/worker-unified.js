@@ -42,7 +42,7 @@ export default {
   const asset=await env.ASSETS.fetch(new Request(new URL(path,url),request));
   // Keep the landing page and account controls fresh after emergency fixes,
   // especially in iOS Safari / embedded Kakao webviews with long-lived caches.
-  if(asset.ok&&(path==='/index.html'||path==='/account-ui.js'||path==='/admin-panel.js'||path==='/game.js'||path==='/world-energy-v53.js'||path==='/action-energy-ui-v47.js'||path==='/fish-portraits.js'||path==='/life-systems-v20.js'||path==='/living-world.js'||path==='/farm-plots-v52.js'||path==='/village-navigation-v49.js'||path==='/quests-ui-v51.js'||path==='/economy-v28.js'||path==='/secure-economy-v36.js')){
+  if(asset.ok&&(path==='/index.html'||path==='/account-ui.js'||path==='/admin-panel.js'||path==='/game.js'||path==='/hunt.html'||path==='/hunt.js'||path==='/hunt-data.js'||path==='/hunt-balance-v54.js'||path==='/world-energy-v53.js'||path==='/action-energy-ui-v47.js'||path==='/fish-portraits.js'||path==='/life-systems-v20.js'||path==='/living-world.js'||path==='/farm-plots-v52.js'||path==='/village-navigation-v49.js'||path==='/quests-ui-v51.js'||path==='/economy-v28.js'||path==='/secure-economy-v36.js')){
    const headers=new Headers(asset.headers);
    headers.set('cache-control','no-store, max-age=0');
    return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
