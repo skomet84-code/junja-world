@@ -24,7 +24,7 @@ assert(game.includes("await useWorldEnergy('gather')"),'gather must be charged b
 assert(game.includes("async function fishingAction()"),'manual fishing must await spend before granting fish');
 assert(game.includes("async function autoFishTick()"),'auto-fishing cannot bypass energy budget');
 assert(game.includes("fishPhase='settling'"),'stop fishing timer during server settlement');
-assert(website.includes("game.js?v=v53-energy-spend-20261020"),'force fresh browser bundle');
+assert(website.includes("game.js?v=v53-energy-spend-20261020")||website.includes("game.js?v=v55-grand-20261020"),'force fresh browser bundle');
 assert(v36.includes("action==='world_spend'"),'Cloudflare economy must acknowledge world costs');
 assert(v36.includes("kind:p.kind"),'server cost uses canonical kind, no client-supplied cost');
 let calls=[],confirm=[],next={current:98,max:100};
