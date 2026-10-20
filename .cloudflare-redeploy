@@ -1,6 +1,7 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 633c7bebb873b43d39b7ad6d39551be3271ef3e2
-Reason: USER-REQUESTED v52 live release. Speed up walking +11.2% (205 to 228) for both touch and keyboard; expand native game crop planting plots from 14 to 21 while exactly preserving all preexisting planted crop IDs, timestamps, XP, saves, item inventory and coins; add only 7 empty slots. Preserve new game/account starter 5000G, admin skomet/준자 role, v51 quests, market, business and trades. Do NOT reset Cloudflare SQLite or recreate Durable Objects; Cloudflare account id v50-primary-single-platform remains unchanged. Mobile dynamic game.js import rev v52-farm-speed-20261020 and farm-plots-v52.js no-store.
-QA: https://github.com/skomet84-code/junja-world/actions/runs/39402379779 PASS
+Release commit: 78cfd8b6f2d8b9e1ecf0fc1b95109ed65c6c847c
+Reason: OWNER-REQUESTED v53 clean main quest progression and premium fish collection visuals. Replace all five attendance-gated main chapters 18/28/36/43/49 with craft/harvest milestones; preserve all 50 chapter IDs, rewards and existing state.chapter index. Restore 70 fish full silhouettes in Kakao/Safari by removing vulnerable SVG fragment paint URLs and improving full-body highlights, display sizes, locked silhouette contrast. Change confusing "시험" economy badge to "별도" with transparent explanation of separated trial balance. iPhone/Kakao cache-bust for fish/life/quest JS modules.
+Safeguards: NO SQLite schema migration, database reset, user/admin/account deletion or save modification. Keep all existing player XP/coins/fish catches/items, 5000G new user starting wallet, v52 farm 21 fields, all other v51 economy APIs.
+Release QA: https://github.com/skomet84-code/junja-world/actions/runs/39410234278 SUCCESS.
 Requested: 2026-10-20 KST
