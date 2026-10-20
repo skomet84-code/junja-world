@@ -1,6 +1,6 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 2022b2ca96beb9950a95514dced5c83b431495cc
-Reason: v50 single-platform cutover: Cloudflare SQLite Durable Object accounts/saves and realtime multiplayer. Fresh start approved, no Vercel/Neon runtime calls.
-Use Wrangler CLI 4.151.2; deploy config: life/cf/wrangler.jsonc
+Release commit: cafd5138edf685f7ec63d824cc6bae72eeff6e2d
+Reason: Fix v50 fresh signup broken in production because Cloudflare WebCrypto PBKDF2 allows 100000 iterations per deriveBits call. Six-stage chained KDF retains robust work factor.
+Build command selects fresh release branch head before npm --prefix life run build.
 Requested: 2026-10-20 KST
