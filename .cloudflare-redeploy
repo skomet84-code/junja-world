@@ -1,7 +1,7 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 1d0b3e96e7bcadbdbf49d98adcbf6f823a6d6b40
-Reason: v51 post-release iPhone/Safari/Kakao browser cache fix. Ensure client actually loads quest UI by changing dynamic game.js import to v51-quests-release-20261020 and setting no-store for game.js + quests-ui-v51.js, keeping all existing Cloudflare user account data, gold, XP and admin owner privileges.
-Validation: https://github.com/skomet84-code/junja-world/actions/runs/39397861450 SUCCESS
-No database reset. Existing Cloudflare Durable Object bindings unchanged.
+Release commit: 067deb56ef5094c56f74cfe26bd95a843aadb57f
+Reason: v51 onboarding balance per user request. BOTH fresh main-game profiles and fresh Cloudflare trial economy accounts start with 5000G (was 1000G + 1500G). Do not change existing Cloudflare saves, user accounts, gold/XP/items or skomet/준자 admin; no database migrations or deletes. iOS dynamic game import and starter economy module cache bust. Preserve v51 market, profession, workshop, quests and existing 10 missions.
+CI: https://github.com/skomet84-code/junja-world/actions/runs/39400085879 PASS
+Deploy configuration: life/cf/wrangler.jsonc using branch head above
 Requested: 2026-10-20 KST
