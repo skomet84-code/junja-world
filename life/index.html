@@ -54,9 +54,14 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 @keyframes fishFloat{0%{transform:translateX(-8px) translateY(0)}100%{transform:translateX(13px) translateY(-10px)}}
 .aquarium-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
 .aquarium-item{padding:9px;background:#e7f2e8;border:1px solid #d1e2cf;border-radius:14px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;min-width:0}
+.aquarium-item svg{display:block;width:min(100%,174px);height:auto;max-width:174px;max-height:110px;object-fit:contain;overflow:visible;filter:drop-shadow(0 6px 4px #24526626)}
+.aquarium-item{background:linear-gradient(152deg,#fcfff8,#e0efeb);min-height:206px;justify-content:flex-start;box-shadow:inset 0 2px 4px #ffffffc9,0 4px 12px #174e3314}
+.aquarium-item[data-tier="rare"],.aquarium-item[data-tier="hero"]{background:linear-gradient(153deg,#effbfa,#dce9f7)}
+.aquarium-item[data-tier="legend"],.aquarium-item[data-tier="mythic"]{background:linear-gradient(154deg,#fffaf0,#f4ebd0);border-color:#cdb989}
+.aquarium-item.locked{background:linear-gradient(160deg,#f3f6ef,#e8efea)}
 .aquarium-item strong{font-size:12px;color:#40635f}
 .aquarium-item small{font-size:10px;color:#687b76}
-.aquarium-item.locked svg{filter:grayscale(1);opacity:.35}
+.aquarium-item.locked svg{filter:grayscale(1) contrast(1.2);opacity:.78}
 .aquarium-item button{width:100%;background:#6a9da1;color:#fff;padding:8px 5px;border-radius:10px;font-weight:800;font-size:11px}
 .aquarium-item button:disabled{opacity:.45}
 .home-interior{position:relative;border:9px solid #c29a6d;border-bottom:30px solid #b18757;border-radius:12px;height:165px;box-shadow:inset 0 12px 22px #0000000e;text-align:center;display:flex;align-items:center;justify-content:space-evenly;font-size:38px;overflow:hidden}
@@ -194,7 +199,7 @@ window.startVillageGame=()=>{
    const data=await r.json();
    window.__villageCloudSave=data.save||null;
    stage="game";
-   await import("./game.js?v=v52-farm-speed-20261020");
+   await import("./game.js?v=v53-quest-fish-20261020");
    window.__villageGameStarted=true;
    return true;
   }catch(e){

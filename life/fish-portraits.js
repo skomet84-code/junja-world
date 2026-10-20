@@ -15,23 +15,29 @@ export function drawFishPortrait(fish,size=140){
  const id=String(seed),parts=[];
  const append=code=>parts.push(code);
  append('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+name+' 그림" width="'+Math.max(50,Number(size)||140)+'" height="'+Math.round((Number(size)||140)*h/w)+'" data-fish="'+id+'" data-fish-shape="'+kind+'">');
- append('<defs><linearGradient id="'+g+'" x1=".12" y1="0" x2=".77" y2="1"><stop stop-color="#fff7e5" stop-opacity=".95"/><stop offset=".17" stop-color="'+base+'"/><stop offset=".65" stop-color="'+base+'"/><stop offset="1" stop-color="'+dark+'"/></linearGradient>');
- append('<linearGradient id="'+g+'-fin" x1="0" x2="1" y1="0" y2="1"><stop stop-color="'+base+'"/><stop offset="1" stop-color="'+dark+'"/></linearGradient>');
- append('<filter id="'+g+'-glow"><feGaussianBlur stdDeviation="2.7"/></filter></defs>');
+ // Solid color species silhouettes deliberately avoid Safari paint servers.
+ 
+ 
  append('<g transform="translate(120 72) scale('+e(mul)+') translate(-120 -72)">');
  if(high){
   for(let i=0;i<8;i++){const a=(i*1.91+seed%37)*Math.PI/12,x=120+Math.cos(a)*76,y=72+Math.sin(a)*54;
    append('<circle cx="'+e(x)+'" cy="'+e(y)+'" r="'+(i%3+1)+'" fill="'+(tier==='mythic'?'#c7a3f8':'#ffe2a0')+'" opacity=".75"/>')}
  }
- const fill='url(#'+g+')',fin='url(#'+g+'-fin)';
+ // Safari/Kakao's embedded browsers sometimes fail to resolve SVG paint-server
+ // URL fragments inside game modals. That made every fish body disappear and
+ // left only a grey tail. Use opaque color fills first, with painted highlights
+ // independent of <defs> so the whole fish survives mobile rendering.
+ const fill=base,fin=dark;
  if(kind==='octopus'){
   for(let i=0;i<8;i++){const x=62+i*15,curve=(i-3.5)*9;
    append('<path d="M '+x+' 87 Q '+e(x+curve)+' '+e(117+(i%3)*8)+' '+e(x+curve*1.5)+' '+(112+i%3*7)+'" fill="none" stroke="'+(i%2?dark:base)+'" stroke-width="11" stroke-linecap="round"/>');
    append('<circle cx="'+e(x+curve*1.5)+'" cy="'+(112+i%3*7)+'" r="3" fill="#fff9ed" opacity=".7"/>')}
   append('<ellipse cx="120" cy="62" rx="47" ry="43" fill="'+fill+'" stroke="'+dark+'" stroke-width="2"/>');
+  append('<ellipse cx="108" cy="46" rx="27" ry="15" fill="#fff8e8" opacity=".25"/>');
   append('<path d="M80 58 Q85 18 116 21 Q148 20 159 54" fill="none" stroke="#ffffff" stroke-width="5" opacity=".38"/>');
  }else if(kind==='ray'){
   append('<path d="M56 76 Q83 31 125 31 Q164 30 195 76 Q165 116 124 112 Q85 117 56 76 Z" fill="'+fill+'" stroke="'+dark+'" stroke-width="3"/>');
+  append('<path d="M73 75 Q118 36 170 72 Q131 60 118 98 Q95 97 73 75 Z" fill="#fff8f0" opacity=".21"/>');
   append('<path d="M119 99 Q131 113 128 143" fill="none" stroke="'+dark+'" stroke-width="9" stroke-linecap="round"/>');
   append('<ellipse cx="121" cy="78" rx="19" ry="7" fill="#fff" opacity=".18"/>');
  }else if(kind==='crab'){
@@ -44,6 +50,7 @@ export function drawFishPortrait(fish,size=140){
  }else if(kind==='eel'){
   append('<path d="M29 85 C 53 30 99 114 138 67 S 194 38 220 64" fill="none" stroke="'+dark+'" stroke-width="28" stroke-linecap="round"/>');
   append('<path d="M29 84 C 53 31 99 114 138 66 S 194 38 220 64" fill="none" stroke="'+base+'" stroke-width="22" stroke-linecap="round"/>');
+  append('<path d="M34 79 C 56 36 100 107 137 62 S 192 35 217 60" fill="none" stroke="#fff9e6" stroke-opacity=".35" stroke-width="4" stroke-linecap="round"/>');
   append('<ellipse cx="192" cy="56" rx="18" ry="11" fill="'+fill+'"/>');
  }else{
   const tail=kind==='shark'?'<path d="M64 73 L15 30 L28 72 L13 118 L67 84 Z"':'<path d="M68 70 Q30 32 19 27 Q33 71 19 116 Q45 106 68 89 Z"';
@@ -56,6 +63,17 @@ export function drawFishPortrait(fish,size=140){
    for(let i=0;i<4;i++)append('<path d="M'+(166-i*7)+' 78 l-4 12" stroke="'+dark+'" stroke-width="2"/>');
   }else{
    append('<ellipse cx="132" cy="75" rx="'+rx+'" ry="'+ry+'" fill="'+fill+'" stroke="'+dark+'" stroke-width="2.5"/>');
+  }
+  // Readable fish profile on small phones: solid body, visible face and
+  // translucent depth layers rather than a fragile URL-gradient silhouette.
+  if(kind==='shark'){
+   append('<path d="M84 72 Q129 35 185 64 Q159 52 122 57 Q93 61 84 72 Z" fill="#fff8eb" opacity=".35"/>');
+   append('<path d="M90 86 Q151 112 196 87 Q145 101 90 86 Z" fill="'+dark+'" opacity=".22"/>');
+  }else{
+   append('<path d="M85 62 Q111 '+(62-ry/2)+' 161 '+(68-ry/2)+' Q182 65 191 71 Q137 53 85 62 Z" fill="#fffdf0" opacity=".32"/>');
+   append('<path d="M91 '+(77+ry/3)+' Q135 '+(82+ry/2)+' 187 77 Q152 '+(88+ry/2)+' 100 '+(79+ry/2)+' Z" fill="'+dark+'" opacity=".19"/>');
+   append('<path d="M174 60 Q163 76 175 94" fill="none" stroke="'+dark+'" stroke-width="2" opacity=".46"/>');
+   append('<path d="M173 63 Q165 72 171 82" fill="none" stroke="#fff8e9" stroke-width="1.5" opacity=".5"/>');
   }
   if(kind==='billfish')append('<path d="M185 68 L235 49 L190 76 Z" fill="'+dark+'"/>');
   if(kind==='gold'||kind==='goldcarp'||kind==='carp')append('<path d="M108 55 Q126 20 154 43 L148 51 Q121 37 108 55" fill="'+fin+'" opacity=".7"/>');

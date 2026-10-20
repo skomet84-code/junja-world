@@ -16,7 +16,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
   {id:'decorate',icon:'🪑',label:'제작물 배치하기',description:'만든 벤치·가로등·꽃 화분을 마을에 놓거나 회수'},
   {id:'orders',icon:'📦',label:'주민 주문',description:'주문을 납품하고 명성 쌓기'},
   {id:'house',icon:'🏠',label:'나의 집',description:'3D 인테리어와 가구 배치'},
-  {id:'energy',icon:'⚡',label:'행동력',description:'회복 상태와 시험 골드 충전',trial:true}
+  {id:'energy',icon:'⚡',label:'행동력',description:'별도 경제 행동력·골드 관리',trial:true}
  ]),
  life:Object.freeze([
   {id:'farm',icon:'🌾',label:'내 농장',description:'나만의 텃밭·과수원'},
@@ -32,10 +32,10 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
   {id:'craft',icon:'🧵',label:'제작소',description:'공방으로 이동해 도구와 선물 만들기',travel:true},
   {id:'decorate',icon:'🌷',label:'제작물 배치하기',description:'제작한 장식 선택 → 빈 땅 터치 → 배치 완료'},
   {id:'orders',icon:'📦',label:'주민 주문',description:'농산물 가공과 주문 납품'},
-  {id:'business',icon:'🏭',label:'나의 사업장',description:'직업 전문 생산품 만들기',trial:true},
+  {id:'business',icon:'🏭',label:'나의 사업장',description:'직업 전문 생산 · 별도 골드 사용',trial:true},
   {id:'district',icon:'🏘️',label:'사업장 거리',description:'3D 공방과 손님·매출 확인',trial:true},
   {id:'market',icon:'⚓',label:'판매 상점',description:'잡은 물고기·재료 판매'},
-  {id:'trade',icon:'🏪',label:'주민 거래소',description:'주민 간 시범 거래',trial:true}
+  {id:'trade',icon:'🏪',label:'주민 거래소',description:'친구 간 거래 · 캐릭터 골드와 별도',trial:true}
  ]),
  house:Object.freeze([
   {id:'house',icon:'🏠',label:'나의 집',description:'3D 인테리어·가구 배치·증축'},
@@ -73,7 +73,7 @@ const button=(icon,title,description,handler,{trial=false,travel=false,main=fals
  const copy=add(b,'span',undefined,'v49-link-copy');
  add(copy,'strong',title);
  add(copy,'small',description);
- if(trial)add(b,'span','시험','v49-trial');
+ if(trial)add(b,'span','별도','v49-trial');
  else add(b,'span','›','v49-arrow');
  b.addEventListener('click',()=>handler.onAction(handler.id));
  return b;
@@ -88,6 +88,12 @@ export function renderVillageMenuV49(host,{
  add(header,'span','준자마을 · 생활 안내','v49-eyebrow');
  add(header,'h2',active.icon+' '+active.heading);
  add(header,'p',active.subtitle);
+ // Do not mask real-world economic separation. This is fully functional
+ // trial ledger but not yet joined to character coins/XP or the main inventory.
+ if(['home','life','production'].includes(active.id)){
+  const info=add(host,'p','ℹ️ 「별도」 표시 메뉴는 독립 경제로 운영돼요. 체험 골드는 캐릭터 골드와 합쳐지지 않아요.','v49-separate-economy-note');
+  info.style.cssText='margin:5px 0 10px;padding:10px 12px;border:1px solid #d8e2cd;border-radius:12px;font-size:11px;line-height:1.6;background:#f3f8ee;color:#4e6d5a';
+ }
  // One search across every existing feature. Finding a menu never changes save state.
  const finder=add(host,'section',undefined,'v49-finder');
  const input=make('input');input.type='search';input.placeholder='🔎 기능 찾기 · 예: 낚시, 주문, 집, 사업장';
