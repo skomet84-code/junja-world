@@ -12,11 +12,12 @@ const hash=val=>createHash('sha256').update(val).digest('hex');
 const parsed=(val,fallback)=>{try{return JSON.parse(val)}catch{return fallback}};
 function canonical(body,mode){
  const action=body?.action;
- const valid=mode==='v36'?['plant','harvest','craft','sell','order','expand','energy_buy']:
+ const valid=mode==='v36'?['plant','harvest','craft','sell','order','expand','energy_buy','world_spend']:
   ['plant','harvest','craft','sell','order','expand'];
  if(!valid.includes(action))throw Object.assign(Error('지원하지 않는 경제 거래입니다'),{status:400});
  const p=body?.payload&&typeof body.payload==='object'&&!Array.isArray(body.payload)?body.payload:{};
  const payload=action==='plant'?{index:p.index,crop:p.crop}:action==='harvest'?{index:p.index}:
+  action==='world_spend'?{kind:p.kind}:
   action==='craft'?{recipe:p.recipe}:action==='sell'?{item:p.item}:action==='order'?{order:p.order}:{};
  return {action,payload};
 }
@@ -67,7 +68,15 @@ export async function handleTrialEconomyD1(request,env,mode){
    if(snapshots.length&&!audit.ok)return send({error:'시험 경제 장부의 무결성을 확인할 수 없어요',reason:audit.reason},409);
   }
   let change,energy=null;
-  if(mode==='v36'&&action==='energy_buy'){
+  if(mode==='v36'&&action==='world_spend'){
+   const kind=payload.kind;
+   if(!['plant','harvest','gather','fish','craft','order','business_produce'].includes(kind))
+    return send({error:'이 행동에는 행동력을 사용할 수 없어요'},400);
+   const charged=chargeEnergy(state,kind,time);
+   change={next:charged.next,receipt:{action,kind,detail:'마을 활동 · '+kind+' · 행동력 -'+charged.cost,
+    delta:0,balance:charged.next.coins,day:charged.energy.day,at:time.toISOString()}};
+   energy=charged.energy;
+  }else if(mode==='v36'&&action==='energy_buy'){
    const purchased=buyEnergy(state,time);
    change={next:purchased.next,receipt:{action,detail:purchased.detail,
     delta:purchased.delta,balance:purchased.next.coins,day:purchased.energy.day,at:time.toISOString()}};
