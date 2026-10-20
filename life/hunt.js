@@ -2,12 +2,12 @@ import {restoreProfile,createSaveQueue} from './save-client.js';
 import * as T from './vendor/three.module.js';
 import {createAvatar} from './avatar3d.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
-import {HUNT_ZONES,HUNT_BOSSES,HUNT_SKILLS,HUNT_CRAFTS,MAX_ACTIVE_ENEMIES,huntLevel,canCraft,dailyBossKey,zoneUnlocked} from './hunt-data.js';
+import {HUNT_ZONES,HUNT_BOSSES,HUNT_SKILLS,HUNT_CRAFTS,MAX_ACTIVE_ENEMIES,huntLevel,canCraft,dailyBossKey,zoneUnlocked} from './hunt-data.js?v=v55-six-regions-20261020';
 import {initEconomy,credit,debit} from './economy-v28.js';
 import {initBag,bagCapacity,bagUsed,canStore,addBagItems} from './inventory-v29.js';
-import {EQUIPMENT,SKILL_PRICES,initCombat,purchaseSkill,purchaseEquipment,equipItem,equippedStats,skillStatus,spendSkill,incomingDamage} from './combat-progression-v30.js';
+import {EQUIPMENT,SKILL_PRICES,initCombat,purchaseSkill,purchaseEquipment,equipItem,equippedStats,skillStatus,spendSkill,incomingDamage} from './combat-progression-v30.js?v=v55-elite-gear-20261020';
 import {POTIONS,ensurePotions,purchasePotion,consumePotion} from './combat-potions-v29.js';
-import {initHuntMastery,zoneAccess,bossAccess,masteryEnemy,hunterDamage,registerHuntKill,dailyHuntContracts,claimHuntContract,HUNT_MASTERY_GATES} from './hunt-balance-v54.js?v=v54-hunt-20261020';
+import {initHuntMastery,zoneAccess,bossAccess,masteryEnemy,hunterDamage,registerHuntKill,dailyHuntContracts,claimHuntContract,HUNT_MASTERY_GATES} from './hunt-balance-v54.js?v=v55-six-regions-20261020';
 import {registerHuntWeekV55,weeklyHuntChallengesV55,claimHuntWeekV55,koreaHuntWeekV55} from './hunt-weekly-v55.js';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
