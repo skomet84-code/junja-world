@@ -10,7 +10,7 @@ import {openProfessionCenter} from './professions-ui-v39.js';
 import {openBusinessCenter} from './business-ui-v40.js';
 import {mountQuestsV51} from './quests-ui-v51.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
-import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
+import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js?v=v55-harvest-free';
 import {createWorldEnergySpend} from './world-energy-v53.js?v=v54-energy-reconcile';
 import {mountHomeStudioV48} from './home-studio-ui-v48.js';
 import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js?v=v51-decor-placement-20261020';
@@ -21,7 +21,8 @@ import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallen
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js?v=v53-no-attendance';
 import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js?v=v51-starter-5000';
 import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket,AUTO_SELL_PRICE,purchaseAutoSellTicket,toggleFishProtection} from './inventory-v29.js';
-import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js';
+import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js?v=v55-direct-auto-sale';
+import {ARCADE_RULES_V55,arcadeStatus,playArcade} from './arcade-v55.js?v=v55-virtual-games';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -476,6 +477,30 @@ function lifePerkGuide(){
 }
 // v49: one discoverable menu tree. All actions are existing game functions.
 let v49ActiveSection='home';
+function openMoonArcade(){
+ const summary=arcadeStatus(state),left=ARCADE_RULES_V55.playsPerDay-summary.plays;
+ openModal(`<span class="titlebadge">🎴 달빛 게임장</span><h2>🌙 행운의 카드</h2>
+  <p>태양 또는 달 카드를 맞히는 게임이야. 실제 돈·현금 교환은 없고 <b>마을의 가상 G</b>만 사용해.</p>
+  <div class="mini-card" style="background:linear-gradient(135deg,#f3eafc,#e5f7ed);color:#365b50;border-radius:18px;padding:17px">
+   <strong>🎲 오늘의 게임</strong><p>참가비 <b>100G</b> · 당첨 확률 <b>45%</b> · 맞히면 최대 <b>200G</b> 보상(경제 일일 상한 적용)</p>
+   <p>오늘 남은 기회 <b>${left}/${ARCADE_RULES_V55.playsPerDay}</b> · 게임 골드 ${Math.floor(state.coins).toLocaleString()}G</p>
+   <p>오늘 ${summary.wins}승 · 받은 보상 ${summary.won.toLocaleString()}G · 사용 ${summary.spent.toLocaleString()}G</p>
+   <p style="font-size:12px">최대 보상 기준 평균 회수율 약 90% · 현금 거래·환전 불가 · 1일 10회 제한</p>
+  </div><div class="pill-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+   <button class="pill-btn" data-arcade="sun" ${left===0||state.coins<100?'disabled':''}>☀️ 태양 선택 · 100G</button>
+   <button class="pill-btn" data-arcade="moon" ${left===0||state.coins<100?'disabled':''}>🌙 달 선택 · 100G</button>
+  </div><div id="arcadeResult" role="status" style="margin-top:12px;font-size:13px;font-weight:750"></div>`);
+ els.panelBody.querySelectorAll('[data-arcade]').forEach(btn=>btn.onclick=()=>{
+  const choice=btn.dataset.arcade;
+  const result=playArcade(state,{choice});
+  if(!result.ok){toast(result.error);return}
+  save();hud();
+  const line=(result.drawn==='sun'?'☀️ 태양':'🌙 달')+' 카드 등장! '+
+   (result.success?'🎉 성공! +'+result.won.toLocaleString()+'G 지급(참가비 제외 순 '+result.net+'G)':'아쉽다! -100G');
+  openMoonArcade();
+  const box=document.getElementById('arcadeResult');if(box)box.textContent=line;
+ });
+}
 function openV49Component(section,elementId,lead,mount){
  openModal('<span class="titlebadge">준자마을 · '+lead+' · 별도 경제</span><div id="'+elementId+'"></div>');
  mount(document.getElementById(elementId),{back:()=>openVillageMenuV49(section)});
@@ -505,6 +530,7 @@ function openVillageMenuV49(section='home'){
     case 'career':return openV49Component('life','v49Profession','직업과 계약',openProfessionCenter);
     case 'hunt':return goToHunting();
     case 'festival':return openFestival();
+    case 'arcade':return openMoonArcade();
     case 'social':return openSocial();
     case 'business':return openV49Component('production','v49Business','나의 사업장',openBusinessCenter);
     case 'district':
@@ -633,7 +659,7 @@ hud();
 // browser progress. Otherwise brand-new accounts have no cloud save until
 // a state change and can reappear at Lv.1 on another device.
 if(accountScope)queueCloudSave();
-setInterval(save,12000); // Quiet background movement snapshots; gameplay achievements still save immediately.
+setInterval(save,60000); // Quiet once-per-minute movement snapshots; planting/harvest/transactions still save immediately.
 if(accountScope){
  const lastAdminRevision=Number(state.__adminRevision)||0;
  async function pullAdminChanges(){
@@ -894,7 +920,7 @@ function connectSocial(){
 }
 
 async function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){
-  if(!await useWorldEnergy('harvest'))return;
+  // Harvesting is free: energy was already paid when planting.
   let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
  const cards=Object.entries(crops).map(([k,v])=>`<div class="mini-card"><span class="emoji">${v.icon}</span><strong>${v.name}</strong><p>성장 ${v.seconds}초 · 수확 ${v.price+lifeBonus('harvest')}G</p><p>보유 씨앗 ${state.seeds[k]||0}개</p><button data-seed="${k}">${state.seeds[k]>0?'씨앗 선택 · 심기':'씨앗 부족'}</button></div>`).join('');
  if(b.crop){const q=crops[b.crop];let progress=Math.min(100,Math.round((Date.now()-b.at)/(q.seconds*1000)*100));openModal(`<span class="titlebadge">FARMING</span><h2>🌿 작물이 자라고 있어요</h2><p>${q.icon} ${q.name} · 자라는 중 (${progress}%)</p><div class="mini-progress"><i style="width:${progress}%"></i></div><p>남은 시간 ${Math.max(0,Math.ceil(q.seconds-(Date.now()-b.at)/1000))}초. 게임을 종료해도 자라요.</p><button class="pill-btn" id="farmClose">확인</button>`);document.getElementById('farmClose').onclick=closeModal;return}
@@ -1442,7 +1468,7 @@ function openPersonalEstate(){
  els.panelBody.querySelectorAll('[data-plot]').forEach(btn=>btn.onclick=async()=>{
   const i=Number(btn.dataset.plot),p=e.plots[i],c=p&&ESTATE_BY_ID[p.id];
   if(c){if(Date.now()<p.at+c[3]*1000){toast('⏳ '+estateClock(Math.ceil((p.at+c[3]*1000-Date.now())/1000))+' 남았어요');return}
-   if(!await useWorldEnergy('harvest'))return;
+   // No second energy charge on personal-farm harvest.
    e.stock[c[0]]=(Number(e.stock[c[0]])||0)+1;e.plots[i]=null;recordEstateHarvest(state);state.xp+=Math.max(1,Math.floor(c[3]/90));save();toast(c[1]+' '+c[2]+' 수확!');openPersonalEstate();return}
   const selected=document.getElementById('estateCrop')?.value,crop=ESTATE_BY_ID[selected];
   if(!crop)return;if(state.coins<crop[4]){toast('씨앗 구매 골드가 부족해요');return}
@@ -1840,14 +1866,21 @@ let autoFishRunning=false,autoFishLast=performance.now(),autoFishNext=0;
 function autoFishPanel(){
  const a=autoFishState(state),minutes=Math.ceil(a.remainingMs/60000);
  const cardStyle='border:1px solid #d8c8a6;border-radius:17px;background:linear-gradient(145deg,#fffaf0,#e7f4e9);color:#31584a;box-shadow:0 4px 10px #354f3620;padding:13px 9px;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;min-height:82px;white-space:normal;line-height:1.3;font-weight:800;font-size:15px';
- openModal('<span class="titlebadge">🎣 FISHING PASS · JUNJA LIFE</span><h2>🐟 반짝반짝 자동낚시</h2><p>🌿 낚시터에서 편하게 물고기를 잡고 골드와 경험치를 모아봐요! 게임 화면이 켜져 있을 때만 작동해요.</p>'+
+ openModal('<span class="titlebadge">🎣 FISHING PASS · JUNJA LIFE</span><h2>🐟 반짝반짝 자동낚시</h2><p>🌿 이용권을 구매하면 바로 시작해요. 일반~영웅은 잡는 즉시 판매해 가방 공간을 차지하지 않고, 전설·신화만 자동 보관해요. 게임 화면이 켜져 있을 때만 작동해요.</p>'+
  '<div style="background:linear-gradient(120deg,#e1f2e9,#fff3d8);border:1px solid #d7dfc6;border-radius:18px;padding:13px;margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;color:#315548;font-weight:750;font-size:13px">'+
  '<div>⏳ 남은 시간<br><strong style="font-size:18px">'+minutes+'분</strong></div><div>🐟 잡은 물고기<br><strong style="font-size:18px">'+a.catches+'마리</strong></div><div>💰 누적 수익<br><strong>'+a.earned.toLocaleString()+'G</strong></div><div>⭐ 누적 경험치<br><strong>'+(a.xpEarned||0).toLocaleString()+'XP</strong></div>'+
  '</div><p style="font-size:13px">💎 전설·신화 물고기는 자동 판매하지 않고 가방에 보관해요. · 보관 '+a.protected+'마리</p>'+
  '<h3 style="margin:15px 0 8px">🎟️ 이용권 고르기</h3><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">'+AUTO_FISH_PASSES.map(p=>'<button style="'+cardStyle+'" data-autofish-buy="'+p.hours+'"><span style="font-size:21px">'+(p.hours>=12?'👑':p.hours>=6?'💎':'🎣')+'</span><span>'+p.hours+'시간권</span><span style="color:#aa7a3d;font-size:13px">'+p.price.toLocaleString()+' G</span></button>').join('')+'</div>'+
  '<p style="margin:12px 0;font-size:13px">현재 '+(autoFishRunning?'🟢 자동낚시 중':'⏸ 대기 중')+' · 보유 '+Math.floor(state.coins).toLocaleString()+'G</p>'+
  '<button class="pill-btn" style="width:100%;background:linear-gradient(120deg,#91c6aa,#c5e5cf);color:#254d3d;border-radius:16px;padding:15px" id="autoFishToggle">'+(autoFishRunning?'⏹ 자동낚시 일시정지':'▶ 자동낚시 시작하기')+'</button>');
- els.panelBody.querySelectorAll('[data-autofish-buy]').forEach(b=>b.onclick=()=>{const r=buyAutoFish(state,b.dataset.autofishBuy);toast(r.ok?'🎣 이용권 구매 완료':r.error||'골드 부족');save();hud();autoFishPanel()});
+ els.panelBody.querySelectorAll('[data-autofish-buy]').forEach(b=>b.onclick=()=>{
+  const r=buyAutoFish(state,b.dataset.autofishBuy);
+  if(r.ok){
+   if(!autoFishRunning){autoFishRunning=true;autoFishLast=performance.now();autoFishNext=performance.now()+11000;}
+   toast('🎣 이용권 구매 완료 · 자동낚시 시작! 일반~영웅은 즉시 판매, 전설·신화는 보관');
+  }else toast(r.error||'골드 부족');
+  save();hud();autoFishPanel();
+ });
  const toggle=document.getElementById('autoFishToggle');if(toggle)toggle.onclick=()=>{if(autoFishRunning){autoFishRunning=false;toast('자동낚시 일시정지')}else if(!autoFishState(state).remainingMs){toast('먼저 이용권을 구매하세요')}else{autoFishRunning=true;autoFishLast=performance.now();autoFishNext=performance.now()+11000;fishPhase='idle';els.fishing.classList.remove('open');toast('🎣 자동낚시 시작!')}closeModal();save()};
 }
 async function autoFishTick(){

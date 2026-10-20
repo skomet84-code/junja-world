@@ -53,7 +53,7 @@ for(const fish of FISH){
 }
 assert.equal(art.size,70,'all 70 fish still have distinct artwork');
 assert(html.includes('.aquarium-item.locked svg{filter:grayscale(1) contrast(1.2);opacity:.78}'),'not-yet-caught fish silhouettes visible');
-assert(html.includes('v54-energy-recovery-save-ui-20261020')&&game.includes('v53-fish'),'new fish art and energy recovery module load fresh on iOS even with v52 cached');
+assert(html.includes('v55-farm-autofish-arcade-20261020')&&game.includes('v53-fish'),'new fish art and energy recovery module load fresh on iOS even with v52 cached');
 assert(game.includes('fishArt(f.name,152)'),'fish bodies occupy a readable part of each specimen card');
 assert(!menu.includes("add(b,'span','시험'"),'unclear 시험 badge should be replaced');
 assert(menu.includes("체험 골드는 캐릭터 골드와 합쳐지지 않아요"),'separate economy is explained honestly');

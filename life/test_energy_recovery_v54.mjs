@@ -8,7 +8,7 @@ assert(game.includes("display:none;position:fixed;z-index:38;"),'routine village
 assert(game.includes("if(status==='saved')setSaveStatus('',false)"),'successful village saves cannot show toast');
 assert(game.includes("else if(status==='retry')setSaveStatus"),'save-retry warning must remain visible');
 assert(game.includes("if(status==='blocked')showSaveConflict"),'conflict cannot be silently ignored');
-assert(game.includes('setInterval(save,12000)'), 'periodic movement autosaves should be less noisy');
+assert(game.includes('setInterval(save,60000)'), 'periodic movement autosaves should be 1 minute');
 assert(hunt.includes("saveNotice.style.cssText='display:none;"),'hunt save status starts hidden');
 assert(hunt.includes("if(status==='saved'){saveNotice.style.display='none'"),'successful hunt saves remain silent');
 assert(hunt.includes("saveNotice.style.display='block'"),'hunt save errors remain visible');

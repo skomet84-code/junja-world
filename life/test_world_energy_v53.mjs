@@ -7,12 +7,12 @@ const v36=readFileSync(new URL('./cf/d1/economy-staging.js',import.meta.url),'ut
 const website=readFileSync(new URL('./index.html',import.meta.url),'utf8');
 for(const kind of WORLD_ENERGY_KINDS){
  assert.equal(Number.isInteger(ENERGY_COSTS[kind]),true,kind+' must have a real fixed server cost');
- assert(ENERGY_COSTS[kind]>0);
+ assert(ENERGY_COSTS[kind]>0||kind==='harvest'&&ENERGY_COSTS[kind]===0,'harvest is the sole free farm action');
 }
 for(const [needle,kind] of [
  ["async function gather(id)","gather"],
  ["async function farmAt(i)","plant"],
- ["if(!await useWorldEnergy('harvest'))return","harvest"],
+ ["// No second energy charge on personal-farm harvest.","harvest"],
  ["if(!await useWorldEnergy('craft'))return","craft"],
  ["if(!await useWorldEnergy('order'))return","order"],
  ["await useWorldEnergy('fish')","fish"]]){
@@ -24,7 +24,7 @@ assert(game.includes("await useWorldEnergy('gather')"),'gather must be charged b
 assert(game.includes("async function fishingAction()"),'manual fishing must await spend before granting fish');
 assert(game.includes("async function autoFishTick()"),'auto-fishing cannot bypass energy budget');
 assert(game.includes("fishPhase='settling'"),'stop fishing timer during server settlement');
-assert(website.includes("game.js?v=v54-energy-recovery-save-ui-20261020"),'force fresh iPhone browser bundle');
+assert(website.includes("game.js?v=v55-farm-autofish-arcade-20261020"),'force fresh iPhone browser bundle');
 assert(v36.includes("action==='world_spend'"),'Cloudflare economy must acknowledge world costs');
 assert(v36.includes("kind:p.kind"),'server cost uses canonical kind, no client-supplied cost');
 let calls=[],confirm=[],next={current:98,max:100};

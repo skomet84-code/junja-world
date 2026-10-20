@@ -15,6 +15,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
   {id:'craft',icon:'🧵',label:'제작소',description:'제작소까지 걸어가서 재료 가공',travel:true},
   {id:'decorate',icon:'🪑',label:'제작물 배치하기',description:'만든 벤치·가로등·꽃 화분을 마을에 놓거나 회수'},
   {id:'orders',icon:'📦',label:'주민 주문',description:'주문을 납품하고 명성 쌓기'},
+  {id:'arcade',icon:'🎴',label:'달빛 게임장',description:'게임 내 가상 골드 카드게임 · 100G/회 · 하루 10회'},
   {id:'house',icon:'🏠',label:'나의 집',description:'3D 인테리어와 가구 배치'},
   {id:'energy',icon:'⚡',label:'행동력',description:'별도 경제 행동력·골드 관리',trial:true}
  ]),
@@ -26,6 +27,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
   {id:'career',icon:'🏅',label:'직업과 계약',description:'전문 분야를 키우고 일일 계약 받기',trial:true},
   {id:'hunt',icon:'⚔️',label:'사냥터',description:'몬스터·스킬·장비 성장'},
   {id:'festival',icon:'🎪',label:'축제·주간 의뢰',description:'이번 주 축제와 출석 이벤트'},
+  {id:'arcade',icon:'🎴',label:'달빛 게임장',description:'가상 골드로 즐기는 행운 카드 게임'},
   {id:'social',icon:'👫',label:'친구와 소통',description:'친구 말풍선·함께 플레이'}
  ]),
  production:Object.freeze([
