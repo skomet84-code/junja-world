@@ -1,6 +1,6 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: a99f2833bb9b5bb507712f36987893d53cd3b3af
-Reason: Explicit user-authorized, one-time promotion of existing freshly registered 'skomet' / '준자준비' account to server admin / nickname '준자'. Preserve UUID, login session, level, items, gold and all other players. Audit and lock promotion even when identity mismatch, so a newly registered user cannot claim later. No Cloudflare data reset.
-CI: https://github.com/skomet84-code/junja-world/actions/runs/39375843764 passed (incl. owner grant safety and save retention checks).
+Release commit: 70036bdb074a7ba1c9429f9e41b2b1719435a2df
+Reason: Owner-requested one-time existing skomet/준자준비 account promotion to nickname 준자, role admin; publish exact grant success/failure outcome from trusted Cloudflare health status. No account reset and no effects on other user data.
+Verification: https://github.com/skomet84-code/junja-world/actions/runs/39376302771 PASS
 Requested: 2026-10-20 KST
