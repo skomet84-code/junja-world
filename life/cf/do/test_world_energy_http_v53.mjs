@@ -64,8 +64,7 @@ for(let i=0;i<14;i++){
 }
 assert.equal(result.data.energy.current,3);
 result=await charge('harvest');
-assert.equal(result.status,409,'not enough energy must block harvest');
-assert.match(result.data.error,/부족/);
+assert.equal(result.status,400,'harvest cannot debit server energy at all');
 assert.equal((await read()).energy.current,3,'rejected action leaves resource unchanged');
 const blocked=await charge('fish');assert.equal(blocked.status,409);
 assert.equal((await read()).energy.current,3);
