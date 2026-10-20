@@ -63,6 +63,8 @@ jobs:
           node --check hunt-weekly-v55.js
           node --check farm-batch-v55.js
           node test_v55_expansion.mjs
+          node --check hunt-loot-market-v55.js
+          node test_hunt_loot_market_v55.mjs
           node --check village-arcade-v55.js
           node --check auto-fishing-v31.js
           node test_v55_economy_arcade.mjs
