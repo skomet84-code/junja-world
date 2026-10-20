@@ -11,10 +11,10 @@ export default {
   if(url.pathname==='/health'||url.pathname==='/api/health'){
    try{
     const health=await store.fetch(new Request(new URL('/internal/health',url),{method:'GET'}));
-    if(!health.ok)return json({ok:false,database:'unavailable',release:'v55-loot-vendor'},503);
+    if(!health.ok)return json({ok:false,database:'unavailable',release:'v55-core-economy'},503);
     const result=await health.json();
-    return json({ok:true,edge:'cloudflare',database:result.database,release:'v55-loot-vendor',accountApi:'direct',multiplayer:'durable-objects',freshOpening:result.freshOpening,registeredUsers:result.users,resetPreviousUsers:result.resetPreviousUsers,ownerGrant:result.ownerGrant||'not_configured'});
-   }catch(err){console.error('DB health check failed',err?.name);return json({ok:false,release:'v55-loot-vendor'},503)}
+    return json({ok:true,edge:'cloudflare',database:result.database,release:'v55-core-economy',accountApi:'direct',multiplayer:'durable-objects',freshOpening:result.freshOpening,registeredUsers:result.users,resetPreviousUsers:result.resetPreviousUsers,ownerGrant:result.ownerGrant||'not_configured'});
+   }catch(err){console.error('DB health check failed',err?.name);return json({ok:false,release:'v55-core-economy'},503)}
   }
   const directApi=['/api/account','/api/economy-v36','/api/economy-v37','/api/market-v38','/api/professions-v39','/api/business-v40','/api/quests-v51'];
   if(directApi.includes(url.pathname))return store.fetch(request);
