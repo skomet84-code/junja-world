@@ -1,6 +1,6 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 70036bdb074a7ba1c9429f9e41b2b1719435a2df
-Reason: Owner-requested one-time existing skomet/준자준비 account promotion to nickname 준자, role admin; publish exact grant success/failure outcome from trusted Cloudflare health status. No account reset and no effects on other user data.
-Verification: https://github.com/skomet84-code/junja-world/actions/runs/39376302771 PASS
+Release commit: bbaf3b76f9ecead545c357165202842276743654
+Reason: Restore visible 👑 admin crown to the verified skomet/준자 owner. Fix legacy admin_junja2-only display rule and broken self-grant target, verify role from server on page load and pageshow.
+Testing: https://github.com/skomet84-code/junja-world/actions/runs/39376894430 success including admin crown and server save/multiplayer regressions.
 Requested: 2026-10-20 KST
