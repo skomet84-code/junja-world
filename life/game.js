@@ -17,7 +17,7 @@ import {updateVillageResidents,npcDailyLine,v43Daypart} from './village-life-v43
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
 import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
-import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js';
+import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js?v=v51-starter-5000';
 import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket,AUTO_SELL_PRICE,purchaseAutoSellTicket,toggleFishProtection} from './inventory-v29.js';
 import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js';
 'use strict';
