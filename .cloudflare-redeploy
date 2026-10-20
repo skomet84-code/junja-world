@@ -1,6 +1,6 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 3f8bd350929dcea95cb438b438a0d61e723e5b8e
-Reason: Fix iOS Safari / Kakao mobile login and signup feedback; cache-bust account UI; show explicit registration or login errors instead of silent button taps.
-Release verification: Cloudflare-only UI, save and multiplayer CI passed locally.
+Release commit: c866b12eca32c5abc36d3ae6e3c98df0706e1e0a
+Reason: Owner-approved OFFICIAL FRESH OPENING of single Cloudflare SQLite game server: one-time atomic purge of old Cloudflare player registrations, characters, XP, inventories, sessions and wallet/trial balances. Legacy Neon archived, not deleted. Reserve nickname 준자 for verified admin promotion after new signup, new browser save namespace and mobile signup feedback.
+Release tests: Cloudflare-only CI passed including nonempty SQLite transactional reset and post-reset save persistence.
 Requested: 2026-10-20 KST
