@@ -193,11 +193,11 @@ export const LONG_CHAPTER_BLUEPRINTS=Object.freeze([
  },
  {
   "id": 28,
-  "title": "매일 지켜온 약속",
-  "desc": "누적 출석 7회",
-  "metric": "attendance",
-  "total": 7,
-  "station": "village",
+  "title": "땀방울로 만드는 하루",
+  "desc": "공방 제작 누적 30회",
+  "metric": "craftCount",
+  "total": 30,
+  "station": "workshop",
   "reward": 3000,
   "xp": 260
  },
@@ -273,11 +273,11 @@ export const LONG_CHAPTER_BLUEPRINTS=Object.freeze([
  },
  {
   "id": 36,
-  "title": "열두 번의 아침",
-  "desc": "누적 출석 12회",
-  "metric": "attendance",
-  "total": 12,
-  "station": "village",
+  "title": "계절을 거둔 농부",
+  "desc": "작물 누적 75회 수확",
+  "metric": "harvest",
+  "total": 75,
+  "station": "farm",
   "reward": 3940,
   "xp": 330
  },
