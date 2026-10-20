@@ -11,6 +11,7 @@ import {openBusinessCenter} from './business-ui-v40.js';
 import {mountQuestsV51} from './quests-ui-v51.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
 import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
+import {createWorldEnergySpend} from './world-energy-v53.js';
 import {mountHomeStudioV48} from './home-studio-ui-v48.js';
 import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js?v=v51-decor-placement-20261020';
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
@@ -607,18 +608,21 @@ function openStation(id){
  toast(s.icon+' 주변 '+(id==='forest'?'나무':id==='quarry'?'바위':'꽃')+'를 터치해서 채집하세요');
 }
 
-function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
+async function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
  const remaining=(state.nodeReady[id]||0)-Date.now();if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
  const desired=2+lifeBonus('gather'),free=bagFree(state);
  if(free<1){openBag();toast('🎒 가방이 가득 찼어요. 판매하거나 가방을 확장하세요');return}
  const amount=Math.min(desired,free);
+ if(!await useWorldEnergy('gather'))return;
  if(!addBagItems(state,'material',n.kind,amount)){toast('🎒 가방 보관에 실패했어요. 가방을 열어 잔여 칸을 확인해 주세요');return}
  world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));
 }
 
 function openDelivery(){
  openModal(`<span class="titlebadge">FOREST EXCHANGE</span><h2>숲속 교역소</h2><p>공방에서 만든 선물 상자를 납품하고 꾸미기 비용을 마련해요.</p><div class="mini-card"><span class="emoji">📦</span><strong>숲의 선물 상자 · 개당 ${180+lifeBonus('delivery')}G</strong><p>보유 ${state.crafted.parcel||0}개 · 누적 납품 ${state.deliveries}개</p><button id="deliverParcel" ${!(state.crafted.parcel>0)?'disabled':''}>1개 납품 · ${180+lifeBonus('delivery')}G 받기</button></div><button class="pill-btn ghost" id="deliveryCraft">공방으로 이동</button>`);
- document.getElementById('deliverParcel').onclick=()=>{if(!(state.crafted.parcel>0))return;state.crafted.parcel--;state.deliveries++;state.dailyDeliver++;completeDaily();const income=180+lifeBonus('delivery');const earned=earn(income,'deliver','교역소 납품');state.xp+=25;save();hud();updateJourney(true);toast('납품 완료! +'+earned+'G');openDelivery()};document.getElementById('deliveryCraft').onclick=()=>goStation('workshop');
+ document.getElementById('deliverParcel').onclick=async()=>{if(!(state.crafted.parcel>0))return;
+  if(!await useWorldEnergy('order'))return;
+  state.crafted.parcel--;state.deliveries++;state.dailyDeliver++;completeDaily();const income=180+lifeBonus('delivery');const earned=earn(income,'deliver','교역소 납품');state.xp+=25;save();hud();updateJourney(true);toast('납품 완료! +'+earned+'G');openDelivery()};document.getElementById('deliveryCraft').onclick=()=>goStation('workshop');
 }
 
 function hud(){els.coins.textContent=Math.floor(state.coins).toLocaleString('ko-KR');const lv=lifeLevel();els.level.textContent='Lv.'+lv+' · '+(lv>=18?'로열 마을의 주인':lv>=10?'생활 장인':lv>3?'하버 주민':'새싹 주민');els.xp.style.width=((state.xp%160)/160*100)+'%';updateJourney(true)}
@@ -887,10 +891,14 @@ function connectSocial(){
  liveTimer=setInterval(()=>{if(!document.hidden)pollLive()},250);
 }
 
-function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
+async function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){
+  if(!await useWorldEnergy('harvest'))return;
+  let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
  const cards=Object.entries(crops).map(([k,v])=>`<div class="mini-card"><span class="emoji">${v.icon}</span><strong>${v.name}</strong><p>성장 ${v.seconds}초 · 수확 ${v.price+lifeBonus('harvest')}G</p><p>보유 씨앗 ${state.seeds[k]||0}개</p><button data-seed="${k}">${state.seeds[k]>0?'씨앗 선택 · 심기':'씨앗 부족'}</button></div>`).join('');
  if(b.crop){const q=crops[b.crop];let progress=Math.min(100,Math.round((Date.now()-b.at)/(q.seconds*1000)*100));openModal(`<span class="titlebadge">FARMING</span><h2>🌿 작물이 자라고 있어요</h2><p>${q.icon} ${q.name} · 자라는 중 (${progress}%)</p><div class="mini-progress"><i style="width:${progress}%"></i></div><p>남은 시간 ${Math.max(0,Math.ceil(q.seconds-(Date.now()-b.at)/1000))}초. 게임을 종료해도 자라요.</p><button class="pill-btn" id="farmClose">확인</button>`);document.getElementById('farmClose').onclick=closeModal;return}
- openModal(`<span class="titlebadge">FARMING</span><h2>🌱 씨앗을 심을까요?</h2><p>씨앗을 선택하면 즉시 심어요.</p><div class="card-grid">${cards}</div><button class="pill-btn ghost" id="buySeedLink">씨앗 상점 열기</button>`);els.panelBody.querySelectorAll('[data-seed]').forEach(btn=>btn.onclick=()=>{const type=btn.dataset.seed;if(!(state.seeds[type]>0)){toast('씨앗이 부족해요. 상점에서 구매해요');return}state.seeds[type]--;state.beds[i]={crop:type,at:Date.now()};addXp(4);closeModal();toast('🌱 '+crops[type].name+' 심기 완료!');party(bedCenters[i].x,bedCenters[i].y,8);save()});document.getElementById('buySeedLink').onclick=openFarmShop;
+ openModal(`<span class="titlebadge">FARMING</span><h2>🌱 씨앗을 심을까요?</h2><p>씨앗을 선택하면 즉시 심어요.</p><div class="card-grid">${cards}</div><button class="pill-btn ghost" id="buySeedLink">씨앗 상점 열기</button>`);els.panelBody.querySelectorAll('[data-seed]').forEach(btn=>btn.onclick=async()=>{const type=btn.dataset.seed;if(!(state.seeds[type]>0)){toast('씨앗이 부족해요. 상점에서 구매해요');return}
+  if(!await useWorldEnergy('plant'))return;
+  state.seeds[type]--;state.beds[i]={crop:type,at:Date.now()};addXp(4);closeModal();toast('🌱 '+crops[type].name+' 심기 완료!');party(bedCenters[i].x,bedCenters[i].y,8);save()});document.getElementById('buySeedLink').onclick=openFarmShop;
 }
 function farmAll(){let p=bedCenters.findIndex((_,i)=>state.beds[i].crop&&cropStage(state.beds[i])===3);if(p>=0){moveTo(bedCenters[p].x,bedCenters[p].y+56,{type:'farm',idx:p});toast('🌿 수확할 밭으로 이동해요');return}const v=bedCenters.findIndex((_,i)=>!state.beds[i].crop);if(v>=0){moveTo(bedCenters[v].x,bedCenters[v].y+56,{type:'farm',idx:v});toast('🌱 빈 밭으로 이동해요');return}openFarmShop()}
 function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*6).toLocaleString()}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${(o.cost*6).toLocaleString()}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*6;if(state.coins<cost){toast('코인이 부족해요');return}spend(cost,'씨앗 3개');state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
@@ -1125,7 +1133,9 @@ function openHome(){
 function openCraft(){
  if(distance(player,stations.find(s=>s.id==='workshop'))>155){goStation('workshop');return}
  openModal(`<span class="titlebadge">WOODLAND WORKSHOP</span><h2>나무결 공방</h2><p>숲과 광산에서 모은 재료로 만들어보세요.</p><div class="pill-row">${Object.entries(state.materials).map(([k,v])=>`<span class="titlebadge">${materialNames[k]} ${v}</span>`).join('')}</div><div class="card-grid">${recipes.map(r=>`<div class="mini-card"><span class="emoji">${r.icon}</span><strong>${r.name}</strong><p>${r.desc}</p><p>${Object.entries(r.needs).map(([k,v])=>materialNames[k]+' '+state.materials[k]+'/'+v).join(' · ')}</p><button data-recipe="${r.id}" ${(!r.outfit||!owned.includes(r.outfit))&&Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v)?'':'disabled'}>${r.outfit&&owned.includes(r.outfit)?'제작 완료 · 옷장 보유':'제작 · 경험치 '+r.xp}</button></div>`).join('')}</div><div class="pill-row"><button class="pill-btn" id="craftPlaceDecor">🌷 제작물 배치하기 · 보유 ${decorCatalog.reduce((n,d)=>n+(state.crafted[d.id]||0),0)}개</button><button class="pill-btn ghost" id="craftMap">재료 채집하러 가기</button></div>`);
- els.panelBody.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=()=>{const r=recipes.find(r=>r.id===b.dataset.recipe);if(!r||(r.outfit&&owned.includes(r.outfit))||!Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v))return;for(const [k,v] of Object.entries(r.needs))state.materials[k]-=v;if(r.outfit){owned.push(r.outfit)}else state.crafted[r.id]=(state.crafted[r.id]||0)+1;state.craftCount++;state.dailyCraft++;state.xp+=r.xp;completeDaily();save();hud();updateJourney(true);toast(r.name+' 제작 완료!');openCraft()});document.getElementById('craftPlaceDecor').onclick=openDecor;document.getElementById('craftMap').onclick=openWorldMap;
+ els.panelBody.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=async()=>{const r=recipes.find(r=>r.id===b.dataset.recipe);if(!r||(r.outfit&&owned.includes(r.outfit))||!Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v))return;
+  if(!await useWorldEnergy('craft'))return;
+  for(const [k,v] of Object.entries(r.needs))state.materials[k]-=v;if(r.outfit){owned.push(r.outfit)}else state.crafted[r.id]=(state.crafted[r.id]||0)+1;state.craftCount++;state.dailyCraft++;state.xp+=r.xp;completeDaily();save();hud();updateJourney(true);toast(r.name+' 제작 완료!');openCraft()});document.getElementById('craftPlaceDecor').onclick=openDecor;document.getElementById('craftMap').onclick=openWorldMap;
 }
 function openSaveVault(){
  const backupKey='junja-village-snapshots-v27-'+accountScope;
@@ -1320,8 +1330,13 @@ function drawMini(){const w=mini.width,h=mini.height,sx=w/W,sy=h/H;
 function disposeEstateWorld(){if(estateWorld){estateWorld.dispose();estateWorld=null}if(workshopPlaza){workshopPlaza.dispose();workshopPlaza=null}}
 function closeModal(){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();els.modal.classList.remove('open');}
 function openModal(html){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
+const worldEnergy=createWorldEnergySpend({onChange:()=>energyHudController.refresh()});
+async function useWorldEnergy(kind){
+ try{await worldEnergy.spend(kind);return true}
+ catch(error){toast('⚡ '+(error?.message||'행동력을 확인하지 못했어'));return false}
+}
 const energyHudController=mountEnergyHud(document.getElementById('energyHudV47'),{open:()=>{
- openModal('<span class="titlebadge">행동력 · 시험 경제</span><div id="energyModalV47"></div>');
+ openModal('<span class="titlebadge">행동력 · 마을 활동</span><div id="energyModalV47"></div>');
  energyModal=mountEnergyPanel(document.getElementById('energyModalV47'),{onChange:()=>energyHudController.refresh()});
 }});
 document.getElementById('close').onclick=closeModal;els.modal.addEventListener('click',e=>{if(e.target===els.modal)closeModal()});
