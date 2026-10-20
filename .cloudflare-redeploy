@@ -1,7 +1,6 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 5c626ddf2e43a0d74a124d246fc37755f260680d
-Reason: Fix v51 crafted furniture decoration placement. Previously hidden in old v49 cleanup, now discoverable on home/production/house menus, workshop crafting UI, and garden. Add visible mobile cancel button, owned-item counts and step-by-step placement guidance. iOS/Kakao cache bust for game.js and village-navigation-v49.js. Preserve existing v51 5000G starter, account UUIDs, skomet/준자 admin rights, all player saves and loot. Do not delete/reset any durable database. No account/DB schema modifications.
-CI: https://github.com/skomet84-code/junja-world/actions/runs/39401134050 SUCCESS
-Cloudflare deploy config life/cf/wrangler.jsonc; use release branch head above.
+Release commit: 633c7bebb873b43d39b7ad6d39551be3271ef3e2
+Reason: USER-REQUESTED v52 live release. Speed up walking +11.2% (205 to 228) for both touch and keyboard; expand native game crop planting plots from 14 to 21 while exactly preserving all preexisting planted crop IDs, timestamps, XP, saves, item inventory and coins; add only 7 empty slots. Preserve new game/account starter 5000G, admin skomet/준자 role, v51 quests, market, business and trades. Do NOT reset Cloudflare SQLite or recreate Durable Objects; Cloudflare account id v50-primary-single-platform remains unchanged. Mobile dynamic game.js import rev v52-farm-speed-20261020 and farm-plots-v52.js no-store.
+QA: https://github.com/skomet84-code/junja-world/actions/runs/39402379779 PASS
 Requested: 2026-10-20 KST
