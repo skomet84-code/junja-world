@@ -38,11 +38,17 @@ ensurePotions(state);initBag(state);initCombat(state);
 state.hunt.potionCooldowns=state.hunt.potionCooldowns||{};
 const level=()=>huntLevel(state.xp),stats=()=>equippedStats(state),today=()=>new Date().toLocaleDateString('en-CA');
 let cloudSaveTimer=null;
-const saveNotice=document.createElement('div');saveNotice.id='huntSaveStatus';saveNotice.style.cssText='position:fixed;top:70px;left:12px;z-index:90;background:#fff7e5;color:#31543c;padding:6px 10px;border-radius:12px;font-size:12px';document.body.append(saveNotice);
+const saveNotice=document.createElement('div');saveNotice.id='huntSaveStatus';saveNotice.style.cssText='display:none;position:fixed;top:70px;left:12px;z-index:90;background:#fff7e5;color:#31543c;padding:6px 10px;border-radius:12px;font-size:12px';document.body.append(saveNotice);
 const saveQueue=createSaveQueue({version:restored.version,
  send:payload=>fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)}),
  onCommit:(version,latest)=>{try{if(latest)storage.setItem(saveKey+'-unsynced',JSON.stringify({baseVersion:version,...latest}));else storage.removeItem(saveKey+'-unsynced')}catch{}},
- onStatus:(status,data)=>{saveNotice.textContent=status==='saved'?'✔ 사냥 기록 저장 완료':status==='saving'?'⏳ 사냥 기록 저장 중':status==='retry'?'⚠ 저장 재시도 중':('⚠ '+(data.error||'최신 기록으로 재접속해 주세요'));}
+ onStatus:(status,data)=>{
+  if(status==='saving')return;
+  if(status==='saved'){saveNotice.style.display='none';saveNotice.textContent='';return}
+  saveNotice.style.display='block';
+  saveNotice.textContent=status==='retry'?'⚠ 사냥 기록 서버 저장 재시도 중…':
+   '⚠ '+(data?.error||'저장 충돌 · 최신 기록으로 재접속해 주세요');
+ }
 });
 async function syncHuntSave(){if(!accountScope)return true;return saveQueue.enqueue(state,restored.owned)}
 function save(){
@@ -50,7 +56,7 @@ function save(){
  state.hunt.lastZone=currentZone?.id||state.hunt.lastZone||null;
  state.savedAt=Date.now();
  try{storage.setItem(saveKey,JSON.stringify(state));storage.setItem(saveKey+'-unsynced',JSON.stringify({baseVersion:saveQueue.version,profile:state,owned:restored.owned}))}catch{}
- if(accountScope){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(syncHuntSave,1200)}
+ if(accountScope){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(syncHuntSave,2000)}
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const materialCache=new Map(),mat=c=>{const k=String(c);if(!materialCache.has(k))materialCache.set(k,new T.MeshStandardMaterial({color:c,roughness:.82,metalness:.03,flatShading:false}));return materialCache.get(k)};
