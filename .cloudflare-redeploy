@@ -1,7 +1,7 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 067deb56ef5094c56f74cfe26bd95a843aadb57f
-Reason: v51 onboarding balance per user request. BOTH fresh main-game profiles and fresh Cloudflare trial economy accounts start with 5000G (was 1000G + 1500G). Do not change existing Cloudflare saves, user accounts, gold/XP/items or skomet/준자 admin; no database migrations or deletes. iOS dynamic game import and starter economy module cache bust. Preserve v51 market, profession, workshop, quests and existing 10 missions.
-CI: https://github.com/skomet84-code/junja-world/actions/runs/39400085879 PASS
-Deploy configuration: life/cf/wrangler.jsonc using branch head above
+Release commit: 5c626ddf2e43a0d74a124d246fc37755f260680d
+Reason: Fix v51 crafted furniture decoration placement. Previously hidden in old v49 cleanup, now discoverable on home/production/house menus, workshop crafting UI, and garden. Add visible mobile cancel button, owned-item counts and step-by-step placement guidance. iOS/Kakao cache bust for game.js and village-navigation-v49.js. Preserve existing v51 5000G starter, account UUIDs, skomet/준자 admin rights, all player saves and loot. Do not delete/reset any durable database. No account/DB schema modifications.
+CI: https://github.com/skomet84-code/junja-world/actions/runs/39401134050 SUCCESS
+Cloudflare deploy config life/cf/wrangler.jsonc; use release branch head above.
 Requested: 2026-10-20 KST
