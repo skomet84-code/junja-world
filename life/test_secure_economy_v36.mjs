@@ -3,12 +3,12 @@ import {startingEconomy,economyAction,economyView,economyDay,LAB_CROPS,LAB_ORDER
 
 const t=new Date('2026-10-18T04:00:00Z');
 const beginning=startingEconomy();
-assert.equal(beginning.coins,1500);
+assert.equal(beginning.coins,5000);
 assert.equal(beginning.plots.length,6);
 assert.equal(economyDay(new Date('2026-10-18T16:00:00Z')),'2026-10-19','KST day must not use browser clock');
 const planted=economyAction(beginning,'plant',{index:0,crop:'lettuce',cost:-99999},t);
-assert.equal(planted.next.coins,1480);
-assert.equal(beginning.coins,1500,'Reducer must never mutate its original DB snapshot');
+assert.equal(planted.next.coins,4980);
+assert.equal(beginning.coins,5000,'Reducer must never mutate its original DB snapshot');
 assert.equal(planted.receipt.delta,-20);
 assert.equal(planted.next.plots[0].crop,'lettuce');
 assert.throws(()=>economyAction(planted.next,'plant',{index:0,crop:'lettuce'},t),/이미/);
@@ -19,10 +19,10 @@ assert.throws(()=>economyAction(planted.next,'sell',{item:'lettuce',quantity:100
 const harvested=economyAction(planted.next,'harvest',{index:0},new Date(t.getTime()+60001));
 assert.equal(harvested.next.stock.lettuce,1);
 assert.equal(harvested.next.plots[0],null);
-assert.equal(harvested.next.coins,1480);
+assert.equal(harvested.next.coins,4980);
 const sold=economyAction(harvested.next,'sell',{item:'lettuce',sell:99999999},new Date(t.getTime()+61000));
 assert.equal(sold.receipt.delta,34,'Sale price must come from server catalog only');
-assert.equal(sold.next.coins,1514);
+assert.equal(sold.next.coins,5014);
 assert.equal(sold.next.stock.lettuce,0);
 assert.throws(()=>economyAction(sold.next,'sell',{item:'lettuce'},t),/재고/);
 assert.equal(LAB_ORDERS.length,3);
@@ -30,7 +30,7 @@ assert.equal(LAB_ORDERS.length,3);
 let s=startingEconomy();
 s.stock={berry:3,lettuce:2,carrot:1};
 let craft=economyAction(s,'craft',{recipe:'berry_jam'},t);
-assert.equal(craft.next.coins,1390);
+assert.equal(craft.next.coins,4890);
 assert.equal(craft.next.stock.berry,0);
 assert.equal(craft.next.stock.berry_jam,1);
 assert.throws(()=>economyAction(craft.next,'craft',{recipe:'berry_jam'},t),/부족/);
