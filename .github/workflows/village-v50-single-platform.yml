@@ -41,7 +41,7 @@ jobs:
       - name: Bundle a separate Cloudflare-only Worker with no external API
         working-directory: life
         run: |
-          npx wrangler deploy --config cf/do/wrangler.preview.jsonc --dry-run --outdir /tmp/junja-unified-package
+          npx wrangler deploy --config cf/wrangler.jsonc --dry-run --outdir /tmp/junja-unified-package
           if grep -R -l 'junja-village-friends.vercel.app' /tmp/junja-unified-package; then
             echo 'FAIL old Vercel API is still bundled into single-platform Worker'
             exit 1
@@ -50,7 +50,7 @@ jobs:
         working-directory: life
         run: |
           set -euo pipefail
-          npx wrangler dev --config cf/do/wrangler.preview.jsonc --local --port 8788 --ip 127.0.0.1 > /tmp/junja-unified-dev.log 2>&1 &
+          npx wrangler dev --config cf/wrangler.jsonc --local --port 8788 --ip 127.0.0.1 > /tmp/junja-unified-dev.log 2>&1 &
           WRANGLER_PID=$!
           trap 'kill $WRANGLER_PID || true; tail -100 /tmp/junja-unified-dev.log' EXIT
           READY=0
