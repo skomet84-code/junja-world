@@ -35,6 +35,7 @@ jobs:
           node cf/do/test_pbkdf2_cap_v50.mjs
           node test_account_mobile_v50.mjs
           python3 cf/do/test_fresh_opening.py
+          node cf/do/test_owner_promotion_v50.mjs
       - name: Build v50 game and run complete existing suite
         working-directory: life
         run: |
