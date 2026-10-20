@@ -31,8 +31,10 @@ for(const id of ['shopBtn','farmBtn','fishBtn','craftBtn','decorBtn','bagBtn','g
 }
 assert(game.includes("installVillageDockV49();"),'Actual startup must bind new menus');
 assert(game.includes("onCategory:openVillageMenuV49"),'All tabs must navigate');
-assert(game.includes('case \'go-goal\':return q?goStation(q.station):openJourney()'),
- 'Goal CTA must actually move to the indicated station');
+assert(game.includes("case 'go-goal':return q?goQuestDestinationV55(q):openJourney()")&&
+ game.includes('function goQuestDestinationV55(goal)')&&
+ game.includes('if(known)return goStation(known.id)'),
+ 'Goal CTA must open the actual quest activity or move to its location');
 assert(!game.includes('🏪 주민 상점 · v38 시험 거래소'),
  'Remove v38 player-facing menu label');
 assert(!game.includes('🔐 서버 경제 v37 · 복구 장부 시험장'),
