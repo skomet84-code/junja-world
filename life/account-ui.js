@@ -45,7 +45,7 @@ async function refresh(){
  $('accountGuest').hidden=true;$('accountMember').hidden=false;
  $('accountIdentity').textContent='👤 '+r.user.nickname+' ('+r.user.username+')';
  $('accountBalance').textContent='서버 지갑 '+Number(r.balance).toLocaleString()+'G';
- $('accountAdmin').hidden=!(r.user.role==='admin'&&r.user.username==='admin_junja2');
+ $('accountAdmin').hidden=!(r.user.role==='admin');
  userStore('village-auth-role',r.user.role);
  $('accountOpen').textContent='👤 '+r.user.nickname;
  userStore('village-auth-nickname',r.user.nickname);
@@ -117,7 +117,7 @@ refresh();
 
 
 const ownerTarget=()=>$('accountRecipient').value.trim().toLowerCase();
-$('accountSelf').onclick=()=>{$('accountRecipient').value='admin_junja2';say('내 계정을 선택했어')};
+$('accountSelf').onclick=()=>{$('accountRecipient').value=userRead('village-auth-user')||'';say('내 계정을 선택했어')};
 $('accountUsers').onclick=async()=>{
  try{const r=await api('admin_users');const list=$('accountUserList');list.replaceChildren();for(const u of r.users){const btn=document.createElement('button');btn.type='button';btn.style.cssText='display:block;width:100%;text-align:left;font-size:13px;margin:4px 0';btn.textContent=(u.role==='admin'?'👑 ':'👤 ')+u.nickname+' ('+u.username+') · 서버 '+Number(u.balance).toLocaleString()+'G'+(u.version?' · 저장 있음':'');btn.onclick=()=>{$('accountRecipient').value=u.username;say(u.nickname+' 선택됨')};list.append(btn)}if(!r.users.length)list.textContent='회원 없음';say('회원 '+r.users.length+'명 조회 완료')}catch(e){say('⚠️ '+e.message)}
 };
