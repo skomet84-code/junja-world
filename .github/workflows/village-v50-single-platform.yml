@@ -1,7 +1,7 @@
 name: Village v50 Single Cloudflare Platform
 on:
   push:
-    branches: [feat/village-v50-cloudflare-single-platform]
+    branches: [feat/village-v50-cloudflare-single-platform, feat/village-v50-cloudflare-cutover]
   workflow_dispatch:
 permissions:
   contents: read
@@ -32,6 +32,7 @@ jobs:
           node --check cf/d1/economy-staging.js
           node --check game.js
           node cf/d1/test_account_staging.mjs
+          node cf/do/test_pbkdf2_cap_v50.mjs
       - name: Build v50 game and run complete existing suite
         working-directory: life
         run: |
