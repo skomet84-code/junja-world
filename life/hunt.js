@@ -8,6 +8,7 @@ import {initBag,bagCapacity,bagUsed,canStore,addBagItems} from './inventory-v29.
 import {EQUIPMENT,SKILL_PRICES,initCombat,purchaseSkill,purchaseEquipment,equipItem,equippedStats,skillStatus,spendSkill,incomingDamage} from './combat-progression-v30.js';
 import {POTIONS,ensurePotions,purchasePotion,consumePotion} from './combat-potions-v29.js';
 import {initHuntMastery,zoneAccess,bossAccess,masteryEnemy,hunterDamage,registerHuntKill,dailyHuntContracts,claimHuntContract,HUNT_MASTERY_GATES} from './hunt-balance-v54.js?v=v54-hunt-20261020';
+import {registerHuntWeekV55,weeklyHuntChallengesV55,claimHuntWeekV55,koreaHuntWeekV55} from './hunt-weekly-v55.js';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
@@ -284,6 +285,28 @@ function zoneMenu(){
  addShopLinks();$('viewHuntLoot').onclick=craftMenu;$('returnVillage').onclick=goHome;
  $('huntContracts').onclick=openHuntContracts;
 }
+function openHuntWeekV55(){
+ const now=today(),week=koreaHuntWeekV55(now),entries=weeklyHuntChallengesV55(state.hunt,now);
+ openModal('<h2>🏅 이번 주 원정대 도전</h2>'+
+  '<p>매주 월요일 갱신 · 출석 의무 없음 · 모든 사냥터 기록이 함께 쌓여요.</p>'+
+  '<div class="hero">📅 시작 '+week+' · 생활 Lv.'+level()+' · 사냥 숙련 '+state.hunt.masteryV54.score+'</div>'+
+  entries.map(task=>'<div class="craft-card" style="margin-bottom:10px"><strong>'+task.icon+' '+task.name+'</strong>'+
+   '<p>이번 주 '+task.progress+' / '+task.target+' · 완료 보상 '+task.reward.toLocaleString('ko-KR')+'G</p>'+
+   '<button data-weekly-hunt="'+task.id+'" '+(task.ready?'':'disabled')+'>'+
+   (task.claimed?'✅ 지급 완료':task.ready?'🎁 보상 받기':'토벌 실적이 더 필요해')+'</button></div>').join('')+
+  '<button id="weeklyBack" class="wide">📜 일일 토벌 의뢰로</button>');
+ $('weeklyBack').onclick=openHuntContracts;
+ document.querySelectorAll('[data-weekly-hunt]').forEach(button=>button.onclick=()=>{
+  const task=weeklyHuntChallengesV55(state.hunt,today()).find(x=>x.id===button.dataset.weeklyHunt);
+  if(!task?.ready)return;
+  const earned=credit(state,task.reward,'hunt','주간 원정대 · '+task.name,level());
+  if(!earned.ok||earned.amount<1){toast('오늘 보상 발행 한도를 확인해 줘');return}
+  const marked=claimHuntWeekV55(state.hunt,today(),task.id);
+  if(!marked.ok)return;
+  save();updateHud();toast('🏅 '+task.name+' 달성! +'+earned.amount.toLocaleString('ko-KR')+'G');
+  openHuntWeekV55();
+ });
+}
 function openHuntContracts(){
  const lines=HUNT_ZONES.map((zone,i)=>{
   const p=state.hunt.masteryV54.areas[zone.id],tasks=dailyHuntContracts(state.hunt,HUNT_ZONES,i,today());
@@ -296,8 +319,10 @@ function openHuntContracts(){
  openModal('<h2>📜 오늘의 모험가 도전</h2>'+
   '<p>매일 정찰·정예 추적·보스 임무를 완료하고 보상을 받아! 마을 레벨이 높아도 새로운 토벌 실력이 필요해.</p>'+
   '<p>⚠️ 토벌 기록은 현재 캐릭터 게임 저장에 보관되며, 별도 서버 공인 랭킹은 아직 없어.</p>'+lines+
+  '<button class="wide" id="openWeeklyHuntV55">🏅 이번 주 원정대 도전</button>'+ 
   '<button class="wide" id="backToHuntMap">🗺️ 지역 선택으로 돌아가기</button>');
  $('backToHuntMap').onclick=zoneMenu;
+ $('openWeeklyHuntV55').onclick=openHuntWeekV55;
  document.querySelectorAll('[data-contract]').forEach(btn=>btn.onclick=()=>{
   const [n,id]=btn.dataset.contract.split(':'),index=Number(n),tasks=dailyHuntContracts(state.hunt,HUNT_ZONES,index,today());
   const task=tasks.find(q=>q.id===id);
@@ -457,6 +482,7 @@ function mobHit(m,damage){
   }
   state.hunt.kills++;
   const mastery=registerHuntKill(state.hunt,HUNT_ZONES,areaIndex,{elite:Boolean(m.model.elite),boss,day:today()});
+  registerHuntWeekV55(state.hunt,today(),{elite:Boolean(m.model.elite),boss});
   const paid=credit(state,m.model.coins,'hunt','몬스터 토벌 · '+m.model.name,huntLevel(state.xp));
   // Combat XP grows substantially slower than life XP, while the independent
   // mastery score measures actual combat progress and unlocks tougher regions.
