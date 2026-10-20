@@ -10,7 +10,7 @@ import {openProfessionCenter} from './professions-ui-v39.js';
 import {openBusinessCenter} from './business-ui-v40.js';
 import {mountQuestsV51} from './quests-ui-v51.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
-import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
+import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js?v=v55-harvest-free';
 import {createWorldEnergySpend} from './world-energy-v53.js?v=v54-energy-reconcile';
 import {mountHomeStudioV48} from './home-studio-ui-v48.js';
 import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js?v=v51-decor-placement-20261020';
@@ -21,8 +21,8 @@ import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallen
 import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js?v=v53-no-attendance';
 import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js?v=v51-starter-5000';
 import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket,AUTO_SELL_PRICE,purchaseAutoSellTicket,toggleFishProtection} from './inventory-v29.js';
-import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js';
-import {ARCADE_RULES_V55,arcadeStatus,playArcade} from './arcade-v55.js';
+import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js?v=v55-direct-auto-sale';
+import {ARCADE_RULES_V55,arcadeStatus,playArcade} from './arcade-v55.js?v=v55-virtual-games';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
