@@ -348,11 +348,13 @@ const villageSaveStatus=document.createElement('div');
 villageSaveStatus.id='villageSaveStatus';
 villageSaveStatus.setAttribute('role','status');
 villageSaveStatus.setAttribute('aria-live','polite');
-villageSaveStatus.style.cssText='position:fixed;z-index:38;left:50%;bottom:calc(91px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff9e8ef;border:1px solid #b8ccac;border-radius:22px;box-shadow:0 2px 12px #253c2922;color:#3f7053;font-weight:800;font-size:11px;padding:6px 12px;max-width:92vw;white-space:nowrap;pointer-events:none';
-villageSaveStatus.textContent=cloudSave?.profile?'● 서버 기록 불러옴':(restored.recovered?'● 이 기기의 마지막 기록 복구 · 서버 저장 대기':'● 첫 저장 준비 중');
+villageSaveStatus.style.cssText='display:none;position:fixed;z-index:38;left:50%;bottom:calc(91px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff9e8ef;border:1px solid #b8ccac;border-radius:22px;box-shadow:0 2px 12px #253c2922;color:#3f7053;font-weight:800;font-size:11px;padding:6px 12px;max-width:92vw;white-space:nowrap;pointer-events:none';
+villageSaveStatus.textContent=''; // Standard saves stay silent; local backup and conflict alerts are retained.
 document.body.append(villageSaveStatus);
 function setSaveStatus(message,isError=false){
- villageSaveStatus.textContent=message;
+ villageSaveStatus.textContent=isError?message:'';
+ villageSaveStatus.style.display=isError?'block':'none';
+ villageSaveStatus.setAttribute('aria-live',isError?'assertive':'off');
  villageSaveStatus.style.color=isError?'#a34f39':'#3f7053';
  villageSaveStatus.style.borderColor=isError?'#dbad99':'#b8ccac';
 }
@@ -375,7 +377,7 @@ const saveQueue=createSaveQueue({version:initialCloudVersion,
  onStatus:(status,data)=>{
   if(status==='blocked')showSaveConflict((data?.status?'HTTP '+data.status+' · ':'')+(data?.error||'저장 요청이 거부됐어요. 새로고침 전 기기의 기록을 보존해주세요.'));
   else if(status==='retry')setSaveStatus('⚠ 서버 저장 실패 · 자동 재시도 · '+String(data?.message||'연결 오류').slice(0,75),true);
-  else setSaveStatus((status==='saved'?'✔ 서버 저장 완료':'⏳ 서버 저장 중')+' · Lv.'+(1+Math.floor((Number(data.profile.xp)||0)/160)));
+  else if(status==='saved')setSaveStatus('',false); // Saving and successful writes are silent.
  }
 });
 function queueCloudSave(){if(accountScope&&!saveBlocked)return saveQueue.enqueue(state,owned)}
@@ -631,7 +633,7 @@ hud();
 // browser progress. Otherwise brand-new accounts have no cloud save until
 // a state change and can reappear at Lv.1 on another device.
 if(accountScope)queueCloudSave();
-setInterval(save,5500);
+setInterval(save,12000); // Quiet background movement snapshots; gameplay achievements still save immediately.
 if(accountScope){
  const lastAdminRevision=Number(state.__adminRevision)||0;
  async function pullAdminChanges(){
