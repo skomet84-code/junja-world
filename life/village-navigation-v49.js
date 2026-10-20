@@ -13,6 +13,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
   {id:'goal',icon:'📖',label:'다음 생활 목표',description:'현재 진행 중인 목표·보상 확인'},
   {id:'farm',icon:'🌾',label:'농장',description:'작물을 심고 수확하기'},
   {id:'craft',icon:'🧵',label:'제작소',description:'제작소까지 걸어가서 재료 가공',travel:true},
+  {id:'decorate',icon:'🪑',label:'제작물 배치하기',description:'만든 벤치·가로등·꽃 화분을 마을에 놓거나 회수'},
   {id:'orders',icon:'📦',label:'주민 주문',description:'주문을 납품하고 명성 쌓기'},
   {id:'house',icon:'🏠',label:'나의 집',description:'3D 인테리어와 가구 배치'},
   {id:'energy',icon:'⚡',label:'행동력',description:'회복 상태와 시험 골드 충전',trial:true}
@@ -29,6 +30,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
  ]),
  production:Object.freeze([
   {id:'craft',icon:'🧵',label:'제작소',description:'공방으로 이동해 도구와 선물 만들기',travel:true},
+  {id:'decorate',icon:'🌷',label:'제작물 배치하기',description:'제작한 장식 선택 → 빈 땅 터치 → 배치 완료'},
   {id:'orders',icon:'📦',label:'주민 주문',description:'농산물 가공과 주문 납품'},
   {id:'business',icon:'🏭',label:'나의 사업장',description:'직업 전문 생산품 만들기',trial:true},
   {id:'district',icon:'🏘️',label:'사업장 거리',description:'3D 공방과 손님·매출 확인',trial:true},
@@ -37,7 +39,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
  ]),
  house:Object.freeze([
   {id:'house',icon:'🏠',label:'나의 집',description:'3D 인테리어·가구 배치·증축'},
-  {id:'decorate',icon:'🌷',label:'마을 꾸미기',description:'내 장식과 정원 꾸미기'},
+  {id:'decorate',icon:'🌷',label:'제작물 배치·마을 꾸미기',description:'벤치·가로등·꽃 화분 배치와 회수'},
   {id:'wardrobe',icon:'👒',label:'옷장',description:'옷·헤어·소품 바꾸기'},
   {id:'collection',icon:'🐠',label:'어항 컬렉션',description:'잡은 물고기 감상'},
   {id:'reputation',icon:'🏆',label:'명예 기록',description:'마을 성장과 칭호 확인'}
