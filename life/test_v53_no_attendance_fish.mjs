@@ -10,7 +10,7 @@ const menu=readFileSync(new URL('./village-navigation-v49.js',import.meta.url),'
 // as an array index and must not be set back to the start.
 assert.equal(LONG_CHAPTER_BLUEPRINTS.length,42);
 assert.deepEqual(LONG_CHAPTER_BLUEPRINTS.map(x=>x.id),Array.from({length:42},(_,i)=>i+9));
-for(const id of [18,43,49]){
+for(const id of [18,28,36,43,49]){
  const quest=LONG_CHAPTER_BLUEPRINTS.find(x=>x.id===id);
  assert(quest,'main chapter '+id+' is not deleted');
  assert.notEqual(quest.metric,'attendance','main chapters may not block progress for days');
@@ -19,6 +19,8 @@ for(const id of [18,43,49]){
 }
 assert(LONG_CHAPTER_BLUEPRINTS.every(q=>q.metric!=='attendance'),'no attendance gate in any main chapter');
 assert.equal(LONG_CHAPTER_BLUEPRINTS.find(q=>q.id===18).reward,1830);
+assert.equal(LONG_CHAPTER_BLUEPRINTS.find(q=>q.id===28).reward,3000);
+assert.equal(LONG_CHAPTER_BLUEPRINTS.find(q=>q.id===36).reward,3940);
 assert.equal(LONG_CHAPTER_BLUEPRINTS.find(q=>q.id===43).reward,4760);
 assert.equal(LONG_CHAPTER_BLUEPRINTS.find(q=>q.id===49).reward,5460);
 const veteran={
@@ -28,6 +30,8 @@ const veteran={
 };
 const progress=makeLivingChapters(veteran,FISH_BY_NAME);
 assert.equal(progress[18-9].done(),10,'existing zero-attendance player can finish chapter 18 with existing craft progress');
+assert.equal(progress[28-9].done(),13,'no forced seven-day waiting for chapter 28');
+assert.equal(progress[36-9].done(),75,'no twelve-day attendance gate for chapter 36');
 assert.equal(progress[43-9].done(),90,'existing zero-attendance player can finish chapter 43 via harvest');
 assert.equal(progress[49-9].done(),13,'chapters use existing craft counts and never require login streak');
 assert(game.includes('state.chapter=Math.max(0,Math.min(50,'),'saved chapter index remains unchanged');
