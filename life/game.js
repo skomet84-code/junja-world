@@ -493,7 +493,7 @@ function openVillageMenuV49(section='home'){
   onAction:action=>{
    switch(action){
     case 'goal':return openJourney();
-    case 'go-goal':return q?goStation(q.station):openJourney();
+    case 'go-goal':return q?goQuestDestinationV55(q):openJourney();
     case 'farm':case 'storage':return openPersonalEstate();
     case 'quickfarm':return openFastFarmV55();
     case 'fishing':return goStation('pier');
@@ -565,10 +565,26 @@ function updateJourney(force=false){
   if(!state.dailyVisits.includes(s.id)){state.dailyVisits.push(s.id);completeDaily()}
  }
 }
+// Unified quest deep-links. A goal should open the actual activity, not only a
+// generic map marker, while keeping the original quest ID/save intact.
+function goQuestDestinationV55(goal){
+ if(!goal)return openJourney();
+ if(goal.station==='farm')return openFastFarmV55();
+ if(goal.station==='garden')return openDecor();
+ if(goal.station==='home')return openHome();
+ if(goal.station==='village'){
+  if(/사냥|몬스터|토벌/.test(goal.desc||'')||goal.metric==='huntKills')return goToHunting();
+  if(goal.metric==='bond')return openSocial();
+  return openWorldMap();
+ }
+ const known=stations.find(s=>s.id===goal.station);
+ if(known)return goStation(known.id);
+ return openWorldMap();
+}
 function openJourney(){
  const q=chapters[state.chapter];
  openModal(`<span class="titlebadge">MY LIFE · ${Math.min(CHAPTER_COUNT,state.chapter+1)} / ${CHAPTER_COUNT}</span><h2>나의 마을 생활</h2><p>생활 · 낚시 · 사냥 · 꾸미기 · 주민 교류 · 장기 성장</p>${q?`<div class="mini-card"><strong>${q.title}</strong><p>${q.desc}</p><div class="mini-progress"><i style="width:${q.done()/q.total*100}%"></i></div><p>${q.done()} / ${q.total} · 보상 ${q.reward}G + 경험치 ${q.xp||60}</p><button id="journeyGo">${(stations.find(s=>s.id===q.station)?.icon||'🌿')} 목적지까지 걷기</button><button id="journeyClaim" ${q.done()<q.total?'disabled':''}>보상 받고 다음 목표</button></div>`:'<div class="mini-card"><strong>🎉 생활 장인 달성!</strong><p>자유롭게 채집·제작·꾸미기를 즐기고 일일 의뢰도 도전해요.</p></div>'}<div class="village-loop"><button id="loopGather">🌳 채집<small>재료 모으기</small></button><button id="loopCraft">🪵 제작<small>가치 더하기</small></button><button id="loopSell">⚓ 판매<small>성장 비용 마련</small></button></div><h3>나의 성장 혜택 · Lv.${lifeLevel()}</h3>${lifePerkGuide()}<h3>🏅 나의 칭호 · ${villageTitle(state.chapter)}</h3><p>50장 이후에도 월간 기록과 마을 평판은 계속 성장해요.</p><h3>걸어온 길</h3>${chapters.map((c,i)=>`<p>${i<state.chapter?'✅':i===state.chapter?'▶':'▫️'} ${i+1}. ${c.title}</p>`).join('')}<div class="pill-row"><button class="pill-btn" id="journeyMap">마을 지도</button><button class="pill-btn ghost" id="journeyDaily">일일 의뢰 / 업적</button><button class="pill-btn ghost" id="journeyHelp">조작법</button></div>`);
- if(q){document.getElementById('journeyGo').onclick=()=>goStation(q.station);document.getElementById('journeyClaim').onclick=()=>{if(chapters[state.chapter]!==q||q.done()<q.total)return;state.chapter++;earn(q.reward,'chapter','메인 챕터 완성');state.xp+=(q.xp||60);save();hud();updateJourney(true);toast('생활 목표 완료! +'+q.reward+'G');openJourney()}}
+ if(q){document.getElementById('journeyGo').onclick=()=>goQuestDestinationV55(q);document.getElementById('journeyClaim').onclick=()=>{if(chapters[state.chapter]!==q||q.done()<q.total)return;state.chapter++;earn(q.reward,'chapter','메인 챕터 완성');state.xp+=(q.xp||60);save();hud();updateJourney(true);toast('생활 목표 완료! +'+q.reward+'G');openJourney()}}
  document.getElementById('loopGather').onclick=()=>goStation('forest');document.getElementById('loopCraft').onclick=openCraft;document.getElementById('loopSell').onclick=openMarket;document.getElementById('journeyMap').onclick=openWorldMap;document.getElementById('journeyDaily').onclick=openJournal;document.getElementById('journeyHelp').onclick=guide;
 }
 async function goToHunting(){
@@ -576,7 +592,7 @@ async function goToHunting(){
  location.assign('/hunt.html?room='+encodeURIComponent(room||'SPRING'));
 }
 function openWorldMap(){
- openModal(`<span class="titlebadge">JUNJA ISLAND · 3,600 × 2,400</span><h2>길 따라 만나는 마을</h2><p>장소를 누르면 길을 찾아 걸어가요. 이동 중 바닥을 누르면 목적지가 바뀝니다.</p><div class="map-overview"><span>서쪽 · 마을과 바다</span><span>동쪽 · 숲과 공방</span><div>🏠 ⛲ 🌱 🎣</div><div>🌲 🪵 👒 ⛏️ 📦</div></div><div class="mini-card"><strong>⚔️ 마을 밖 사냥터</strong><p>네 개의 독립된 3D 사냥터에서 몬스터를 잡고 스킬을 사용해 전리품을 모아봐요. Lv.3부터 입장할 수 있어요.</p><button type="button" id="mapHuntGo">⚔️ 사냥터 지역 지도 열기</button></div><div class="card-grid">${stations.map(s=>`<div class="mini-card"><span class="emoji">${s.icon}</span><strong>${s.name}</strong><p>${s.desc}</p><button data-station="${s.id}">${state.visits[s.id]?'방문한 장소':'새로운 장소'} · 이동</button></div>`).join('')}</div>`);
+ openModal(`<span class="titlebadge">JUNJA ISLAND · 3,600 × 2,400</span><h2>길 따라 만나는 마을</h2><p>장소를 누르면 길을 찾아 걸어가요. 이동 중 바닥을 누르면 목적지가 바뀝니다.</p><div class="map-overview"><span>서쪽 · 마을과 바다</span><span>동쪽 · 숲과 공방</span><div>🏠 ⛲ 🌱 🎣</div><div>🌲 🪵 👒 ⛏️ 📦</div></div><div class="mini-card"><strong>⚔️ 마을 밖 사냥터</strong><p>여섯 개의 독립된 3D 사냥터에서 정예몬스터·보스·주간 원정대에 도전해 전리품을 모아봐요. Lv.3부터 입장할 수 있어요.</p><button type="button" id="mapHuntGo">⚔️ 사냥터 지역 지도 열기</button></div><div class="card-grid">${stations.map(s=>`<div class="mini-card"><span class="emoji">${s.icon}</span><strong>${s.name}</strong><p>${s.desc}</p><button data-station="${s.id}">${state.visits[s.id]?'방문한 장소':'새로운 장소'} · 이동</button></div>`).join('')}</div>`);
  els.panelBody.querySelectorAll('[data-station]').forEach(b=>b.onclick=()=>goStation(b.dataset.station));
  document.getElementById('mapHuntGo').onclick=goToHunting;
 }
@@ -1820,7 +1836,7 @@ function openBag(){
   save();hud();toast('🎟️ '+result.sold+'마리 판매 · +'+result.earnings.toLocaleString('ko-KR')+'G');openBag();
  };
 }
-function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 모여봐요 반말방숲 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
+function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 모여봐요 반말방숲 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 로그인한 계정의 진행 상황은 Cloudflare 서버에 저장됩니다. 마을 경제와 별도 경제는 서로 다른 장부입니다.</p>`) }
 function beginFishing(){
  if(!canStore(state,1)){closeModal();toast('🎒 가방이 가득 찼어요! 수산시장에서 판매하거나 확장해요');return}
  closeModal();stopWalking();
