@@ -7,6 +7,7 @@ import {handleAccountD1,userForSession} from '../d1/account-staging.js';
 import {handleAccountExtras} from '../d1/account-extensions.js';
 import {handleTrialEconomyD1} from '../d1/economy-staging.js';
 import {handleMarketV51} from './market-v51.js';
+import {handleProfessionsV51} from './professions-v51.js';
 
 // The D1-style shim deliberately implements only the methods used by the
 // staging handlers, running against Cloudflare's synchronous SQLite storage.
@@ -100,6 +101,7 @@ export class VillageDatabase extends DurableObject {
   if(url.pathname==='/api/economy-v36')return handleTrialEconomyD1(request,{DB:this.db},'v36');
   if(url.pathname==='/api/economy-v37')return handleTrialEconomyD1(request,{DB:this.db},'v37');
   if(url.pathname==='/api/market-v38')return handleMarketV51(request,this.ctx.storage,this.db);
+  if(url.pathname==='/api/professions-v39')return handleProfessionsV51(request,this.ctx.storage,this.db);
   return json({error:'지원하지 않는 API'},404);
  }
 }
