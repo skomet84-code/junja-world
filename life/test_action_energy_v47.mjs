@@ -81,7 +81,7 @@ assert.equal(nextEnergyPrice(2),4000);
 assert.equal(nextEnergyPrice(3),8000);
 assert.equal(nextEnergyPrice(29),536870912000);
 assert.equal(nextEnergyPrice(30),null,'price exceeds 1 trillion wallet ceiling, not count limit');
-assert.throws(()=>nextEnergyPrice(-1),/유효하지/);
+assert.throws(()=>nextEnergyPrice(-1),/올바르지/);
 const overflow=startingEconomy();
 overflow.coins=1_000_000_000_000;
 overflow.actionEnergyV47={current:0,at:t,packsDay:'2026-10-19',packs:30};
