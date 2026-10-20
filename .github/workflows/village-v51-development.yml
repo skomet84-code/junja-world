@@ -41,6 +41,8 @@ jobs:
           node cf/do/test_market_v51.mjs
           node --check cf/do/professions-v51.js
           node cf/do/test_professions_v51.mjs
+          node --check cf/do/business-v51.js
+          node cf/do/test_business_v51.mjs
       - name: Build v50 game and run complete existing suite
         working-directory: life
         run: |
