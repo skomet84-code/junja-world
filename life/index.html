@@ -199,7 +199,7 @@ window.startVillageGame=()=>{
    const data=await r.json();
    window.__villageCloudSave=data.save||null;
    stage="game";
-   await import("./game.js?v=v53-energy-spend-20261020");
+   await import("./game.js?v=v54-energy-recovery-save-ui-20261020");
    window.__villageGameStarted=true;
    return true;
   }catch(e){
