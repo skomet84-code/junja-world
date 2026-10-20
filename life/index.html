@@ -219,15 +219,32 @@ window.startVillageGame=()=>{
 #accountPanel input{display:block;width:100%;margin:9px 0;padding:12px;border-radius:12px;border:1px solid #afc4b1;background:#fff;font-size:16px}
 #accountPanel button{padding:10px 14px;margin:5px;border-radius:12px;background:#bfe1c5;border:0;color:#234531;font-weight:700}
 #accountPanel p{line-height:1.55;font-size:13px}
+#accountGuest button:disabled{opacity:.55;cursor:wait}
+#accountGuest button{min-height:46px;touch-action:manipulation}
+#accountMessage{min-height:42px;overflow-wrap:anywhere}
+#accountPanel{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
 </style>
 <div id="accountDock"><button id="accountOpen" type="button">🔐 계정 · 송금</button></div>
 <div id="accountLayer" role="dialog" aria-modal="true" aria-label="계정 관리"><div id="accountPanel">
 <button id="accountClose" type="button" style="float:right">✕ 닫기</button><h2>🌳 모여봐요 반말방숲</h2>
-<p id="accountMessage">친구 계정을 만들거나 로그인하세요. 기존 브라우저 게임 기록은 삭제되지 않습니다.</p>
+<p id="accountMessage">새 Cloudflare 서버야. 예전 아이디는 이전되지 않았어. 신규 계정으로 가입하고 로그인해 줘. 기존 최고관리자는 별도 복구 대상이야.</p>
 <div id="accountGuest"><input id="accountUser" placeholder="아이디 (영문·숫자·밑줄)" autocomplete="username"/><input id="accountNick" placeholder="닉네임 (회원가입할 때)" maxlength="12"/><input id="accountPassword" type="password" placeholder="비밀번호 (4자 이상)" autocomplete="current-password"/><button id="accountLogin">로그인</button><button id="accountRegister">회원가입</button></div>
 <div id="accountMember" hidden><p id="accountIdentity"></p><p id="accountBalance"></p><input id="accountRecipient" placeholder="받는 친구 닉네임"/><input id="accountAmount" type="number" min="1" step="1" placeholder="보낼 골드"/><button id="accountTransfer">친구에게 송금</button><button id="accountLogout">로그아웃</button><div id="accountAdmin" hidden><h3>👑 준자 최고관리자</h3><p>대상 아이디를 선택하고 지급·회수·캐릭터 조정을 할 수 있어요.</p><button id="accountUsers">👥 회원 목록 새로고침</button><div id="accountUserList" style="max-height:230px;overflow:auto;border:1px solid #c7d7c9;border-radius:12px;padding:8px;margin:8px 0"></div><button id="accountSelf">👑 내 계정 선택</button><h3>💰 서버 지갑 관리</h3><button id="accountGrant">선택 계정 서버 골드 지급</button><button id="accountReclaim">선택 계정 서버 골드 회수</button><h3>🎮 게임 캐릭터 관리</h3><p>아래 금액과 레벨은 현재 값으로 설정해요. 접속 중인 친구는 로그아웃 후 다시 로그인해야 해요.</p><input id="accountCharacterValue" type="number" min="0" step="1" placeholder="설정할 골드 또는 레벨"/><button id="accountSetCoins">게임 골드 설정</button><button id="accountSetLevel">레벨 설정</button><select id="accountItem" style="width:100%;padding:12px;border-radius:12px;margin:8px 0"><option value="fashion_hair_09">울프컷 헤어</option><option value="fashion_hair_01">숏컷 헤어</option><option value="fashion_outfit_01">의상 01</option><option value="fashion_accessory_01">액세서리 01</option><option value="fashion_pet_01">펫 01</option></select><button id="accountGiveItem">아이템 지급</button></div></div>
-<p>⚠️ 현재 게임 속 골드와 서버 지갑은 별도로 관리돼요. 기존 골드를 이전하기 전에는 송금할 수 없어요.</p>
-</div></div><script type="module" src="account-ui.js"></script><script type="module" src="admin-panel.js"></script><style>
+<p>ℹ️ 새 서버에서는 게임 골드와 서버 지갑이 구분돼. 먼저 로그인한 다음 마을에 입장해 줘.</p>
+</div></div><script type="module" src="account-ui.js?v=20261020-mobile-auth2"></script>
+<script>
+window.addEventListener('load',()=>{
+ setTimeout(()=>{
+  if(window.__villageAccountUiLoaded)return;
+  const panel=document.getElementById('accountMessage');
+  const gate=document.getElementById('villageGateStatus');
+  const message='⚠️ 로그인 화면 코드가 제대로 불러와지지 않았어. 새로고침하거나 Safari에서 다시 열어 줘.';
+  if(panel)panel.textContent=message;
+  if(gate)gate.textContent=message;
+ },1500);
+});
+</script><script type="module" src="admin-panel.js"></script><style>
 #villageGate{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#193c35ee,#456b50f2),radial-gradient(circle at 45% 15%,#d4f1b8,#537b58);display:flex;align-items:center;justify-content:center;padding:18px;color:#294c37}
 #villageGate[hidden]{display:none}
 #villageGateCard{width:min(440px,100%);background:#fff8e9;border:3px solid #f2dc9e;border-radius:28px;padding:25px 20px;text-align:center;box-shadow:0 20px 80px #0007}
