@@ -13,7 +13,7 @@ export default {
     const health=await store.fetch(new Request(new URL('/internal/health',url),{method:'GET'}));
     if(!health.ok)return json({ok:false,database:'unavailable',release:'v50-single-platform'},503);
     const result=await health.json();
-    return json({ok:true,edge:'cloudflare',database:result.database,release:'v50-single-platform',accountApi:'direct',multiplayer:'durable-objects'});
+    return json({ok:true,edge:'cloudflare',database:result.database,release:'v50-single-platform',accountApi:'direct',multiplayer:'durable-objects',freshOpening:result.freshOpening,registeredUsers:result.users,resetPreviousUsers:result.resetPreviousUsers});
    }catch(err){console.error('DB health check failed',err?.name);return json({ok:false,release:'v50-single-platform'},503)}
   }
   const directApi=['/api/account','/api/economy-v36','/api/economy-v37'];
@@ -31,7 +31,7 @@ export default {
    const headers=new Headers(request.headers);
    headers.set('x-village-verified-nick',auth.nickname);
    const verified=new Request(request,{headers});
-   const room=env.VILLAGE_ROOMS.get(env.VILLAGE_ROOMS.idFromName('v50-unified-rooms'));
+   const room=env.VILLAGE_ROOMS.get(env.VILLAGE_ROOMS.idFromName('v50-fresh-opening-rooms'));
    return room.fetch(verified);
   }
   if(url.pathname.startsWith('/api/')){
