@@ -194,7 +194,7 @@ window.startVillageGame=()=>{
    const data=await r.json();
    window.__villageCloudSave=data.save||null;
    stage="game";
-   await import("./game.js?v=v50-fresh-opening-20261020");
+   await import("./game.js?v=v51-quests-release-20261020");
    window.__villageGameStarted=true;
    return true;
   }catch(e){
