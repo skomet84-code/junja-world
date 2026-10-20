@@ -4,6 +4,7 @@ import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactu
 import {createWorld} from './world3d.js';
 import {FARM_BED_CENTERS,migrateVillageBeds,VILLAGE_WALK_SPEED} from './farm-plots-v52.js';
 import {planFarmBatchV55,FARM_BATCH_LIMIT_V55} from './farm-batch-v55.js';
+import {arcadeWalletV55,spinVillageArcadeV55,drawArcadeRandomV55,ARCADE_WHEEL_V55,ARCADE_MAX_PLAYS_V55} from './village-arcade-v55.js';
 import {mountEstateWorld} from './estate-world-v35.js';
 import {openSecureEconomyLab} from './secure-economy-ui-v37.js';
 import {openPlayerMarket} from './player-market-ui-v38.js';
@@ -496,6 +497,7 @@ function openVillageMenuV49(section='home'){
     case 'go-goal':return q?goQuestDestinationV55(q):openJourney();
     case 'farm':case 'storage':return openPersonalEstate();
     case 'quickfarm':return openFastFarmV55();
+    case 'arcade':return openVillageArcadeV55();
     case 'fishing':return goStation('pier');
     case 'gather':return goStation('forest');
     case 'craft':return goStation('workshop');
@@ -980,6 +982,33 @@ function openFastFarmV55(){
 }
 function farmAll(){let p=bedCenters.findIndex((_,i)=>state.beds[i].crop&&cropStage(state.beds[i])===3);if(p>=0){moveTo(bedCenters[p].x,bedCenters[p].y+56,{type:'farm',idx:p});toast('🌿 수확할 밭으로 이동해요');return}const v=bedCenters.findIndex((_,i)=>!state.beds[i].crop);if(v>=0){moveTo(bedCenters[v].x,bedCenters[v].y+56,{type:'farm',idx:v});toast('🌱 빈 밭으로 이동해요');return}openFarmShop()}
 function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*6).toLocaleString()}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${(o.cost*6).toLocaleString()}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*6;if(state.coins<cost){toast('코인이 부족해요');return}spend(cost,'씨앗 3개');state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
+let arcadeSpinBusyV55=false;
+function openVillageArcadeV55(){
+ const wallet=arcadeWalletV55(state,nowDay());
+ const chances=ARCADE_WHEEL_V55.map(x=>
+  '<div class="mini-card" style="flex:1;min-width:110px"><strong>'+x.label+'</strong><p>확률 '+x.odds+' · 배당 '+x.multiplier+'배</p></div>').join('');
+ openModal('<span class="titlebadge">🎡 JUNJA VILLAGE ARCADE</span><h2>🎡 마을 행운의 룰렛</h2>'+
+ '<p>하루 최대 5번, 직접 버튼을 눌러 게임 골드 100G로 행운을 시험해 봐. 실제 돈을 걸거나 환전하는 게임은 아니야.</p>'+
+ '<div class="mini-card"><strong>🪙 게임 골드 '+Math.floor(state.coins).toLocaleString('ko-KR')+'G</strong>'+
+ '<p>오늘 남은 도전 '+(ARCADE_MAX_PLAYS_V55-wallet.plays)+'회 · 현재까지 사용 '+wallet.totalSpent.toLocaleString()+'G · 획득 '+wallet.totalPaid.toLocaleString()+'G</p></div>'+
+ '<div style="display:flex;gap:8px;flex-wrap:wrap">'+chances+'</div>'+
+ '<p class="item-note">결과 확률 공개 · 보상은 게임 경제의 일일 발행 제한에 따라 줄어들 수 있어. 자동 반복·현금 결제·현금화는 지원하지 않아.</p>'+
+ '<button class="pill-btn" id="v55ArcadeSpin" '+(wallet.plays>=ARCADE_MAX_PLAYS_V55||state.coins<100?'disabled':'')+'>🎲 100G로 한 번 돌리기</button>'+
+ '<button class="pill-btn ghost" id="v55ArcadeReturn">🏡 마을 메뉴로 돌아가기</button>');
+ document.getElementById('v55ArcadeReturn').onclick=()=>openVillageMenuV49('home');
+ document.getElementById('v55ArcadeSpin').onclick=()=>{
+  if(arcadeSpinBusyV55)return;
+  arcadeSpinBusyV55=true;
+  try{
+   // Cryptographically strong RNG, fixed and user-visible odds.
+   const result=spinVillageArcadeV55(state,{day:nowDay(),level:lifeLevel(),roll:drawArcadeRandomV55()});
+   if(!result.ok){toast(result.error);return}
+   save();hud();
+   toast('🎡 '+result.label+' · '+(result.net>=0?'+':'')+result.net.toLocaleString('ko-KR')+'G');
+  }catch(error){toast('게임장 이용 불가: '+(error?.message||'다시 시도해 줘'))}
+  finally{arcadeSpinBusyV55=false;openVillageArcadeV55()}
+ };
+}
 function openEconomyDashboard(){
  const stats=initEconomy(state),ledger=moneyHistory(state),cash=Math.floor(state.coins);
  const major=[['harvest','농사'],['fish','어시장'],['hunt','사냥'],['deliver','납품'],['quest','의뢰'],['festival','축제'],['social','생활 보상']];
