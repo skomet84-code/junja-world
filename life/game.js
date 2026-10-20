@@ -7,6 +7,7 @@ import {openSecureEconomyLab} from './secure-economy-ui-v37.js';
 import {openPlayerMarket} from './player-market-ui-v38.js';
 import {openProfessionCenter} from './professions-ui-v39.js';
 import {openBusinessCenter} from './business-ui-v40.js';
+import {mountQuestsV51} from './quests-ui-v51.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
 import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
 import {mountHomeStudioV48} from './home-studio-ui-v48.js';
@@ -1189,7 +1190,7 @@ function openReputation(){
  document.getElementById('rankJourney').onclick=openJourney;
  document.getElementById('rankMonthly').onclick=openLivingCalendar;
 }
-function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button><button class="pill-btn" id="journalVault">🗂️ 저장 백업</button><button class="pill-btn" id="journalCalendar">📅 월간 목표</button><button class="pill-btn" id="journalReputation">⭐ 마을 평판</button><button class="pill-btn" id="journalEconomy">🏦 내 경제 수첩</button></div><p class="item-note">접속 기기 브라우저에 자동 저장됩니다. 온라인 계정 연동은 추후 서버 배포가 필요합니다.</p>`);
+function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><div id="v51QuestHost" role="region" aria-label="v51 서버 신규 콘텐츠 의뢰"></div><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button><button class="pill-btn" id="journalVault">🗂️ 저장 백업</button><button class="pill-btn" id="journalCalendar">📅 월간 목표</button><button class="pill-btn" id="journalReputation">⭐ 마을 평판</button><button class="pill-btn" id="journalEconomy">🏦 내 경제 수첩</button></div><p class="item-note">캐릭터 저장은 Cloudflare 계정 서버에서 확인하며, 신규 콘텐츠 의뢰 보상은 분리된 시험 경제 골드예요.</p>`);
  document.getElementById('journalGear').onclick=openFishingGear;
  document.getElementById('journalAquarium').onclick=openAquarium;
  document.getElementById('journalHome').onclick=openHome;
@@ -1197,6 +1198,11 @@ function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>$
  document.getElementById('journalCalendar').onclick=openLivingCalendar;
  document.getElementById('journalReputation').onclick=openReputation;
  document.getElementById('journalEconomy').onclick=openEconomyDashboard;
+ mountQuestsV51(document.getElementById('v51QuestHost'),{
+  career:()=>openV49Component('life','v49Profession','직업과 계약',openProfessionCenter),
+  market:()=>openV49Component('production','v49Trade','주민 거래소',openPlayerMarket),
+  business:()=>openV49Component('production','v49Business','나의 사업장',openBusinessCenter)
+ });
 }
 function interaction(kind){if(kind==='seeds'){openFarmShop();return}if(kind.startsWith('farm:')){farmAt(Number(kind.split(':')[1]));return}if(kind==='shop'){openShop();return}if(kind==='fish'){beginFishing();return}if(kind==='market'){openMarket();return}if(kind==='fountain'){party(player.x,player.y-50,20);if(!state.fountainDate||state.fountainDate!==nowDay()){earn(35,'social','분수 소원');state.fountainDate=nowDay();toast('⛲ 오늘의 소원! +35G')}else toast('⛲ 반짝이는 행운의 분수');hud();save();return}if(kind==='home'){openHome();return}if(kind==='harvest'){farmAll();return}}
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}

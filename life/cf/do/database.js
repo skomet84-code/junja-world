@@ -6,6 +6,10 @@ import {ensureOwnerPromotion,OWNER_GRANT_MARKER} from './owner-promotion.js';
 import {handleAccountD1,userForSession} from '../d1/account-staging.js';
 import {handleAccountExtras} from '../d1/account-extensions.js';
 import {handleTrialEconomyD1} from '../d1/economy-staging.js';
+import {handleMarketV51} from './market-v51.js';
+import {handleProfessionsV51} from './professions-v51.js';
+import {handleBusinessV51} from './business-v51.js';
+import {handleQuestsV51,installV51QuestSchema} from './quests-v51.js';
 
 // The D1-style shim deliberately implements only the methods used by the
 // staging handlers, running against Cloudflare's synchronous SQLite storage.
@@ -43,6 +47,7 @@ export class VillageDatabase extends DurableObject {
   const sql=ctx.storage.sql;
   sql.exec(CORE_SQL);
   sql.exec(ECONOMY_SQL);
+  installV51QuestSchema(sql);
   // This one-time opening marker lives inside the same durable SQLite database.
   // Subsequent deployments MUST NOT repeat the opening reset.
   sql.exec(`CREATE TABLE IF NOT EXISTS village_release_flags (
@@ -87,7 +92,7 @@ export class VillageDatabase extends DurableObject {
   if(url.pathname==='/internal/health'){
    const row=await this.db.prepare('SELECT count(*) AS n FROM village_users').first();
    const reset=await this.db.prepare('SELECT applied_at,deleted_users FROM village_release_flags WHERE id=?').bind('v50-fresh-opening-2026-10-20').first();
-   return json({ok:true,database:'cloudflare-do-sqlite',users:Number(row?.n||0),release:'v50-single-platform',
+   return json({ok:true,database:'cloudflare-do-sqlite',users:Number(row?.n||0),release:'v51-single-platform',
     freshOpening:!!reset,resetPreviousUsers:Number(reset?.deleted_users||0),
     ownerGrant:ownerGrant==='granted'||ownerGrant==='already_admin'?'granted':ownerGrant});
   }
@@ -98,6 +103,10 @@ export class VillageDatabase extends DurableObject {
   if(url.pathname==='/api/account')return handleAccountD1(request,{...this.env,DB:this.db});
   if(url.pathname==='/api/economy-v36')return handleTrialEconomyD1(request,{DB:this.db},'v36');
   if(url.pathname==='/api/economy-v37')return handleTrialEconomyD1(request,{DB:this.db},'v37');
+  if(url.pathname==='/api/market-v38')return handleMarketV51(request,this.ctx.storage,this.db);
+  if(url.pathname==='/api/professions-v39')return handleProfessionsV51(request,this.ctx.storage,this.db);
+  if(url.pathname==='/api/business-v40')return handleBusinessV51(request,this.ctx.storage,this.db);
+  if(url.pathname==='/api/quests-v51')return handleQuestsV51(request,this.ctx.storage,this.db);
   return json({error:'지원하지 않는 API'},404);
  }
 }
