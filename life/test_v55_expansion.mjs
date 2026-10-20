@@ -71,7 +71,7 @@ assert.equal(planFarmBatchV55(farm,crops,{mode:'harvest',now:10000}).length,0);
 assert(game.includes('function openFastFarmV55()'));
 assert(game.includes("case 'quickfarm':return openFastFarmV55()"));
 assert(game.includes('if(!await useWorldEnergy(\'plant\'))break'));
-assert(game.includes('if(!await useWorldEnergy(\'harvest\'))break'));
+assert(!game.includes("useWorldEnergy('harvest')"),'all farms harvest for free even in bulk');
 assert(game.includes('function goQuestDestinationV55(goal)'));
 assert(game.includes("goal.metric==='huntKills'"));
 assert(menu.includes("id:'quickfarm'"));
