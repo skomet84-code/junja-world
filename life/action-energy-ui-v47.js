@@ -19,7 +19,7 @@ export function mountEnergyPanel(host,{onChange=()=>{}}={}){
  const buy=node('button','⚡ 행동력 +25 충전 · 1,200G');
  buy.type='button';buy.className='v47-buy-button';main.append(buy);
  const status=html(main,'p','');
- const notes=html(host,'p','🌱 심기 2 · 🧺 수확 4 · 🌲 채집 3 · 🎣 낚시 5 · 🍳 제작 6 · 📦 납품 3 · 🏪 전문 생산 8');
+ const notes=html(host,'p','🌱 심기 2 · 🧺 수확 0(무료) · 🌲 채집 3 · 🎣 낚시 5 · 🍳 제작 6 · 📦 납품 3 · 🏪 전문 생산 8');
  notes.className='v47-energy-notes';
  let alive=true,snapshot=null,baseline=0,received=0,busy=false,pending=null;
  function projection(){
