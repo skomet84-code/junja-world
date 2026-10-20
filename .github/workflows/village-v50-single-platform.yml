@@ -20,7 +20,7 @@ jobs:
         working-directory: life
         run: |
           npm install --ignore-scripts --no-package-lock --no-audit --no-fund
-          npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund wrangler@4.151.2
+          npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund wrangler@4.151.2 ws@8.18.3
       - name: Verify bundled Workers and save handling syntax
         working-directory: life
         run: |
@@ -70,3 +70,4 @@ jobs:
           fi
           cat /tmp/junja-health.json
           node cf/do/test_unified_local.mjs
+          node cf/do/test_multiplayer_local.mjs
