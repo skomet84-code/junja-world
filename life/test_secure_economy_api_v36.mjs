@@ -49,12 +49,12 @@ try{
  assert.equal(forbidden.code,403);
  const initial=await req('GET');
  assert.equal(initial.code,200);
- assert.equal(initial.body.economy.coins,1500);
+ assert.equal(initial.body.economy.coins,5000);
  assert.equal(store.account,null,'Unauthenticated read cannot initialize an account');
  const requestId=randomUUID(),body={action:'plant',requestId,payload:{index:0,crop:'lettuce',cost:0}};
  let first=await req('POST',body);
  assert.equal(first.code,200);
- assert.equal(first.body.economy.coins,1480);
+ assert.equal(first.body.economy.coins,4980);
  assert.equal(store.account.version,1);
  assert.equal(store.events.length,1);
  let replay=await req('POST',body);
@@ -73,11 +73,11 @@ try{
  assert.equal(harvest.body.economy.stock.lettuce,1);
  assert.equal(store.account.version,2);
  const sell=await req('POST',{action:'sell',requestId:randomUUID(),payload:{item:'lettuce',sell:99999999}});
- assert.equal(sell.code,200);assert.equal(sell.body.economy.coins,1514);
+ assert.equal(sell.code,200);assert.equal(sell.body.economy.coins,5014);
  assert.equal(store.account.version,3);assert.equal(store.events.length,3);
  const snapshot=await req('GET');
  assert.equal(snapshot.body.receipts.length,3);
- assert.equal(snapshot.body.economy.coins,1514);
+ assert.equal(snapshot.body.economy.coins,5014);
  assert(seen.every(s=>!/(update|delete|insert into) (village_saves|village_wallets|village_users)/.test(s)),'Cannot mutate legacy game tables');
  console.log('v36 API: login, CSRF, atomic receipts, duplicate request replay, same-ID conflict and server-only amount tests passed');
 }finally{
