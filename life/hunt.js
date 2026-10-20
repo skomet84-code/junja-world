@@ -264,13 +264,47 @@ function updateHud(){
 }
 function openModal(content){$('panelBody').innerHTML=content;$('modal').classList.add('open');active=false}
 function zoneMenu(){
- const rows=HUNT_ZONES.map((zone,i)=>{
-  const unlocked=zoneUnlocked(zone,level()),won=!!state.hunt.bossDates[dailyBossKey(zone.id,today())];
-  return '<article class="zone-card"><div class="emoji">'+zone.icon+'</div><strong>'+zone.name+'</strong><small>Lv.'+zone.level+' 이상 · 몬스터 5종 · 보스 '+zone.boss+'</small><p>'+(won?'✅ 오늘 보스 처치 완료':'👑 일일 보스 도전 가능')+'</p><button data-zone="'+i+'" '+(unlocked?'':'disabled')+'>'+(unlocked?'사냥터 이동':'레벨 '+zone.level+' 필요')+'</button></article>';
+ const mastery=initHuntMastery(state.hunt,HUNT_ZONES),rows=HUNT_ZONES.map((zone,i)=>{
+  const permit=zoneAccess(state.hunt,HUNT_ZONES,i,level()),trial=bossAccess(state.hunt,HUNT_ZONES,i);
+  const won=!!state.hunt.bossDates[dailyBossKey(zone.id,today())];
+  return '<article class="zone-card"><div class="emoji">'+zone.icon+'</div><strong>'+zone.name+'</strong>'+
+   '<small>생활 Lv.'+zone.level+' · 사냥 숙련 '+HUNT_MASTERY_GATES[i]+' · 5종 몬스터 + 정예</small>'+
+   '<p>⚔️ 보스 개방: 토벌 '+trial.kills+'/'+trial.neededKills+' · 정예 '+trial.elites+'/'+trial.neededElites+'</p>'+
+   '<p>'+(trial.cleared?'🏅 지역 수호자 토벌 이력 보유':won?'✅ 오늘의 보스 처치 완료':permit.ok?'정예를 물리쳐 보스에 도전!': '🔒 '+permit.reason)+'</p>'+
+   '<button data-zone="'+i+'" '+(permit.ok?'':'disabled')+'>'+(permit.ok?'사냥터 입장':'🔒 해금 조건 부족')+'</button></article>';
  }).join('');
- openModal('<div class="hero">🌸 생활과 전투를 연결하는 준자마을 액션 모험! 사냥 재료로 의상을 만들고 친구들에게 자랑해요.</div><h2>⚔️ 마을 밖 모험 지도</h2><p>바닥을 터치하면 정확히 이동하고 몬스터를 터치하면 자동으로 다가가 공격해요. 구역별 보스는 하루 한 번 보상을 받을 수 있어요.</p><div class="grid">'+rows+'</div><button id="viewHuntLoot" class="wide">🎁 전리품 공방 열기</button><button id="returnVillage" class="wide">🏡 준자마을로 돌아가기</button>');
+ openModal('<div class="hero">⚔️ v54 사냥 대개편 · <strong>숙련 '+mastery.score+'</strong><br>생활 레벨과 별개로 전투를 익혀 새 구역에 도전해! 기존 레벨·장비·전리품은 유지돼.</div>'+
+  '<h2>🗺️ 모험가 도전 지도</h2><p>각 구역에서 정예를 포함한 몬스터를 토벌하고 보스를 이겨 다음 구역을 해금해. 몬스터의 공격 경고가 보이면 움직여 피할 수 있어.</p>'+
+  '<div class="grid">'+rows+'</div><button id="huntContracts" class="wide">📜 오늘의 토벌 의뢰 · 사냥 목표 보기</button>'+
+  '<button id="viewHuntLoot" class="wide">🎁 전리품 공방 열기</button><button id="returnVillage" class="wide">🏡 준자마을로 돌아가기</button>');
  document.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>startZone(+b.dataset.zone));
  addShopLinks();$('viewHuntLoot').onclick=craftMenu;$('returnVillage').onclick=goHome;
+ $('huntContracts').onclick=openHuntContracts;
+}
+function openHuntContracts(){
+ const lines=HUNT_ZONES.map((zone,i)=>{
+  const p=state.hunt.masteryV54.areas[zone.id],tasks=dailyHuntContracts(state.hunt,HUNT_ZONES,i,today());
+  return '<section class="zone-card" style="margin:8px 0"><strong>'+zone.icon+' '+zone.name+'</strong>'+
+   '<small>누적 토벌 '+p.kills+'회 · 정예 '+p.elites+'회 · 보스 '+p.bosses+'회</small>'+
+   tasks.map(q=>'<p>📌 '+q.label+' · '+q.progress+'/'+q.required+' · '+q.reward+'G '+
+    '<button data-contract="'+i+':'+q.id+'" '+(!q.ready?'disabled':'')+'>'+
+    (q.claimed?'✅ 수령 완료':q.ready?'🎁 보상 받기':'진행 중')+'</button></p>').join('')+'</section>';
+ }).join('');
+ openModal('<h2>📜 오늘의 모험가 도전</h2>'+
+  '<p>매일 정찰·정예 추적·보스 임무를 완료하고 보상을 받아! 마을 레벨이 높아도 새로운 토벌 실력이 필요해.</p>'+
+  '<p>⚠️ 토벌 기록은 현재 캐릭터 게임 저장에 보관되며, 별도 서버 공인 랭킹은 아직 없어.</p>'+lines+
+  '<button class="wide" id="backToHuntMap">🗺️ 지역 선택으로 돌아가기</button>');
+ $('backToHuntMap').onclick=zoneMenu;
+ document.querySelectorAll('[data-contract]').forEach(btn=>btn.onclick=()=>{
+  const [n,id]=btn.dataset.contract.split(':'),index=Number(n),tasks=dailyHuntContracts(state.hunt,HUNT_ZONES,index,today());
+  const task=tasks.find(q=>q.id===id);
+  if(!task?.ready)return;
+  const payment=credit(state,task.reward,'hunt','모험가 토벌 의뢰 · '+task.label,level());
+  if(!payment.ok||payment.amount<1){toast('오늘 사냥 보상 한도에 도달했어');return}
+  const claimed=claimHuntContract(state.hunt,HUNT_ZONES,index,today(),id);
+  if(!claimed.ok)return;
+  save();updateHud();toast('🏅 '+task.label+' 달성! +'+payment.amount+'G');openHuntContracts();
+ });
 }
 function addShopLinks(){
  const links=document.createElement('div');
