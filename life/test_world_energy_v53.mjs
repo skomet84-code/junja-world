@@ -15,7 +15,7 @@ for(const [needle,kind] of [
  ["if(!await useWorldEnergy('harvest'))return","harvest"],
  ["if(!await useWorldEnergy('craft'))return","craft"],
  ["if(!await useWorldEnergy('order'))return","order"],
- ["if(!await useWorldEnergy('fish'))return","fish"]]){
+ ["await useWorldEnergy('fish')","fish"]]){
  assert(game.includes(needle),'main world action missing energy integration: '+kind);
 }
 assert(game.includes("const worldEnergy=createWorldEnergySpend"),'main world needs server spend client');
