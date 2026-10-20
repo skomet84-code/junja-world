@@ -8,7 +8,7 @@ const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
 const loader=scripts.find(s=>s.includes('window.startVillageGame='));
 const entrance=scripts.find(s=>s.includes('window.villageGateEnter='));
 assert(loader&&entrance,'v50 startup and gate scripts must exist');
-assert(account.includes("if(name==='login'){layer.classList.remove('show');$('accountPassword').value=''}"),
+assert(account.includes("if(name==='login'){$('accountPassword').value='';layer.classList.remove('show')}"),
  'successful login must dismiss the account overlay and clear the password field');
 function makeContext(fetcher,loadGame){
  const gate={hidden:false},status={textContent:''};
