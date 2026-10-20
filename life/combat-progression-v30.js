@@ -7,11 +7,15 @@ export const EQUIPMENT=Object.freeze([
  {id:'steel',slot:'weapon',name:'수정 강철검',level:8,price:4800,attack:10,color:0x96cdd5},
  {id:'moon',slot:'weapon',name:'달빛 장검',level:15,price:18000,attack:20,color:0xc3a6e4},
  {id:'sun',slot:'weapon',name:'태양 수호검',level:25,price:58000,attack:34,color:0xf0cc75},
+ {id:'frostblade',slot:'weapon',name:'설원의 결정검',level:38,price:108000,attack:52,color:0x9de4f5},
+ {id:'chrono',slot:'weapon',name:'시공의 별빛검',level:52,price:220000,attack:76,color:0xc7acff},
  {id:'cloth',slot:'armor',name:'기본 보호구',level:1,price:0,defense:0,hp:0,color:0xacbda0},
  {id:'leather',slot:'armor',name:'가죽 수호 방패',level:3,price:800,defense:3,hp:15,color:0xb78a63},
  {id:'crystal',slot:'armor',name:'수정 수호 방패',level:8,price:4200,defense:7,hp:35,color:0x91d0db},
  {id:'lunar',slot:'armor',name:'달빛 수호 방패',level:15,price:16000,defense:12,hp:65,color:0xbfa6dc},
- {id:'royal',slot:'armor',name:'황금 수호 방패',level:25,price:52000,defense:20,hp:105,color:0xe0c16f}
+ {id:'royal',slot:'armor',name:'황금 수호 방패',level:25,price:52000,defense:20,hp:105,color:0xe0c16f},
+ {id:'frostguard',slot:'armor',name:'서리빛 수호장',level:38,price:99000,defense:29,hp:160,color:0x91d4e8},
+ {id:'astralguard',slot:'armor',name:'은하 수호장',level:52,price:195000,defense:42,hp:240,color:0xb39ee8}
 ].map(Object.freeze));
 export function initCombat(s){
  const h=s.hunt??={};
@@ -70,6 +74,7 @@ export function spendSkill(s,id,mp,now=Date.now()){
 }
 // Defense remains helpful without making high-level characters invulnerable.
 export function incomingDamage(zone,boss,defense){
- const raw=[9,15,24,36][zone]*(boss?1.8:1);
+ const raw=[9,15,24,36,49,65][zone]*(boss?1.8:1);
+ if(!Number.isFinite(raw))return 3;
  return Math.max(3,Math.round(raw*(100/(100+Math.max(0,defense)*3))));
 }
