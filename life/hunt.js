@@ -209,23 +209,40 @@ function clearZone(){
  if(worldDecor){scene.remove(worldDecor);worldDecor=null}
  for(const f of fx){scene.remove(f.mesh);if(f.mesh.geometry!==impactGeo)f.mesh.geometry.dispose();f.mesh.material.dispose()}fx.length=0;
 }
+function ensureZoneBoss(){
+ if(!currentZone||!active)return;
+ const dayKey=dailyBossKey(currentZone.id,today());
+ if(state.hunt.bossDates[dayKey]||monsters.some(m=>m.model.boss))return;
+ const trial=bossAccess(state.hunt,HUNT_ZONES,areaIndex);
+ if(!trial.ok)return;
+ const base=HUNT_BOSSES[areaIndex];
+ const boss=masteryEnemy(base,level(),currentZone.level,{boss:true});
+ monsters.push(spawnMonster(boss,0,-342,monsters.length));
+ toast('👑 정예 토벌 목표 달성! '+base.name+'이 나타났어!');
+}
 function startZone(index){
- const zone=HUNT_ZONES[index];if(!zoneUnlocked(zone,level())){toast('Lv.'+zone.level+'부터 입장할 수 있어요');return}
+ const zone=HUNT_ZONES[index],permit=zoneAccess(state.hunt,HUNT_ZONES,index,level());
+ if(!permit.ok){toast('🔒 '+permit.reason);return}
  clearZone();currentZone=zone;areaIndex=index;decorate(zone);
  hero.x=0;hero.z=140;hero.moveX=0;hero.moveZ=140;
- const s=stats();hero.hp=clamp(hero.hp,1,s.maxHp);hero.mp=clamp(hero.mp,0,s.maxMp);
+ const current=stats();hero.hp=clamp(hero.hp,1,current.maxHp);hero.mp=clamp(hero.mp,0,current.maxMp);
  const positions=[[250,-150],[-250,-140],[285,170],[-310,115],[70,-300],[-95,285]];
- for(let i=0;i<6;i++){const p=positions[i],mob=zone.mobs[i%5];monsters.push(spawnMonster(mob,p[0],p[1],i))}
- const boss=HUNT_BOSSES[index],defeated=!!state.hunt.bossDates[dailyBossKey(zone.id,today())];
- if(!defeated)monsters.push(spawnMonster(boss,0,-342,6));
- active=true;$('region').textContent=zone.icon+' '+zone.name+' · Lv.'+zone.level+'+';
- $('hint').textContent='몬스터 터치로 공격 · 교본 구매 후 스킬 사용';
+ for(let i=0;i<6;i++){
+  const p=positions[i],model=zone.mobs[i%zone.mobs.length];
+  const elite=i===2||i===5;
+  monsters.push(spawnMonster(masteryEnemy(model,level(),zone.level,{elite}),p[0],p[1],i));
+ }
+ active=true;
+ ensureZoneBoss();
+ const trial=bossAccess(state.hunt,HUNT_ZONES,index);
+ $('region').textContent=zone.icon+' '+zone.name+' · 사냥 숙련 '+state.hunt.masteryV54.score;
+ $('hint').textContent='정예 ✦ 토벌 → 보스 해금 · 몬스터 예고 공격은 이동해 회피';
  $('modal').classList.remove('open');save();updateHud();
- toast('🌸 '+zone.name+' 입장! '+(defeated?'오늘 보스는 이미 처치했어요':'보스 1일 1회 도전'));
+ toast('⚔️ '+zone.name+' · 보스 조건 '+trial.kills+'/'+trial.neededKills+' 일반 · 정예 '+trial.elites+'/'+trial.neededElites);
 }
 function healthRatio(m){return clamp(m.hp/m.maxHp,0,1)}
 function updateHud(){
- const s=stats();$('heroLevel').textContent='Lv.'+level()+' · 사냥 '+state.hunt.kills+'회';
+ const s=stats();$('heroLevel').textContent='Lv.'+level()+' · 숙련 '+state.hunt.masteryV54.score+' · 토벌 '+state.hunt.kills;
  $('cash').textContent='★ '+Math.floor(state.coins).toLocaleString('ko-KR')+' G';
  $('hpBar').style.width=clamp(hero.hp/s.maxHp*100,0,100)+'%';$('mpBar').style.width=clamp(hero.mp/s.maxMp*100,0,100)+'%';
  $('heroName').textContent='⚔️ '+(localStorage.getItem('junja-village-nickname')||'마을 모험가');
