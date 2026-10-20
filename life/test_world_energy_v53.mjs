@@ -7,7 +7,7 @@ const v36=readFileSync(new URL('./cf/d1/economy-staging.js',import.meta.url),'ut
 const website=readFileSync(new URL('./index.html',import.meta.url),'utf8');
 for(const kind of WORLD_ENERGY_KINDS){
  assert.equal(Number.isInteger(ENERGY_COSTS[kind]),true,kind+' must have a real fixed server cost');
- assert(ENERGY_COSTS[kind]>0);
+ assert(ENERGY_COSTS[kind]>0||kind==='harvest'&&ENERGY_COSTS[kind]===0,'harvest is the sole free farm action');
 }
 for(const [needle,kind] of [
  ["async function gather(id)","gather"],
