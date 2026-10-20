@@ -61,4 +61,21 @@ careerData=await career.json();
 assert.equal(careerData.profession.active,'farmer');
 assert.equal(careerData.coins,1250);
 
-console.log('PASS v51 local Cloudflare Worker market + career: authenticated routes, catalog pricing, no phantom listings, idempotent license and no unearned rewards');
+// The same user can browse personal workshops. A rank-1 farmer cannot
+// build a rank-2 facility, and a denied attempt must not deduct money.
+let businessResponse=await fetch(base+'/api/business-v40',{headers:{cookie}});
+assert.equal(businessResponse.status,200);
+let businessData=await businessResponse.json();
+assert.equal(businessData.business.active,'farmer');
+assert.equal(businessData.business.workshops.farmer,undefined);
+const buildAttempt=await fetch(base+'/api/business-v40',{
+ method:'POST',headers:{cookie,origin:base,'content-type':'application/json'},
+ body:JSON.stringify({action:'build',role:'farmer',requestId:randomUUID()})
+});
+assert.equal(buildAttempt.status,409,'unskilled farmer cannot construct workshop');
+businessResponse=await fetch(base+'/api/business-v40',{headers:{cookie}});
+businessData=await businessResponse.json();
+assert.equal(businessData.coins,1250);
+assert.equal(businessData.business.workshops.farmer,undefined);
+
+console.log('PASS v51 local Cloudflare Worker market + career + business: authenticated routes, catalog pricing, no phantom listings, idempotent license and no unearned rewards');
