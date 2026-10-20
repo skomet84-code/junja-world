@@ -1,8 +1,9 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 6db0db391731597c9a950aa5890e92eb98947d53
-Reason: Owner-requested v55 game update. Main and estate harvesting NO energy cost (0); planting only spends energy 2; existing separate energy balance stays. Automatic fishing pass instantly activates on purchase; catch of common/fine/rare/hero fish instantly sells to in-game market without occupying backpack even when full; legendary and mythic catches retained. No real-money functionality, no cash-out. New Moonlight virtual-gold arcade: 100G/attempt, published 45% win chance, 200G capped reward, up to 10 plays per KST day with transparent rules. Regular quiet movement auto cloud-save every 60 seconds instead of 12 seconds, IMPORTANT actions (plant/harvest/transaction) keep immediate save. Cache bust mobile game.js to v55-farm-autofish-arcade-20261020. No database migrations, resets, or account deletions; preserve existing skomet/준자 admin, v54 hunting/experience, v53 quests/fish collection and v52 21 farm beds and original crops and level.
-QA all local Cloudflare Durable Objects, accounts, marketplace, quests, owner/crown, saves, multiplayer, and v55 farming/automatic fish/arcade tests PASS:
-https://github.com/skomet84-code/junja-world/actions/runs/39432034396
-Deploy config: life/cf/wrangler.jsonc unchanged Cloudflare DO id; release v55-farm-arcade.
+Release commit: ef3e76d166b9c5772488e8f36398851d4b0929de
+Reason: Owner-reported hunting loot cannot be sold. SAFE LIVE v55 loot vendor release adds NPC salvage merchant linked from map and crafting modal: all existing 4-zone monster/boss materials sell for fixed per-zone game G, 1/5/20 at once, recipe materials protected unless explicitly confirmed. Discards physically owned loot only after main in-game wallet credit, frees inventory slots and respects daily earning soft caps. New static hunt-loot-market-v55.js, Safari/Kakao game client version v55-hunt-loot-vendor-20261020, existing Cloudflare DO bindings unchanged.
+No database reset, deletion, migration, owner role change, level loss, farming reset or gold transfer between separate economy and character wallet. Preserve skomet/준자 admin, existing registered accounts and current live v55 farm-auto-fish arcade build.
+Full QA: https://github.com/skomet84-code/junja-world/actions/runs/39439284972 SUCCESS
+This hotfix is independent of pending large v55 Grand Expansion PR #60, which has merge conflicts and remains unmerged.
+Worker status release: v55-loot-vendor
 Requested: 2026-10-20 KST
