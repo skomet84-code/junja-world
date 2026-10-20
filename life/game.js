@@ -28,7 +28,7 @@ const W=3600,H=2400; let CW=innerWidth,CH=innerHeight,dpr=1,scale=1,camera={x:10
 const A={};
 const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
-const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
+const scopedSaveKey=accountScope?'junja-v50-d1-user-'+accountScope:'junja-v50-d1-guest';
 let cloudSave=window.__villageCloudSave||null;
 // Cloud data is loaded before module import, without top-level await.
 const initialCloudVersion=Number.isSafeInteger(Number(cloudSave?.version))?Number(cloudSave.version):0;
@@ -312,7 +312,7 @@ const outfits=[{id:'mint',name:'민트 피크닉룩',cost:0,emoji:'🌿',col:'#5
 outfits.push(...[{id:'lavender',name:'라벤더 원피스',cost:380,emoji:'💜',col:'#a897dc',type:'coat'},{id:'coral',name:'산호빛 데이트룩',cost:450,emoji:'🧡',col:'#f0a07a',type:'coat'},{id:'navy',name:'밤바다 정장',cost:540,emoji:'🌙',col:'#375d83',type:'coat'},{id:'cream',name:'크림 니트',cost:240,emoji:'🤍',col:'#e6d5b5',type:'coat'},{id:'forest',name:'숲속 탐험룩',cost:410,emoji:'🍃',col:'#568a60',type:'coat'},{id:'pink',name:'벚꽃 드레스',cost:610,emoji:'🎀',col:'#ee9ac7',type:'coat'},{id:'flower',name:'봄꽃 밀짚모자',cost:340,emoji:'🌸',type:'hat'},{id:'navycap',name:'청량 선장 모자',cost:480,emoji:'⚓',type:'hat'},{id:'beanie',name:'카페 비니',cost:190,emoji:'🧶',type:'hat'},{id:'cat',name:'고양이 귀',cost:600,emoji:'🐈',type:'hat'},{id:'ribbon',name:'왕리본 머리띠',cost:280,emoji:'🎀',type:'hat'},{id:'captain',name:'바다의 선장 모자',cost:420,emoji:'🧢',type:'hat'}]);
 
 outfits.push({id:'linen',name:'공방 린넨 셔츠',cost:0,emoji:'🧵',col:'#d8c7a6',type:'coat',craftOnly:true});
-let owned=['mint','none'];try{const o=resumeUnsyncedOwned||cloudSave?.owned||(accountScope?JSON.parse(localStorage.getItem('junja-harbor-owned-'+accountScope)||'[]'):[]);if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
+let owned=['mint','none'];try{const o=resumeUnsyncedOwned||cloudSave?.owned||(accountScope?JSON.parse(localStorage.getItem('junja-v50-d1-owned-'+accountScope)||'[]'):[]);if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
 // Migrate in place; never discard existing coins, fish, legacy costumes or quests.
 const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashion:{};
 const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
@@ -367,7 +367,7 @@ function save(){
    localStorage.setItem(scopedSaveKey,JSON.stringify(state));
    if(!saveBlocked)localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:cloudVersion,profile:state,owned:[...owned],savedAt:state.savedAt}));
   }
-  if(accountScope)localStorage.setItem('junja-harbor-owned-'+accountScope,JSON.stringify(owned));
+  if(accountScope)localStorage.setItem('junja-v50-d1-owned-'+accountScope,JSON.stringify(owned));
   // Retain up to seven daily restore points, not every five-second save.
   const day=nowDay(),key='junja-village-snapshots-v27-'+accountScope;
   const shots=JSON.parse(localStorage.getItem(key)||'[]');
@@ -660,7 +660,7 @@ if(accountScope){
   }catch{}
   await refreshOnline();
  }
- setInterval(syncVillagePresence,10000);syncVillagePresence();
+ setInterval(syncVillagePresence,30000);syncVillagePresence();
 }
 ensureFestival();
 const festivalBtn=document.getElementById('festivalBtn');if(festivalBtn)festivalBtn.onclick=openFestival;
@@ -753,7 +753,7 @@ function showOperatorNickname(){
  els.name.textContent=socialNickname;
  world3D?.setNickname(socialNickname);
  // The relay stores the nickname at join, so reconnect with the updated name.
- if(typeof pollLive==='function')pollLive();
+ if(typeof connectSocial==='function')connectSocial();
 }
 const VILLAGE_CLIENT_KEY='junja-village-client-id';
 let villageClientId='';
@@ -767,7 +767,9 @@ try{
 let effectiveDisplayNick=socialNickname,oldSocketReplaced=false;
 let socialSocket=null,socialRoom='SPRING',socialId=null,lastPositionSent=0,retryCount=0;
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function socialSend(o){if(o?.type==='say')livePendingPhrase=o.phrase}
+function socialSend(o){if(o?.type!=='say')return;
+if(socialSocket?.readyState===WebSocket.OPEN)socialSocket.send(JSON.stringify({type:'say',phrase:o.phrase}));
+else livePendingPhrase=o.phrase}
 function updateSocialBadge(){const b=document.getElementById('socialStatus');if(!b)return;b.textContent=socialId?'🟢 친구 '+(Object.keys(peers).length+1)+'/8명 · '+socialRoom:'👫 친구 · 오프라인';}
 function openSocial(){
  const connected=Boolean(socialId);
@@ -801,27 +803,66 @@ function openSocial(){
  });
  document.getElementById('roomPlayers').onclick=()=>toast(connected?'같은 방에 '+(Object.keys(peers).length+1)+'명 접속':'현재 혼자 플레이 중');
 }
-let livePolling=false,livePendingPhrase=null,liveTimer=null;
-async function pollLive(){
- if(livePolling)return;
- livePolling=true;
- try{
- const payload={room:socialRoom,x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped};
- if(livePendingPhrase){payload.phrase=livePendingPhrase;livePendingPhrase=null}
- const response=await fetch('/api/live',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
- if(!response.ok)throw Error('presence '+response.status);
- const data=await response.json();socialId=data.id;
- const seen=new Set();
- for(const o of data.players||[]){if(!o||!o.id)continue;seen.add(o.id);const prev=peers[o.id];if(prev){Object.assign(prev,{...o,targetX:o.x,targetY:o.y})}else peers[o.id]={...o,targetX:o.x,targetY:o.y};if(o.phrase&&Number(o.phrase_at)>Date.now()-3500){peers[o.id].phrase=o.phrase;peers[o.id].phraseUntil=Number(o.phrase_at)+3200}}
- for(const id of Object.keys(peers))if(!seen.has(id))delete peers[id];
- updateSocialBadge();
- }catch(e){socialId=null;for(const id of Object.keys(peers))delete peers[id];updateSocialBadge()}
- finally{livePolling=false}
+let livePendingPhrase=null,liveTimer=null,reconnectTimer=null;
+function pollLive(){
+ if(socialSocket?.readyState!==WebSocket.OPEN||!socialId)return;
+ socialSocket.send(JSON.stringify({type:'pos',x:player.x,y:player.y,dir:player.dir,
+  coat:state.coat,hat:state.hat,fashion:state.fashion.equipped}));
+ if(livePendingPhrase){socialSocket.send(JSON.stringify({type:'say',phrase:livePendingPhrase}));livePendingPhrase=null}
 }
 function connectSocial(){
  socialRoom=(new URLSearchParams(location.search).get('room')||'SPRING').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,12)||'SPRING';
  if(liveTimer)clearInterval(liveTimer);
- pollLive();liveTimer=setInterval(()=>{if(!document.hidden)pollLive()},1500);
+ if(reconnectTimer)clearTimeout(reconnectTimer);
+ if(socialSocket){const prev=socialSocket;socialSocket=null;try{prev.onclose=null;prev.close()}catch{}}
+ oldSocketReplaced=false;socialId=null;retryCount=0;
+ function openSocket(){
+  if(oldSocketReplaced)return;
+  try{
+   const url=new URL('/api/ws',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';
+   const socket=new WebSocket(url.href);socialSocket=socket;
+   socket.onopen=()=>{
+    if(socket!==socialSocket)return;
+    socket.send(JSON.stringify({type:'join',room:socialRoom,clientId:villageClientId,nick:socialNickname,
+     x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped}));
+   };
+   socket.onmessage=event=>{
+    if(socket!==socialSocket)return;
+    let data;try{data=JSON.parse(event.data)}catch{return}
+    if(!data||typeof data!=='object')return;
+    if(data.type==='welcome'){
+     socialId=data.id;retryCount=0;
+     for(const key of Object.keys(peers))delete peers[key];
+     for(const p of data.players||[])if(p?.id&&p.id!==socialId)peers[p.id]={...p,targetX:p.x,targetY:p.y};
+     updateSocialBadge();
+    }else if(data.type==='join'&&data.player?.id&&data.player.id!==socialId){
+     const p=data.player;peers[p.id]={...p,targetX:p.x,targetY:p.y};updateSocialBadge();
+    }else if(data.type==='pos'&&data.id&&data.id!==socialId){
+     const old=peers[data.id]||{id:data.id,nick:'마을 친구'};
+     peers[data.id]={...old,...data,targetX:data.x,targetY:data.y};
+    }else if(data.type==='leave'&&data.id){delete peers[data.id];updateSocialBadge();
+    }else if(data.type==='speech'&&data.id&&peers[data.id]){
+     peers[data.id].phrase=data.phrase;peers[data.id].phraseUntil=Date.now()+3200;
+    }else if(data.type==='replaced'){
+     oldSocketReplaced=true;socialId=null;updateSocialBadge();
+     toast('다른 탭에서 접속하여 이 화면의 멀티플레이가 종료됐어요');
+    }else if(data.type==='error'){toast(String(data.message||'마을 접속 오류').slice(0,80))}
+   };
+   socket.onclose=()=>{
+    if(socket!==socialSocket)return;
+    socialId=null;for(const id of Object.keys(peers))delete peers[id];
+    updateSocialBadge();
+    if(oldSocketReplaced)return;
+    reconnectTimer=setTimeout(openSocket,Math.min(15000,1000*2**Math.min(retryCount++,4)));
+   };
+   socket.onerror=()=>{try{socket.close()}catch{}};
+  }catch(e){
+   socialId=null;updateSocialBadge();
+   reconnectTimer=setTimeout(openSocket,Math.min(15000,1000*2**Math.min(retryCount++,4)));
+  }
+ }
+ openSocket();
+ liveTimer=setInterval(()=>{if(!document.hidden)pollLive()},250);
 }
 
 function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
