@@ -16,8 +16,8 @@ import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
 import {updateVillageResidents,npcDailyLine,v43Daypart} from './village-life-v43.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
-import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
-import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
+import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js?v=v53-fish';
+import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js?v=v53-no-attendance';
 import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js?v=v51-starter-5000';
 import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket,AUTO_SELL_PRICE,purchaseAutoSellTicket,toggleFishProtection} from './inventory-v29.js';
 import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js';
@@ -474,7 +474,7 @@ function lifePerkGuide(){
 // v49: one discoverable menu tree. All actions are existing game functions.
 let v49ActiveSection='home';
 function openV49Component(section,elementId,lead,mount){
- openModal('<span class="titlebadge">준자마을 · '+lead+' · 시험 기능</span><div id="'+elementId+'"></div>');
+ openModal('<span class="titlebadge">준자마을 · '+lead+' · 별도 경제</span><div id="'+elementId+'"></div>');
  mount(document.getElementById(elementId),{back:()=>openVillageMenuV49(section)});
 }
 function openVillageMenuV49(section='home'){
@@ -1661,7 +1661,7 @@ function openAquarium(){
   <p class="item-note">🔒 레벨·낚싯대가 높아질수록 희귀 어종 해금 · 신화 Lv.22 이상 · 대어는 더 어렵게 포획</p>
   <div class="aquarium-list">${FISH.filter(f=>aquariumFilter==='all'||(aquariumFilter==='owned'?available.has(f.name):f.tier===aquariumFilter)).slice(aquariumPage*12,aquariumPage*12+12).map(f=>{
    const caught=available.has(f.name),placed=display.includes(f.name);
-   return `<div class="aquarium-item ${caught?'':'locked'}">${fishArt(f.name,100)}
+   return `<div class="aquarium-item ${caught?'':'locked'}" data-tier="${f.tier}">${fishArt(f.name,152)}
     <strong>${caught?f.name:'미발견 물고기'}</strong><small>${f.rarity} · Lv.${f.minLevel} 해금 · ${f.size>=1.7?'🐋 대형 · ':''}${state.collection.filter(x=>x===f.name).length}마리 기록</small>
     ${caught?`<small>🏆 최고 ${state.fishRecords[f.name]?.bestCm||'—'}cm</small><button data-fishprofile="${f.name}" class="specimen-info">🔍 도감 상세</button>`:''}
     <button data-fish="${f.name}" ${!caught?'disabled':''}>${placed?'전시 해제':'어항에 전시'}</button></div>`;
