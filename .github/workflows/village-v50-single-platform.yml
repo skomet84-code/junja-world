@@ -53,9 +53,20 @@ jobs:
           npx wrangler dev --config cf/do/wrangler.preview.jsonc --local --port 8788 --ip 127.0.0.1 > /tmp/junja-unified-dev.log 2>&1 &
           WRANGLER_PID=$!
           trap 'kill $WRANGLER_PID || true; tail -100 /tmp/junja-unified-dev.log' EXIT
-          for i in $(seq 1 80); do
-            if curl -fsS http://127.0.0.1:8788/health > /tmp/junja-health.json; then break; fi
-            sleep 2
+          READY=0
+          for i in $(seq 1 45); do
+            if curl --silent --fail http://127.0.0.1:8788/health > /tmp/junja-health.json; then READY=1; break; fi
+            if ! kill -0 $WRANGLER_PID 2>/dev/null; then
+              echo 'Wrangler exited unexpectedly'
+              tail -100 /tmp/junja-unified-dev.log
+              exit 1
+            fi
+            sleep 1
           done
+          if [ "$READY" != "1" ]; then
+            echo 'Local Worker failed /health readiness'
+            tail -100 /tmp/junja-unified-dev.log
+            exit 1
+          fi
           cat /tmp/junja-health.json
           node cf/do/test_unified_local.mjs
