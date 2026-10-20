@@ -42,7 +42,7 @@ export default {
   const asset=await env.ASSETS.fetch(new Request(new URL(path,url),request));
   // Keep the landing page and account controls fresh after emergency fixes,
   // especially in iOS Safari / embedded Kakao webviews with long-lived caches.
-  if(asset.ok&&(path==='/index.html'||path==='/account-ui.js'||path==='/admin-panel.js')){
+  if(asset.ok&&(path==='/index.html'||path==='/account-ui.js'||path==='/admin-panel.js'||path==='/game.js'||path==='/quests-ui-v51.js')){
    const headers=new Headers(asset.headers);
    headers.set('cache-control','no-store, max-age=0');
    return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
