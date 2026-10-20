@@ -5,12 +5,27 @@ import {createHash,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
 import {handleAccountExtras} from './account-extensions.js';
 const send=(data,status=200,headers={})=>Response.json(data,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...headers}});
 const sha=s=>createHash('sha256').update(s).digest('hex');
-// Fresh start only. WebCrypto PBKDF2 avoids PostgreSQL's legacy scrypt dependency.
-const KDF_ITERATIONS=310000;
+// Cloudflare production rejects PBKDF2 deriveBits() requests above 100,000
+// iterations, even though local Wrangler/Node do not enforce that ceiling.
+// Chain six domain-separated 100k PBKDF2 calls rather than weakening the
+// password work factor. The serialized algorithm ID prevents silent mixing
+// with single-pass hashes and leaves room for a future stronger KDF.
+const KDF_ITERATIONS=100000;
+const KDF_STAGES=6;
 async function passwordHash(password,salt){
- const raw=await crypto.subtle.importKey('raw',new TextEncoder().encode(String(password)),'PBKDF2',false,['deriveBits']);
- const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:Buffer.from(salt,'hex'),iterations:KDF_ITERATIONS,hash:'SHA-256'},raw,256);
- return ['pbkdf2-sha256',String(KDF_ITERATIONS),Buffer.from(bits).toString('hex')].join(':');
+ const saltBytes=Buffer.from(salt,'hex');
+ let material=new TextEncoder().encode(String(password));
+ for(let stage=0;stage<KDF_STAGES;stage++){
+  const key=await crypto.subtle.importKey('raw',material,'PBKDF2',false,['deriveBits']);
+  const stageSalt=new Uint8Array(saltBytes.length+2);
+  stageSalt.set(saltBytes);
+  stageSalt[saltBytes.length]=0xa5;
+  stageSalt[saltBytes.length+1]=stage;
+  material=new Uint8Array(await crypto.subtle.deriveBits({
+   name:'PBKDF2',salt:stageSalt,iterations:KDF_ITERATIONS,hash:'SHA-256'
+  },key,256));
+ }
+ return ['pbkdf2-sha256-chain6',String(KDF_ITERATIONS),Buffer.from(material).toString('hex')].join(':');
 }
 const cookie=(request,name)=>(request.headers.get('cookie')||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='))?.slice(name.length+1)||'';
 const sessionCookie=(token,maxAge=1209600)=>`village_session=${token}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=Lax`;
@@ -93,7 +108,7 @@ export async function handleAccountD1(request,env){
    // intentionally NOT imported into the fresh-start Cloudflare account system.
    const digest=await passwordHash(password,row?.password_salt||'00'.repeat(16));
    const valid=!!row && typeof row.password_hash==='string' &&
-    /^pbkdf2-sha256:310000:[a-f0-9]{64}$/.test(row.password_hash) &&
+    /^pbkdf2-sha256-chain6:100000:[a-f0-9]{64}$/.test(row.password_hash) &&
     timingSafeEqual(Buffer.from(digest),Buffer.from(row.password_hash));
    if(!valid)return send({error:'아이디 또는 비밀번호를 확인해주세요'},401);
    const token=randomBytes(32).toString('hex'),at=now();
