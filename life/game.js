@@ -1840,14 +1840,21 @@ let autoFishRunning=false,autoFishLast=performance.now(),autoFishNext=0;
 function autoFishPanel(){
  const a=autoFishState(state),minutes=Math.ceil(a.remainingMs/60000);
  const cardStyle='border:1px solid #d8c8a6;border-radius:17px;background:linear-gradient(145deg,#fffaf0,#e7f4e9);color:#31584a;box-shadow:0 4px 10px #354f3620;padding:13px 9px;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;min-height:82px;white-space:normal;line-height:1.3;font-weight:800;font-size:15px';
- openModal('<span class="titlebadge">🎣 FISHING PASS · JUNJA LIFE</span><h2>🐟 반짝반짝 자동낚시</h2><p>🌿 낚시터에서 편하게 물고기를 잡고 골드와 경험치를 모아봐요! 게임 화면이 켜져 있을 때만 작동해요.</p>'+
+ openModal('<span class="titlebadge">🎣 FISHING PASS · JUNJA LIFE</span><h2>🐟 반짝반짝 자동낚시</h2><p>🌿 이용권을 구매하면 바로 시작해요. 일반~영웅은 잡는 즉시 판매해 가방 공간을 차지하지 않고, 전설·신화만 자동 보관해요. 게임 화면이 켜져 있을 때만 작동해요.</p>'+
  '<div style="background:linear-gradient(120deg,#e1f2e9,#fff3d8);border:1px solid #d7dfc6;border-radius:18px;padding:13px;margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;color:#315548;font-weight:750;font-size:13px">'+
  '<div>⏳ 남은 시간<br><strong style="font-size:18px">'+minutes+'분</strong></div><div>🐟 잡은 물고기<br><strong style="font-size:18px">'+a.catches+'마리</strong></div><div>💰 누적 수익<br><strong>'+a.earned.toLocaleString()+'G</strong></div><div>⭐ 누적 경험치<br><strong>'+(a.xpEarned||0).toLocaleString()+'XP</strong></div>'+
  '</div><p style="font-size:13px">💎 전설·신화 물고기는 자동 판매하지 않고 가방에 보관해요. · 보관 '+a.protected+'마리</p>'+
  '<h3 style="margin:15px 0 8px">🎟️ 이용권 고르기</h3><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">'+AUTO_FISH_PASSES.map(p=>'<button style="'+cardStyle+'" data-autofish-buy="'+p.hours+'"><span style="font-size:21px">'+(p.hours>=12?'👑':p.hours>=6?'💎':'🎣')+'</span><span>'+p.hours+'시간권</span><span style="color:#aa7a3d;font-size:13px">'+p.price.toLocaleString()+' G</span></button>').join('')+'</div>'+
  '<p style="margin:12px 0;font-size:13px">현재 '+(autoFishRunning?'🟢 자동낚시 중':'⏸ 대기 중')+' · 보유 '+Math.floor(state.coins).toLocaleString()+'G</p>'+
  '<button class="pill-btn" style="width:100%;background:linear-gradient(120deg,#91c6aa,#c5e5cf);color:#254d3d;border-radius:16px;padding:15px" id="autoFishToggle">'+(autoFishRunning?'⏹ 자동낚시 일시정지':'▶ 자동낚시 시작하기')+'</button>');
- els.panelBody.querySelectorAll('[data-autofish-buy]').forEach(b=>b.onclick=()=>{const r=buyAutoFish(state,b.dataset.autofishBuy);toast(r.ok?'🎣 이용권 구매 완료':r.error||'골드 부족');save();hud();autoFishPanel()});
+ els.panelBody.querySelectorAll('[data-autofish-buy]').forEach(b=>b.onclick=()=>{
+  const r=buyAutoFish(state,b.dataset.autofishBuy);
+  if(r.ok){
+   if(!autoFishRunning){autoFishRunning=true;autoFishLast=performance.now();autoFishNext=performance.now()+11000;}
+   toast('🎣 이용권 구매 완료 · 자동낚시 시작! 일반~영웅은 즉시 판매, 전설·신화는 보관');
+  }else toast(r.error||'골드 부족');
+  save();hud();autoFishPanel();
+ });
  const toggle=document.getElementById('autoFishToggle');if(toggle)toggle.onclick=()=>{if(autoFishRunning){autoFishRunning=false;toast('자동낚시 일시정지')}else if(!autoFishState(state).remainingMs){toast('먼저 이용권을 구매하세요')}else{autoFishRunning=true;autoFishLast=performance.now();autoFishNext=performance.now()+11000;fishPhase='idle';els.fishing.classList.remove('open');toast('🎣 자동낚시 시작!')}closeModal();save()};
 }
 async function autoFishTick(){
