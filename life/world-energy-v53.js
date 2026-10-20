@@ -1,7 +1,7 @@
 // v53 main-world actions share the server-owned energy meter with v47 lab.
 // Every confirmed expense is idempotent, never changes character XP/coins,
 // and refuses the world action when the account/API cannot validate the charge.
-export const WORLD_ENERGY_KINDS=Object.freeze(['plant','harvest','gather','fish','craft','order','business_produce']);
+export const WORLD_ENERGY_KINDS=Object.freeze(['plant','gather','fish','craft','order','business_produce']);
 export function createWorldEnergySpend({request=fetch,onChange=()=>{}}={}){
  let inFlight=false,pending=null;
  async function spend(kind){
