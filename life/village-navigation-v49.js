@@ -12,6 +12,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
  home:Object.freeze([
   {id:'goal',icon:'📖',label:'다음 생활 목표',description:'현재 진행 중인 목표·보상 확인'},
   {id:'farm',icon:'🌾',label:'농장',description:'작물을 심고 수확하기'},
+  {id:'quickfarm',icon:'🌱',label:'텃밭 빠른 작업',description:'21칸 텃밭 · 작물 5개씩 심고 수확하기'},
   {id:'craft',icon:'🧵',label:'제작소',description:'제작소까지 걸어가서 재료 가공',travel:true},
   {id:'decorate',icon:'🪑',label:'제작물 배치하기',description:'만든 벤치·가로등·꽃 화분을 마을에 놓거나 회수'},
   {id:'orders',icon:'📦',label:'주민 주문',description:'주문을 납품하고 명성 쌓기'},
@@ -20,6 +21,7 @@ export const VILLAGE_ACTIONS_V49=Object.freeze({
  ]),
  life:Object.freeze([
   {id:'farm',icon:'🌾',label:'내 농장',description:'나만의 텃밭·과수원'},
+  {id:'quickfarm',icon:'🌱',label:'텃밭 빠른 작업',description:'작물 여러 개 한 번에 심고 수확하기'},
   {id:'fishing',icon:'🎣',label:'낚시',description:'부두로 이동해 물고기 잡기',travel:true},
   {id:'gather',icon:'🌲',label:'채집',description:'숲으로 이동해 재료 모으기',travel:true},
   {id:'daily',icon:'📅',label:'오늘의 할 일',description:'일일 미션과 업적 확인'},
