@@ -27,7 +27,7 @@ const els=Object.fromEntries(['name','level','xp','coins','questText','questCoun
 let world3D=null,estateWorld=null,workshopPlaza=null,energyModal=null,homeStudioV48=null;
 const W=3600,H=2400; let CW=innerWidth,CH=innerHeight,dpr=1,scale=1,camera={x:1000,y:900},t=0,last=performance.now();
 const A={};
-const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
+const seedData={x:1050,y:955,dir:0,coins:ECONOMY_POLICY.starterG,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
 const scopedSaveKey=accountScope?'junja-v50-opening-20261020-user-'+accountScope:'junja-v50-opening-20261020-guest';
 let cloudSave=window.__villageCloudSave||null;
