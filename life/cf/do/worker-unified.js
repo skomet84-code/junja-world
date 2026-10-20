@@ -13,7 +13,7 @@ export default {
     const health=await store.fetch(new Request(new URL('/internal/health',url),{method:'GET'}));
     if(!health.ok)return json({ok:false,database:'unavailable',release:'v50-single-platform'},503);
     const result=await health.json();
-    return json({ok:true,edge:'cloudflare',database:result.database,release:'v50-single-platform',accountApi:'direct',multiplayer:'durable-objects',freshOpening:result.freshOpening,registeredUsers:result.users,resetPreviousUsers:result.resetPreviousUsers});
+    return json({ok:true,edge:'cloudflare',database:result.database,release:'v50-single-platform',accountApi:'direct',multiplayer:'durable-objects',freshOpening:result.freshOpening,registeredUsers:result.users,resetPreviousUsers:result.resetPreviousUsers,ownerGrant:result.ownerGrant||'not_configured'});
    }catch(err){console.error('DB health check failed',err?.name);return json({ok:false,release:'v50-single-platform'},503)}
   }
   const directApi=['/api/account','/api/economy-v36','/api/economy-v37'];
