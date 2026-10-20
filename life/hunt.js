@@ -453,14 +453,20 @@ function mobHit(m,damage){
    state.hunt.overflow[loot]=(state.hunt.overflow[loot]||0)+amount;
   }
   state.hunt.kills++;
+  const mastery=registerHuntKill(state.hunt,HUNT_ZONES,areaIndex,{elite:Boolean(m.model.elite),boss,day:today()});
   const paid=credit(state,m.model.coins,'hunt','몬스터 토벌 · '+m.model.name,huntLevel(state.xp));
+  // Combat XP grows substantially slower than life XP, while the independent
+  // mastery score measures actual combat progress and unlocks tougher regions.
   state.xp+=m.model.xp;
-  hero.hp=clamp(hero.hp+8,0,stats().maxHp);
+  hero.hp=clamp(hero.hp+(boss?20:m.model.elite?8:3),0,stats().maxHp);
   m.root.visible=false;m.deadUntil=performance.now()+(boss?Infinity:7000);
   if(!added)toast('📦 전리품이 임시 보관함에 저장됐어요');
-  if(boss){state.hunt.bossDates[dailyBossKey(currentZone.id,today())]=true;toast('🏆 '+m.model.name+' 토벌 성공! +'+paid.amount+'G · '+loot+' 획득')}
-  else toast('✨ '+m.model.name+' 토벌! +'+paid.amount+'G · '+loot+' 획득');
+  if(boss){state.hunt.bossDates[dailyBossKey(currentZone.id,today())]=true;
+   toast('🏆 '+m.model.name+' 토벌! 숙련 +'+mastery.points+' · '+loot+' 획득 · 다음 구역 도전 가능')}
+  else toast((m.model.elite?'✦ 정예':'✨')+' '+m.model.name+' 토벌! 숙련 +'+mastery.points+' · '+loot+' 획득');
   if(target===m)target=null;save();
+  if(!boss)ensureZoneBoss();
+  $('region').textContent=currentZone.icon+' '+currentZone.name+' · 사냥 숙련 '+mastery.score;
  }
  updateHud();
 }
