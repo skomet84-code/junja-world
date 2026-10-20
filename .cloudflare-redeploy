@@ -1,7 +1,8 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 4273fc4932949d0f9624818ba13d291488f721cc
-Reason: v54.1 player-reported bug fixes. Normal cloud save status must remain completely hidden; show errors and conflicts only, main village periodic movement autosave 5500->12000 ms while protecting local unsynced profiles and saves during actions. Quiet hunt save notices too. Repair '이전 행동력을 확인' permanent lock after uncertain mobile network POST: authenticated read-only GET requestId receipt check, 9000ms request timeout, automatic reconciliation and release old pending before different activity, original same kind retains UUID exact-once. Existing 100-energy upper cap, independent trial wallet, 5000G starter, v54 hunt, 21-crop farm, quests, skomet/준자 admin and all Cloudflare save DB untouched. No user data reset or schema migration, preserve Durable Object binding keys.
-QA: https://github.com/skomet84-code/junja-world/actions/runs/39430007497 PASS (unit, full game and local Cloudflare SQLite requestId reconciliation with unauthenticated/invalid/pending/previously charged cases).
-Cloudflare config: life/cf/wrangler.jsonc, unchanged DO binding.
+Release commit: 6db0db391731597c9a950aa5890e92eb98947d53
+Reason: Owner-requested v55 game update. Main and estate harvesting NO energy cost (0); planting only spends energy 2; existing separate energy balance stays. Automatic fishing pass instantly activates on purchase; catch of common/fine/rare/hero fish instantly sells to in-game market without occupying backpack even when full; legendary and mythic catches retained. No real-money functionality, no cash-out. New Moonlight virtual-gold arcade: 100G/attempt, published 45% win chance, 200G capped reward, up to 10 plays per KST day with transparent rules. Regular quiet movement auto cloud-save every 60 seconds instead of 12 seconds, IMPORTANT actions (plant/harvest/transaction) keep immediate save. Cache bust mobile game.js to v55-farm-autofish-arcade-20261020. No database migrations, resets, or account deletions; preserve existing skomet/준자 admin, v54 hunting/experience, v53 quests/fish collection and v52 21 farm beds and original crops and level.
+QA all local Cloudflare Durable Objects, accounts, marketplace, quests, owner/crown, saves, multiplayer, and v55 farming/automatic fish/arcade tests PASS:
+https://github.com/skomet84-code/junja-world/actions/runs/39432034396
+Deploy config: life/cf/wrangler.jsonc unchanged Cloudflare DO id; release v55-farm-arcade.
 Requested: 2026-10-20 KST
