@@ -199,7 +199,7 @@ window.startVillageGame=()=>{
    const data=await r.json();
    window.__villageCloudSave=data.save||null;
    stage="game";
-   await import("./game.js?v=v55-farm-autofish-arcade-20261020");
+   await import("./game.js?v=v55-farm-autofish-arcade-20261020-energy");
    window.__villageGameStarted=true;
    return true;
   }catch(e){
