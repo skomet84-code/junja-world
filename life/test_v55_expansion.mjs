@@ -79,7 +79,7 @@ assert(hunt.includes("registerHuntWeekV55(state.hunt,today()"));
 assert(hunt.includes('function openHuntWeekV55()'));
 assert(hunt.includes("kind==='wolf'"));
 assert(hunt.includes("zone.id==='astral'"));
-assert(html.includes('v55-grand-expansion-20261020'),'Safari hunt file requires fresh script');
+assert(html.includes('v55-loot-vendor-20261020'),'Safari hunt file requires fresh loot seller script');
 assert(publicBuild.includes("'hunt-weekly-v55.js'"));
 assert(publicBuild.includes("'farm-batch-v55.js'"));
 console.log('PASS v55: six hunting maps/30 mobs/6 bosses, cold/wolf art, new gear, weekly resets/claims, 5-field farming, XP gates and quest routing');
