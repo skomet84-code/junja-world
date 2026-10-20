@@ -39,6 +39,8 @@ jobs:
           node cf/do/test_owner_promotion_v50.mjs
           node --check cf/do/market-v51.js
           node cf/do/test_market_v51.mjs
+          node --check cf/do/professions-v51.js
+          node cf/do/test_professions_v51.mjs
       - name: Build v50 game and run complete existing suite
         working-directory: life
         run: |
