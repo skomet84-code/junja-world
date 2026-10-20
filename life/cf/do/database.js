@@ -92,7 +92,7 @@ export class VillageDatabase extends DurableObject {
   if(url.pathname==='/internal/health'){
    const row=await this.db.prepare('SELECT count(*) AS n FROM village_users').first();
    const reset=await this.db.prepare('SELECT applied_at,deleted_users FROM village_release_flags WHERE id=?').bind('v50-fresh-opening-2026-10-20').first();
-   return json({ok:true,database:'cloudflare-do-sqlite',users:Number(row?.n||0),release:'v55-farm-arcade',
+   return json({ok:true,database:'cloudflare-do-sqlite',users:Number(row?.n||0),release:'v55-loot-vendor',
     freshOpening:!!reset,resetPreviousUsers:Number(reset?.deleted_users||0),
     ownerGrant:ownerGrant==='granted'||ownerGrant==='already_admin'?'granted':ownerGrant});
   }
