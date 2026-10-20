@@ -22,6 +22,7 @@ import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,c
 import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js?v=v51-starter-5000';
 import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket,AUTO_SELL_PRICE,purchaseAutoSellTicket,toggleFishProtection} from './inventory-v29.js';
 import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js';
+import {ARCADE_RULES_V55,arcadeStatus,playArcade} from './arcade-v55.js';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -476,6 +477,30 @@ function lifePerkGuide(){
 }
 // v49: one discoverable menu tree. All actions are existing game functions.
 let v49ActiveSection='home';
+function openMoonArcade(){
+ const summary=arcadeStatus(state),left=ARCADE_RULES_V55.playsPerDay-summary.plays;
+ openModal(`<span class="titlebadge">🎴 달빛 게임장</span><h2>🌙 행운의 카드</h2>
+  <p>태양 또는 달 카드를 맞히는 게임이야. 실제 돈·현금 교환은 없고 <b>마을의 가상 G</b>만 사용해.</p>
+  <div class="mini-card" style="background:linear-gradient(135deg,#f3eafc,#e5f7ed);color:#365b50;border-radius:18px;padding:17px">
+   <strong>🎲 오늘의 게임</strong><p>참가비 <b>100G</b> · 당첨 확률 <b>45%</b> · 맞히면 최대 <b>200G</b> 보상(경제 일일 상한 적용)</p>
+   <p>오늘 남은 기회 <b>${left}/${ARCADE_RULES_V55.playsPerDay}</b> · 게임 골드 ${Math.floor(state.coins).toLocaleString()}G</p>
+   <p>오늘 ${summary.wins}승 · 받은 보상 ${summary.won.toLocaleString()}G · 사용 ${summary.spent.toLocaleString()}G</p>
+   <p style="font-size:12px">최대 보상 기준 평균 회수율 약 90% · 현금 거래·환전 불가 · 1일 10회 제한</p>
+  </div><div class="pill-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+   <button class="pill-btn" data-arcade="sun" ${left===0||state.coins<100?'disabled':''}>☀️ 태양 선택 · 100G</button>
+   <button class="pill-btn" data-arcade="moon" ${left===0||state.coins<100?'disabled':''}>🌙 달 선택 · 100G</button>
+  </div><div id="arcadeResult" role="status" style="margin-top:12px;font-size:13px;font-weight:750"></div>`);
+ els.panelBody.querySelectorAll('[data-arcade]').forEach(btn=>btn.onclick=()=>{
+  const choice=btn.dataset.arcade;
+  const result=playArcade(state,{choice});
+  if(!result.ok){toast(result.error);return}
+  save();hud();
+  const line=(result.drawn==='sun'?'☀️ 태양':'🌙 달')+' 카드 등장! '+
+   (result.success?'🎉 성공! +'+result.won.toLocaleString()+'G 지급(참가비 제외 순 '+result.net+'G)':'아쉽다! -100G');
+  openMoonArcade();
+  const box=document.getElementById('arcadeResult');if(box)box.textContent=line;
+ });
+}
 function openV49Component(section,elementId,lead,mount){
  openModal('<span class="titlebadge">준자마을 · '+lead+' · 별도 경제</span><div id="'+elementId+'"></div>');
  mount(document.getElementById(elementId),{back:()=>openVillageMenuV49(section)});
@@ -505,6 +530,7 @@ function openVillageMenuV49(section='home'){
     case 'career':return openV49Component('life','v49Profession','직업과 계약',openProfessionCenter);
     case 'hunt':return goToHunting();
     case 'festival':return openFestival();
+    case 'arcade':return openMoonArcade();
     case 'social':return openSocial();
     case 'business':return openV49Component('production','v49Business','나의 사업장',openBusinessCenter);
     case 'district':
