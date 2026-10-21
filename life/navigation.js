@@ -1,4 +1,4 @@
-/* World-space navigation: exact endpoints, swept collision and distance-based steps. */
+/* World-space navigation: exact endpoints, swept collision and distance-based steps. v57 quality QA. */
 (function(root){
 'use strict';
 function navigator({width,height,walkable,cell=32}){
