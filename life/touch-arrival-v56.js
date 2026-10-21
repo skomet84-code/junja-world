@@ -10,6 +10,11 @@ const STYLES = `
 .v56-touch-cue::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:6px;
   background:#fff9dc;border-radius:50%;transform:translate(-50%,-50%);
   box-shadow:0 0 0 2px rgba(46,106,80,.55)}
+.v56-touch-cue::before{content:'';position:absolute;inset:-9px;border:1.5px solid rgba(255,248,203,.82);border-radius:50%;pointer-events:none;opacity:0;transform:scale(.7)}
+.v56-touch-cue.is-press::before{opacity:.65;transform:scale(.85)}
+.v56-touch-cue.is-drag::before{opacity:.5;transform:scale(1.12)}
+.v56-touch-cue.is-arrival::before{animation:v57-touch-halo .56s ease-out forwards}
+@keyframes v57-touch-halo{0%{opacity:.9;transform:scale(.65)}100%{opacity:0;transform:scale(1.8)}}
 .v56-touch-cue.is-press{opacity:.85;transform:translate(-50%,-50%) scale(.7);
   transition:opacity .12s ease-out,transform .12s ease-out}
 .v56-touch-cue.is-drag{opacity:.95;transform:translate(-50%,-50%) scale(1);
@@ -23,7 +28,7 @@ const STYLES = `
 @media(prefers-reduced-motion:reduce){
   .v56-touch-cue{will-change:auto}
   .v56-touch-cue.is-press,.v56-touch-cue.is-drag{transition:none}
-  .v56-touch-cue.is-arrival{animation-duration:.01s}
+  .v56-touch-cue.is-arrival,.v56-touch-cue.is-arrival::before{animation-duration:.01s}
 }
 `;
 export function createTouchArrivalFeedback(doc = document) {
@@ -69,7 +74,7 @@ export function installTouchArrivalFeedback(canvas,doc=document){
  const cue=createTouchArrivalFeedback(doc);
  let pointerId=null,startX=0,startY=0,dragging=false;
  canvas.addEventListener('pointerdown',e=>{
-  if(pointerId!==null||e.button!==0)return;
+  if(pointerId!==null||e.button!==0||e.isPrimary===false)return;
   pointerId=e.pointerId;startX=e.clientX;startY=e.clientY;dragging=false;
   cue.press(e.clientX,e.clientY);
  },{passive:true});
@@ -78,15 +83,21 @@ export function installTouchArrivalFeedback(canvas,doc=document){
   if(Math.hypot(e.clientX-startX,e.clientY-startY)>9)dragging=true;
   if(dragging)cue.drag(e.clientX,e.clientY);
  },{passive:true});
- canvas.addEventListener('pointerup',e=>{
+ // A release outside the canvas must not leave a glowing destination behind.
+ // Only a release delivered to the game canvas gets the arrival ripple.
+ const finish=(e,onCanvas)=>{
   if(pointerId!==e.pointerId)return;
-  pointerId=null;cue.arrive(e.clientX,e.clientY);
- },{passive:true});
+  pointerId=null;
+  if(onCanvas)cue.arrive(e.clientX,e.clientY);else cue.cancel();
+ };
+ canvas.addEventListener('pointerup',e=>finish(e,true),{passive:true});
+ doc.defaultView?.addEventListener('pointerup',e=>finish(e,false),{passive:true});
  canvas.addEventListener('pointercancel',e=>{
   if(pointerId!==e.pointerId)return;
   pointerId=null;cue.cancel();
  },{passive:true});
  const clear=()=>{pointerId=null;cue.cancel()};
+ doc.defaultView?.addEventListener('pointercancel',e=>{if(pointerId===e.pointerId)clear()},{passive:true});
  doc.defaultView?.addEventListener('blur',clear);
  doc.addEventListener('visibilitychange',()=>{if(doc.hidden)clear()});
  return cue;
