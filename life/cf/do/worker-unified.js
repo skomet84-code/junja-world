@@ -39,7 +39,9 @@ export default {
    return json({error:'통합 서버에서 이 기능을 준비하고 있어요',reason:'not_implemented'},503);
   }
   const path=url.pathname==='/'?'/index.html':url.pathname;
-  const asset=await env.ASSETS.fetch(new Request(new URL(path,url),request));
+  // Preserve the original URL: Assets canonicalizes /index.html to /.
+  // Rewriting / to /index.html would redirect the landing page to itself.
+  const asset=await env.ASSETS.fetch(request);
   // Keep the landing page and account controls fresh after emergency fixes,
   // especially in iOS Safari / embedded Kakao webviews with long-lived caches.
   if(asset.ok&&(path.endsWith('.html')||path.endsWith('.js'))){
