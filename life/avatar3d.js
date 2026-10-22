@@ -1,5 +1,7 @@
 import * as T from './vendor/three.module.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
+import {sampleFootGait,sampleBodyGait} from './gait-pose-v58.js';
+import {sampleGarmentSway} from './garment-sway-v59.js';
 import {renderHair,renderAccessory,decorateOutfit} from './fashion-3d.js';
 
 // Original Junja clay character. Every wearable is real geometry on the same rig.
@@ -68,9 +70,10 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
  }
  if(animal==='fox'||animal==='cat'){const tail=ball(pelvis,face.material,0,7,-16,7,15,8);tail.rotation.x=-.6}
  const equipped={coat:null,hat:null};
+ let swayingHem=null;
  function equip(nextCoat,nextHat){
   if(equipped.coat!==nextCoat){
-   equipped.coat=nextCoat;clear(garment);const cloth=outfits[nextCoat]||outfits.mint;
+   equipped.coat=nextCoat;clear(garment);swayingHem=null;const cloth=outfits[nextCoat]||outfits.mint;
    const item=CATALOG_BY_ID[nextCoat]?.type==='outfit'?CATALOG_BY_ID[nextCoat]:null;
     const dress=['lavender','pink'].includes(nextCoat)||['dress','robe','royal'].includes(item?.shape);
    // One shell replaces the visible torso; sleeves share the exact shoulder/elbow hierarchy.
@@ -79,8 +82,8 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
    const torsoProfile=[new T.Vector2(0,-6),new T.Vector2(11.8,-6),new T.Vector2(14.6,-2),new T.Vector2(16,5),new T.Vector2(16.8,14),new T.Vector2(16.2,21),new T.Vector2(12.2,29),new T.Vector2(6,32),new T.Vector2(0,32)];
    const shell=new T.Mesh(new T.LatheGeometry(torsoProfile,32),cloth.main);shell.name='coat-shell';shell.castShadow=true;shell.receiveShadow=true;garment.add(shell);
    if(dress){const skirtProfile=[new T.Vector2(13,4),new T.Vector2(15,0),new T.Vector2(17,-5),new T.Vector2(20,-12),new T.Vector2(22,-16.5),new T.Vector2(22.1,-18)];
-    const skirt=new T.Mesh(new T.LatheGeometry(skirtProfile.slice().reverse(),32),cloth.main);skirt.castShadow=true;skirt.receiveShadow=true;garment.add(skirt);
-    const hem=new T.Mesh(new T.TorusGeometry(22.1,.95,7,40),cloth.light);hem.rotation.x=Math.PI/2;hem.position.y=-18;garment.add(hem);
+    const skirt=new T.Mesh(new T.LatheGeometry(skirtProfile.slice().reverse(),32),cloth.main);skirt.castShadow=true;skirt.receiveShadow=true;garment.add(skirt);swayingHem=skirt;
+    const hem=new T.Mesh(new T.TorusGeometry(22.1,.95,7,40),cloth.light);hem.rotation.x=Math.PI/2;hem.position.y=-18;skirt.add(hem);
    }else {disc(garment,cloth.dark,0,-5.5,0,12.8,1.5);for(const x of [-8,8]){const pocket=ball(garment,cloth.light,x,5,13.1,3.4,3.7,.9);pocket.name='pocket'}}
    for(const side of [-1,1]){const collar=tube(garment,white,2.5,12,side*4.7,25,10);collar.rotation.z=side*.44}
    for(const y of [18,11,4])ball(garment,gold,0,y,15.5,1.35,1.35,.9);
@@ -158,25 +161,31 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   bangs.visible=showOriginal;
   newHair.visible=!['straw','flower','beret','beanie','navycap','captain'].includes(equipped.hat);
  }
- let angle=0,lastDistance=0,blend=0;root.userData.rig={pelvis,torso,head,hatSocket,garment,limbs};
+ let angle=0,blend=0;root.userData.rig={pelvis,torso,head,hatSocket,garment,limbs};
  function animate({x,y,vx=0,vy=0,dir=0,stride=0},dt,time){
-  root.position.set(x,0,y);const moving=Math.hypot(vx,vy)>1;
+  root.position.set(x,0,y);
+  const moving=Math.hypot(vx,vy)>1;
+  const frameDt=Math.max(0,Math.min(Number(dt)||0,.05));
   const desired=moving?Math.atan2(vx,vy):[0,Math.PI/2,Math.PI,-Math.PI/2][dir];
-  let delta=T.MathUtils.euclideanModulo(desired-angle+Math.PI,Math.PI*2)-Math.PI;angle+=delta*Math.min(1,dt*17);root.rotation.y=angle;
-  blend=T.MathUtils.damp(blend,moving?1:0,12,dt);
-  const phase=stride, step=Math.sin(phase)*blend, idle=(1-blend)*Math.sin(time*1.25);
-  // Each limb pivots from its own joint. The planted foot bends at the knee as weight moves forward.
-  pelvis.position.y=34+Math.max(0,Math.sin(phase*2))*.35*blend;
-  pelvis.rotation.z=Math.sin(phase)*.016*blend;
-  torso.rotation.z=-step*.024+idle*.008;torso.rotation.y=step*.038;
-  head.rotation.z=step*.014;head.rotation.x=-blend*.025+idle*.014;
+  const delta=T.MathUtils.euclideanModulo(desired-angle+Math.PI,Math.PI*2)-Math.PI;
+  angle+=delta*Math.min(1,frameDt*17);
+  root.rotation.y=angle;
+  blend=T.MathUtils.damp(blend,moving?1:0,12,frameDt);
+  // Keep the planted shoe low while the opposite ankle lifts; fade to idle on stop.
+  const body=sampleBodyGait(stride,blend,time);
+  pelvis.position.set(body.pelvisX,body.pelvisY,0);
+  pelvis.rotation.z=body.pelvisRoll;
+  torso.rotation.z=body.torsoRoll;torso.rotation.y=body.torsoTurn;
+  head.rotation.z=body.headRoll;head.rotation.x=body.headPitch;
+  if(swayingHem){const cloth=sampleGarmentSway(stride,blend,Math.hypot(vx,vy));swayingHem.rotation.z=cloth.roll;swayingHem.rotation.x=cloth.pitch;swayingHem.position.y=cloth.hemLift;}
   for(const l of limbs){
-   const cycle=phase+(l.side>0?Math.PI:0),swing=Math.sin(cycle)*blend,feetUp=Math.max(0,Math.cos(cycle))*blend;
-   l.hip.rotation.x=swing*.57;
-   l.knee.rotation.x=feetUp*.48+Math.max(0,-swing)*.1;
-   l.ankle.rotation.x=-l.knee.rotation.x*.52-swing*.12;
-   l.arm.rotation.x=-swing*.38;
-   l.elbow.rotation.x=-.12-Math.max(0,-swing)*.17;
+   const pose=sampleFootGait(stride,blend,l.side);
+   l.hip.rotation.x=pose.hip;
+   l.knee.rotation.x=pose.knee;
+   l.ankle.rotation.x=pose.ankle;
+   l.ankle.position.y=-13+pose.ankleLift;
+   l.arm.rotation.x=pose.arm;
+   l.elbow.rotation.x=pose.elbow;
   }
   const blink=(time%4.7)>4.58;for(const e of eyes)e.scale.y=blink?.55:4.4;
  }

@@ -3,6 +3,7 @@ import {mkdir,copyFile,readFile} from 'node:fs/promises';
 import {join,dirname,posix} from 'node:path';
 const assets=[
  'action-energy-v47.js','secure-economy-v36.js',
+ 'gait-pose-v58.js','garment-sway-v59.js','touch-arrival-v56.js',
  'index.html','account-ui.js','admin-panel.js','game.js','arcade-v55.js','world-energy-v53.js','farm-plots-v52.js','world3d.js','avatar3d.js','fashion-3d.js',
  'fashion-catalog.js','life-systems-v20.js','navigation.js',
  'hunt.html','hunt.js','hunt-data.js','hunt-balance-v54.js','hunt-loot-market-v55.js','fish-portraits.js','living-world.js',
