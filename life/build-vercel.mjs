@@ -1,6 +1,11 @@
 // Copy only browser-safe assets into Vercel's static output directory.
 import {mkdir,copyFile,readFile} from 'node:fs/promises';
 import {join,dirname,posix} from 'node:path';
+import {execFileSync} from 'node:child_process';
+// Run the v58 pose regression and syntax checks before publishing static assets.
+execFileSync(process.execPath,['--test','test_gait_v58.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['--check','avatar3d.js'],{stdio:'inherit'});
+execFileSync(process.execPath,['--check','gait-pose-v58.js'],{stdio:'inherit'});
 const assets=[
  'action-energy-v47.js','secure-economy-v36.js',
  'index.html','account-ui.js','admin-panel.js','game.js','world-energy-v53.js','farm-plots-v52.js','world3d.js','avatar3d.js','gait-pose-v58.js','fashion-3d.js',
