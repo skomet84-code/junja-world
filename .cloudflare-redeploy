@@ -1,8 +1,7 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: 9ee0775441f472d6bca62f2dd5a03a4f289b0e4f
-Reason: integrate v56-v59 touch feedback, grounded walking, garment sway and immediate full-bag sales onto live v55 economy. Preserve existing accounts, save identities, Durable Object bindings, migrations, balances, energy pricing/recovery and loot vendor. No old Vercel account migration or database reset.
-QA: https://github.com/skomet84-code/junja-world/actions/runs/39810628770 SUCCESS, including full suite, SQLite account/save, two-user WebSocket, market, energy and exact-once retry tests.
+Release commit: 7cc7cc04df66037f279b2392d9fda8108583b528
+Reason: fix root URL redirect loop introduced by worker-first static handling. Pass original request to ASSETS so / serves index directly; retain fresh JS headers. Existing account and save database unchanged.
 Worker release: v59-integrated
 Cloudflare Worker: junja-world; game source life/cf/wrangler.jsonc
 Requested 2026-10-23 KST
