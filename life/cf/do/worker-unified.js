@@ -11,10 +11,10 @@ export default {
   if(url.pathname==='/health'||url.pathname==='/api/health'){
    try{
     const health=await store.fetch(new Request(new URL('/internal/health',url),{method:'GET'}));
-    if(!health.ok)return json({ok:false,database:'unavailable',release:'v55-core-economy'},503);
+    if(!health.ok)return json({ok:false,database:'unavailable',release:'v59-integrated'},503);
     const result=await health.json();
-    return json({ok:true,edge:'cloudflare',database:result.database,release:'v55-core-economy',accountApi:'direct',multiplayer:'durable-objects',freshOpening:result.freshOpening,registeredUsers:result.users,resetPreviousUsers:result.resetPreviousUsers,ownerGrant:result.ownerGrant||'not_configured'});
-   }catch(err){console.error('DB health check failed',err?.name);return json({ok:false,release:'v55-core-economy'},503)}
+    return json({ok:true,edge:'cloudflare',database:result.database,release:'v59-integrated',accountApi:'direct',multiplayer:'durable-objects',freshOpening:result.freshOpening,registeredUsers:result.users,resetPreviousUsers:result.resetPreviousUsers,ownerGrant:result.ownerGrant||'not_configured'});
+   }catch(err){console.error('DB health check failed',err?.name);return json({ok:false,release:'v59-integrated'},503)}
   }
   const directApi=['/api/account','/api/economy-v36','/api/economy-v37','/api/market-v38','/api/professions-v39','/api/business-v40','/api/quests-v51'];
   if(directApi.includes(url.pathname))return store.fetch(request);
@@ -42,7 +42,7 @@ export default {
   const asset=await env.ASSETS.fetch(new Request(new URL(path,url),request));
   // Keep the landing page and account controls fresh after emergency fixes,
   // especially in iOS Safari / embedded Kakao webviews with long-lived caches.
-  if(asset.ok&&(path==='/index.html'||path==='/account-ui.js'||path==='/admin-panel.js'||path==='/game.js'||path==='/arcade-v55.js'||path==='/auto-fishing-v31.js'||path==='/action-energy-v47.js'||path==='/hunt.html'||path==='/hunt.js'||path==='/hunt-loot-market-v55.js'||path==='/hunt-data.js'||path==='/hunt-balance-v54.js'||path==='/world-energy-v53.js'||path==='/action-energy-ui-v47.js'||path==='/fish-portraits.js'||path==='/life-systems-v20.js'||path==='/living-world.js'||path==='/farm-plots-v52.js'||path==='/village-navigation-v49.js'||path==='/quests-ui-v51.js'||path==='/economy-v28.js'||path==='/secure-economy-v36.js')){
+  if(asset.ok&&(path.endsWith('.html')||path.endsWith('.js'))){
    const headers=new Headers(asset.headers);
    headers.set('cache-control','no-store, max-age=0');
    return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});

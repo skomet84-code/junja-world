@@ -636,14 +636,25 @@ function openStation(id){
  toast(s.icon+' 주변 '+(id==='forest'?'나무':id==='quarry'?'바위':'꽃')+'를 터치해서 채집하세요');
 }
 
+// Send a full bag straight to the appropriate existing sales screen.
+function openFullBagSales(preferred='fish'){
+ const fishAvailable=Object.entries(state.fishStock||{}).some(([name,n])=>FISH_BY_NAME[name]&&Number(n)>0);
+ const materialAvailable=Object.entries(state.materials||{}).some(([id,n])=>MATERIAL_MARKET[id]&&Number(n)>0);
+ if(preferred==='material'&&materialAvailable||!fishAvailable&&materialAvailable)openMaterialMarket();
+ else if(fishAvailable)openMarket();
+ else openBag(); // Hunt loot/potions may fill the bag without any fish or materials to sell.
+ toast(fishAvailable||materialAvailable
+  ?'🎒 가방이 가득 찼어요 ('+bagUsed(state)+'/'+bagCapacity(state)+'). 판매창을 열었어요!'
+  :'🎒 가방이 가득 찼어요! 판매할 물고기·채집 재료가 없어 가방 정리를 열었어요.');
+}
 async function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
  const remaining=(state.nodeReady[id]||0)-Date.now();if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
  const desired=2+lifeBonus('gather'),free=bagFree(state);
- if(free<1){openBag();toast('🎒 가방이 가득 찼어요. 판매하거나 가방을 확장하세요');return}
+ if(free<1){openFullBagSales('material');return}
  const amount=Math.min(desired,free);
  if(!await useWorldEnergy('gather'))return;
  if(!addBagItems(state,'material',n.kind,amount)){toast('🎒 가방 보관에 실패했어요. 가방을 열어 잔여 칸을 확인해 주세요');return}
- world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));
+ world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));if(bagFree(state)<1)openFullBagSales('material');
 }
 
 function openDelivery(){
@@ -1786,7 +1797,7 @@ function openBag(){
 }
 function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 모여봐요 반말방숲 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
 function beginFishing(){
- if(!canStore(state,1)){closeModal();toast('🎒 가방이 가득 찼어요! 수산시장에서 판매하거나 확장해요');return}
+ if(!canStore(state,1)){closeModal();openFullBagSales('fish');return}
  closeModal();stopWalking();
  if(distance(player,{x:1465,y:1177})>190){moveTo(1464,1168,{type:'action',kind:'fish'});toast('🎣 부두로 이동하고 있어요');return}
  fishPhase='wait';hookedFish=null;reelProfile=null;reelMisses=0;fishAttempts=0;castMode=true;
@@ -1830,12 +1841,12 @@ async function fishingAction(){
    };
    if(!state.dailyFishNames.includes(f.name))state.dailyFishNames.push(f.name);
    state.xp+=48+reelProfile.tier*22+(isFirst?30:0);
-   if(!addBagItems(state,'fish',f.name,1))toast('🎒 가방이 가득 찼어요. 어시장에 들러보세요');
+   const stored=addBagItems(state,'fish',f.name,1);
    hud();save();completeDaily();checkAchievements();
    fishPhase='idle';castMode=false;hookedFish=null;reelProfile=null;
    els.fishing.classList.remove('open');
-   toast('🏆 '+f.rarity+' '+f.name+' 포획! '+(isFirst?'✨ 도감 신규 등록 · ':'')+'🎒 물고기 1마리 보관 · 시장에서 판매 가능');
-   party(player.x,player.y-75,30);return;
+   toast('🏆 '+f.rarity+' '+f.name+' 포획! '+(isFirst?'✨ 도감 신규 등록 · ':'')+(stored?'🎒 물고기 1마리 보관 · 시장에서 판매 가능':'🎒 가방이 가득 차 보관하지 못했어요'));
+   party(player.x,player.y-75,30);if(!stored||bagFree(state)<1)openFullBagSales('fish');return;
   }
   shiftFishingZone();fishingProgress();
  }else{

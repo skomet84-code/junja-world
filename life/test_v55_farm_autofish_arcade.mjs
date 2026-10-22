@@ -62,6 +62,6 @@ assert(VILLAGE_ACTIONS_V49.home.some(x=>x.id==='arcade'));
 assert(VILLAGE_ACTIONS_V49.life.some(x=>x.id==='arcade'));
 assert(game.includes("case 'arcade':return openMoonArcade()"));
 assert(game.includes("if(!autoFishRunning){autoFishRunning=true;autoFishLast=performance.now()"),'pass purchase starts automatic fishing');
-assert(html.includes('v55-farm-autofish-arcade-20261020'),'mobile cache refresh required');
+assert(html.includes('v59-integrated-20261023'),'mobile cache refresh required');
 assert(build.includes('arcade-v55.js'),'new arcade module must be served by Cloudflare');
 console.log('PASS v55: harvest free, planting -2, autosave 60s, auto-fish instantly sells when bag full, protected legends, virtual arcade odds, daily cap, preserved saved wallet');
