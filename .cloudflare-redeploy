@@ -1,7 +1,8 @@
 Cloudflare deployment trigger
 Release branch: feat/village-v50-cloudflare-cutover
-Release commit: de40c625a45ac7470f9a47584aeb9d9346c09b72
-Reason: user-requested v55 CORE ECONOMY release. Replace 3/day 1200G energy purchase cap with 25-energy packs priced 1000,2000,4000,8000... doubling on every purchase with next Korean midnight reset. Never impose an arbitrary purchase-count cap; next price and available trial-gold balance determine affordability. Preserve existing energy record/checkpoints and v54 save recovery. Harvest stays free in main & trial farming for user-friendly farm economy. Preserve already-implemented virtual G only Moon Arcade (100G card game, daily 10 games, no fiat), hunt loot merchant + crafting, overflow-safe auto-fish sales. Keep all player accounts, skomet owner admin, levels, coins, save UUID, v52 21 plots, v54 combat. NO DB reset, NO account import, NO DO ID change.
-QA: https://github.com/skomet84-code/junja-world/actions/runs/39442010951 SUCCESS including Cloudflare local SQL login/energy price 1000->2000 and exact-once retries and whole game saves/multiplayer.
+Release commit: 9ee0775441f472d6bca62f2dd5a03a4f289b0e4f
+Reason: integrate v56-v59 touch feedback, grounded walking, garment sway and immediate full-bag sales onto live v55 economy. Preserve existing accounts, save identities, Durable Object bindings, migrations, balances, energy pricing/recovery and loot vendor. No old Vercel account migration or database reset.
+QA: https://github.com/skomet84-code/junja-world/actions/runs/39810628770 SUCCESS, including full suite, SQLite account/save, two-user WebSocket, market, energy and exact-once retry tests.
+Worker release: v59-integrated
 Cloudflare Worker: junja-world; game source life/cf/wrangler.jsonc
-Requested 2026-10-20 KST
+Requested 2026-10-23 KST
