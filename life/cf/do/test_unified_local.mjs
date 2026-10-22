@@ -13,6 +13,13 @@ const call=async(action,body=null,cookie='')=>{
  });
  return {status:response.status,json:await response.json().catch(()=>({})),headers:response.headers};
 };
+// Exercise real Assets canonicalization; a successful /health alone is insufficient.
+for(const path of ['/', '/avatar3d.js', '/gait-pose-v58.js', '/garment-sway-v59.js', '/touch-arrival-v56.js']){
+ const asset=await fetch(base+path,{redirect:'manual'});
+ assert.equal(asset.status,200,'asset must load directly: '+path);
+ assert.match(asset.headers.get('cache-control')||'',/no-store/,'fresh code: '+path);
+ assert.ok((await asset.text()).length>100,'nonempty asset: '+path);
+}
 let response=await fetch(base+'/health');
 assert.equal(response.status,200,'Worker and SQLite Durable Object must be ready');
 const healthy=await response.json();
