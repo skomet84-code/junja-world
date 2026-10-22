@@ -1,5 +1,6 @@
 import * as T from './vendor/three.module.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
+import {sampleFootGait,sampleBodyGait} from './gait-pose-v58.js';
 import {renderHair,renderAccessory,decorateOutfit} from './fashion-3d.js';
 
 // Original Junja clay character. Every wearable is real geometry on the same rig.
@@ -158,25 +159,30 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   bangs.visible=showOriginal;
   newHair.visible=!['straw','flower','beret','beanie','navycap','captain'].includes(equipped.hat);
  }
- let angle=0,lastDistance=0,blend=0;root.userData.rig={pelvis,torso,head,hatSocket,garment,limbs};
+ let angle=0,blend=0;root.userData.rig={pelvis,torso,head,hatSocket,garment,limbs};
  function animate({x,y,vx=0,vy=0,dir=0,stride=0},dt,time){
-  root.position.set(x,0,y);const moving=Math.hypot(vx,vy)>1;
+  root.position.set(x,0,y);
+  const moving=Math.hypot(vx,vy)>1;
+  const frameDt=Math.max(0,Math.min(Number(dt)||0,.05));
   const desired=moving?Math.atan2(vx,vy):[0,Math.PI/2,Math.PI,-Math.PI/2][dir];
-  let delta=T.MathUtils.euclideanModulo(desired-angle+Math.PI,Math.PI*2)-Math.PI;angle+=delta*Math.min(1,dt*17);root.rotation.y=angle;
-  blend=T.MathUtils.damp(blend,moving?1:0,12,dt);
-  const phase=stride, step=Math.sin(phase)*blend, idle=(1-blend)*Math.sin(time*1.25);
-  // Each limb pivots from its own joint. The planted foot bends at the knee as weight moves forward.
-  pelvis.position.y=34+Math.max(0,Math.sin(phase*2))*.35*blend;
-  pelvis.rotation.z=Math.sin(phase)*.016*blend;
-  torso.rotation.z=-step*.024+idle*.008;torso.rotation.y=step*.038;
-  head.rotation.z=step*.014;head.rotation.x=-blend*.025+idle*.014;
+  const delta=T.MathUtils.euclideanModulo(desired-angle+Math.PI,Math.PI*2)-Math.PI;
+  angle+=delta*Math.min(1,frameDt*17);
+  root.rotation.y=angle;
+  blend=T.MathUtils.damp(blend,moving?1:0,12,frameDt);
+  // Keep the planted shoe low while the opposite ankle lifts; fade to idle on stop.
+  const body=sampleBodyGait(stride,blend,time);
+  pelvis.position.set(body.pelvisX,body.pelvisY,0);
+  pelvis.rotation.z=body.pelvisRoll;
+  torso.rotation.z=body.torsoRoll;torso.rotation.y=body.torsoTurn;
+  head.rotation.z=body.headRoll;head.rotation.x=body.headPitch;
   for(const l of limbs){
-   const cycle=phase+(l.side>0?Math.PI:0),swing=Math.sin(cycle)*blend,feetUp=Math.max(0,Math.cos(cycle))*blend;
-   l.hip.rotation.x=swing*.57;
-   l.knee.rotation.x=feetUp*.48+Math.max(0,-swing)*.1;
-   l.ankle.rotation.x=-l.knee.rotation.x*.52-swing*.12;
-   l.arm.rotation.x=-swing*.38;
-   l.elbow.rotation.x=-.12-Math.max(0,-swing)*.17;
+   const pose=sampleFootGait(stride,blend,l.side);
+   l.hip.rotation.x=pose.hip;
+   l.knee.rotation.x=pose.knee;
+   l.ankle.rotation.x=pose.ankle;
+   l.ankle.position.y=-13+pose.ankleLift;
+   l.arm.rotation.x=pose.arm;
+   l.elbow.rotation.x=pose.elbow;
   }
   const blink=(time%4.7)>4.58;for(const e of eyes)e.scale.y=blink?.55:4.4;
  }
