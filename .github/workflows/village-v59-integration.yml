@@ -2,6 +2,8 @@ name: Village v59 Integration QA
 on:
   push:
     branches: [integration/v59-stability-20261023]
+  pull_request:
+    branches: [feat/village-v50-cloudflare-cutover]
   workflow_dispatch:
 permissions:
   contents: read
