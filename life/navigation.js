@@ -83,3 +83,8 @@ function navigator({width,height,walkable,cell=32}){
 }
 root.JunjaNavigation=navigator;
 })(typeof module==='object'?module.exports:globalThis);
+
+// Optional, non-intercepting touch destination feedback (v56).
+if(typeof document!=='undefined'&&document.getElementById('game')){
+ import('./touch-arrival-v56.js').then(m=>m.installTouchArrivalFeedback(document.getElementById('game'))).catch(()=>{});
+}

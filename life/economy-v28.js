@@ -9,7 +9,7 @@ const CAT_CAPS=Object.freeze({
  quest:[3200,120],social:[520,30],festival:[2600,90],other:[1000,40]
 });
 export const ECONOMY_POLICY=Object.freeze({
- name:'준자마을 물가 안정 v28',starterG:1000,
+ name:'준자마을 물가 안정 v28',starterG:5000,
  philosophy:'모든 NPC 돈 발행량을 추적하고, 활동별 보상이 점차 줄어듭니다. 아이템 구입·제작·서비스는 게임 머니를 회수합니다.',
  softCap:'활동별 하루 기준을 넘으면 기본 보상의 25%, 2배 초과 시 10%까지 줄어듭니다.',
  minReward:1,stableCoin:'G'

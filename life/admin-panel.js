@@ -1,7 +1,7 @@
 import {CATALOG} from './fashion-catalog.js';
 const style=document.createElement('style');style.textContent=`
 #junjaAdminBtn{display:none;position:fixed;top:calc(19px + env(safe-area-inset-top));left:45.5%;right:auto;bottom:auto;transform:translateX(-50%);z-index:96;background:linear-gradient(120deg,#f9d878,#fff4c5);color:#513a15;border:2px solid #b89542;border-radius:50%;width:43px;height:43px;padding:0;font-size:22px;display:none;align-items:center;justify-content:center;font-weight:900;box-shadow:0 4px 18px #0004}
-#junjaAdminBtn[style*="block"]{display:flex!important}#junjaAdminPanel{display:none;position:fixed;inset:0;z-index:210;background:#102b24d9;padding:calc(18px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));overflow:auto}
+#junjaAdminBtn[style*="flex"]{display:flex!important}#junjaAdminPanel{display:none;position:fixed;inset:0;z-index:210;background:#102b24d9;padding:calc(18px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));overflow:auto}
 #junjaAdminPanel.show{display:block}
 #junjaAdminBox{max-width:510px;margin:auto;background:#fffaf0;color:#294934;border:3px solid #ddbd66;border-radius:22px;padding:17px;box-shadow:0 16px 50px #0005}
 #junjaAdminBox h2{margin:3px 0 12px}#junjaAdminBox input,#junjaAdminBox select{width:100%;padding:13px;border:1px solid #a8c1ae;border-radius:12px;background:white;font-size:16px;margin:5px 0 12px}
@@ -31,11 +31,35 @@ async function call(action,data){const res=await fetch('/api/account?action='+ac
 function choose(u){selected=u.username;$('jaSelected').textContent='✅ 선택: '+u.nickname+' ('+u.username+')';$('jaSearch').value=u.nickname}
 function render(){const q=$('jaSearch').value.trim().toLowerCase(),list=$('junjaAdminMembers');list.replaceChildren();const filtered=members.filter(u=>(u.username+' '+u.nickname).toLowerCase().includes(q)).slice(0,70);for(const u of filtered){const b=document.createElement('button');b.textContent=(u.role==='admin'?'👑 ':'👤 ')+u.nickname+' ('+u.username+')';b.onclick=()=>choose(u);list.append(b)}if(!filtered.length)list.textContent='검색된 회원 없음'}
 async function load(){try{const r=await call('admin_users');members=r.users;render();status('회원 '+members.length+'명 불러왔어')}catch(e){status('⚠️ '+e.message)}}
-btn.onclick=()=>{panel.classList.add('show');load()};$('jaClose').onclick=()=>panel.classList.remove('show');$('jaReload').onclick=load;$('jaSearch').oninput=render;$('jaSelf').onclick=()=>choose({username:'admin_junja2',nickname:'준자'});
+btn.onclick=()=>{panel.classList.add('show');load()};$('jaClose').onclick=()=>panel.classList.remove('show');$('jaReload').onclick=load;$('jaSearch').oninput=render;let verifiedAdmin=null;
+$('jaSelf').onclick=()=>{
+ if(!verifiedAdmin)return status('⚠️ 관리자 인증을 다시 확인해 줘');
+ choose({username:verifiedAdmin.username,nickname:verifiedAdmin.nickname});
+};
 panel.querySelectorAll('[data-gold]').forEach(b=>b.onclick=()=>{$('jaGold').value=b.dataset.gold});
 async function submit(mode,value,item){if(!selected)return status('⚠️ 먼저 친구를 선택해');if(!confirm(selected+'에게 '+(mode==='coins_add'?'골드 '+value+'G 지급':mode==='coins_take'?'골드 '+value+'G 회수':mode==='level'?'레벨 '+value+' 적용':'아이템 '+item+' 지급')+'할까?'))return;try{const r=await call('admin_character',{recipient:selected,mode,value,item});status('✅ '+r.message+' · 접속 중인 캐릭터에도 잠시 후 반영돼')}catch(e){status('⚠️ '+e.message)}}
 $('jaGiveGold').onclick=()=>{const n=Number($('jaGold').value);if(!Number.isSafeInteger(n)||n<1)return status('⚠️ 골드 금액을 입력해');submit('coins_add',n)};
 $('jaTakeGold').onclick=()=>{const n=Number($('jaGold').value);if(!Number.isSafeInteger(n)||n<1)return status('⚠️ 골드 금액을 입력해');submit('coins_take',n)};
 $('jaSetLevel').onclick=()=>{const n=Number($('jaLevel').value);if(!Number.isSafeInteger(n)||n<1||n>100000000)return status('⚠️ 올바른 레벨을 입력해');submit('level',n)};
 $('jaGiveItem').onclick=()=>submit('item',0,$('jaItem').value);
-window.addEventListener('village-auth',e=>{const u=e.detail;btn.style.display=u?.username==='admin_junja2'&&u?.role==='admin'?'block':'none';if(!u)panel.classList.remove('show')});
+// Only trust the server-confirmed role. The new owner account is 'skomet',
+// not the deleted legacy username 'admin_junja2'.
+function setVerifiedAdmin(u){
+ verifiedAdmin=u?.role==='admin'&&typeof u.username==='string'
+  ?{username:u.username,nickname:u.nickname}:null;
+ btn.style.display=verifiedAdmin?'flex':'none';
+ if(!verifiedAdmin)panel.classList.remove('show');
+}
+window.addEventListener('village-auth',e=>setVerifiedAdmin(e.detail));
+// The account module may finish its initial fetch before this ES module loads.
+// Confirm independently so the crown never depends on an event timing race.
+async function refreshVerifiedAdmin(){
+ try{
+  const res=await fetch('/api/account?action=me',{credentials:'same-origin',cache:'no-store'});
+  if(!res.ok){setVerifiedAdmin(null);return}
+  const data=await res.json();
+  setVerifiedAdmin(data.user);
+ }catch(e){console.warn('Admin status refresh failed',e)}
+}
+void refreshVerifiedAdmin();
+window.addEventListener('pageshow',()=>{void refreshVerifiedAdmin()});

@@ -5,7 +5,7 @@ const day=new Date('2026-10-17T10:00:00+09:00'),tomorrow=new Date('2026-10-18T10
 const s={coins:1000,xp:0,collection:['송사리'],fishRecords:{}};
 const e=initEconomy(s,day);
 assert.equal(s.coins,1000);assert.equal(e.earned,0);
-assert.equal(ECONOMY_POLICY.starterG,1000);
+assert.equal(ECONOMY_POLICY.starterG,5000);
 assert.equal(debit(s,1500,'shop','unaffordable',day).ok,false);
 assert.equal(s.coins,1000,'rejected checkout must not change coin balance');
 assert.equal(debit(s,100,'shop','dress',day).ok,true);assert.equal(s.coins,900);
@@ -49,4 +49,4 @@ const admin={coins:100000000};initEconomy(admin,day);assert.equal(admin.coins,10
 assert.equal(credit(admin,100,'achievement','bonus',1,day).amount,100);
 assert.equal(debit(admin,800000,'shop','royal furnishing',day).ok,true);
 const caps={coins:1000};assert.equal(debit(caps,-2).ok,false);assert.equal(credit(caps,Number.NaN).ok,false);
-console.log('PASS v28: 1000G start, legitimate 100m saves, auditable faucet/sinks, diminishing returns, real fish stock, daily prices and anti-duplicate sale');
+console.log('PASS v28: 5000G fresh start while existing 1000G save is preserved, legitimate 100m saves, auditable faucet/sinks, diminishing returns, real fish stock, daily prices and anti-duplicate sale');

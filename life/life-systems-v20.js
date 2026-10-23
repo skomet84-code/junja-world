@@ -1,4 +1,4 @@
-import {drawFishPortrait} from './fish-portraits.js';
+import {drawFishPortrait} from './fish-portraits.js?v=v53-solid-fish';
 // Life systems: finite in-game progression, fishing tools and a safe virtual aquarium.
 // No avatar movement modifiers, client-only saved state, no cash purchase.
 export const RODS=Object.freeze([
