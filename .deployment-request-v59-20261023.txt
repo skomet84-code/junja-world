@@ -1,0 +1,7 @@
+JUNJA village v59 production redeploy request — 2026-10-23 KST
+Source: feat/village-v50-cloudflare-cutover
+Target: Cloudflare Worker junja-world
+Build: npm --prefix life run build
+Deploy: npx wrangler@4.45.0 deploy --config life/cf/wrangler.jsonc
+Safeguards: do NOT reset or migrate player database, account IDs, Durable Object IDs, inventories, levels, currency or saved state. This marker changes no application code.
+Validation: GitHub CI passed; verify actual Worker /health and production user save roundtrip before announcing success.
