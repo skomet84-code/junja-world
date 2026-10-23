@@ -2,6 +2,7 @@ import * as T from './vendor/three.module.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {sampleFootGait,sampleBodyGait} from './gait-pose-v58.js';
 import {sampleGarmentSway} from './garment-sway-v59.js';
+import {sampleTurnAnticipation} from './turn-anticipation-v60.js';
 import {renderHair,renderAccessory,decorateOutfit} from './fashion-3d.js';
 
 // Original Junja clay character. Every wearable is real geometry on the same rig.
@@ -161,7 +162,7 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   bangs.visible=showOriginal;
   newHair.visible=!['straw','flower','beret','beanie','navycap','captain'].includes(equipped.hat);
  }
- let angle=0,blend=0;root.userData.rig={pelvis,torso,head,hatSocket,garment,limbs};
+ let angle=0,blend=0,turnYaw=0,shoulderYaw=0;root.userData.rig={pelvis,torso,head,hatSocket,garment,limbs};
  function animate({x,y,vx=0,vy=0,dir=0,stride=0},dt,time){
   root.position.set(x,0,y);
   const moving=Math.hypot(vx,vy)>1;
@@ -171,12 +172,16 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   angle+=delta*Math.min(1,frameDt*17);
   root.rotation.y=angle;
   blend=T.MathUtils.damp(blend,moving?1:0,12,frameDt);
+  // Let the eyes and shoulders lead a quick tap-to-move turn, then settle naturally.
+  const anticipation=sampleTurnAnticipation(delta,blend);
+  turnYaw=T.MathUtils.damp(turnYaw,anticipation.headYaw,18,frameDt);
+  shoulderYaw=T.MathUtils.damp(shoulderYaw,anticipation.shoulderYaw,11,frameDt);
   // Keep the planted shoe low while the opposite ankle lifts; fade to idle on stop.
   const body=sampleBodyGait(stride,blend,time);
   pelvis.position.set(body.pelvisX,body.pelvisY,0);
   pelvis.rotation.z=body.pelvisRoll;
-  torso.rotation.z=body.torsoRoll;torso.rotation.y=body.torsoTurn;
-  head.rotation.z=body.headRoll;head.rotation.x=body.headPitch;
+  torso.rotation.z=body.torsoRoll;torso.rotation.y=body.torsoTurn+shoulderYaw;
+  head.rotation.z=body.headRoll;head.rotation.x=body.headPitch;head.rotation.y=turnYaw;
   if(swayingHem){const cloth=sampleGarmentSway(stride,blend,Math.hypot(vx,vy));swayingHem.rotation.z=cloth.roll;swayingHem.rotation.x=cloth.pitch;swayingHem.position.y=cloth.hemLift;}
   for(const l of limbs){
    const pose=sampleFootGait(stride,blend,l.side);
