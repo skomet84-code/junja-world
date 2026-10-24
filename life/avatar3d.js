@@ -3,6 +3,7 @@ import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {sampleFootGait,sampleBodyGait} from './gait-pose-v58.js';
 import {sampleGarmentSway} from './garment-sway-v59.js';
 import {sampleTurnAnticipation} from './turn-anticipation-v60.js';
+import {sampleContactShadow} from './contact-shadow-v61.js';
 import {renderHair,renderAccessory,decorateOutfit} from './fashion-3d.js';
 
 // Original Junja clay character. Every wearable is real geometry on the same rig.
@@ -34,6 +35,20 @@ const pants=mat(0xa1947b),gold=mat(0xe4bc62),ribbonMat=mat(0xc67493),strawMat=ma
 
 export function createAvatar({coat='mint',hat='none',animal=null}={}){
  const root=new T.Group(),pelvis=group(root,0,34),torso=group(pelvis,0,5),head=group(torso,0,42);
+ // Low-cost ground contact: body ambience + independently fading shoe shadows.
+ // Shadows live on the avatar root, not on the moving pelvis or clothing rig.
+ const shadowMaterials=[];
+ function groundShadow(x,z,width,depth,opacity){
+  const material=new T.MeshBasicMaterial({color:0x294a37,transparent:true,opacity,depthWrite:false});
+  const mesh=new T.Mesh(new T.CircleGeometry(1,32),material);
+  mesh.rotation.x=-Math.PI/2;
+  mesh.position.set(x,.18,z);
+  mesh.scale.set(width,depth,1);
+  root.add(mesh);shadowMaterials.push(material);
+  return mesh;
+ }
+ groundShadow(0,0,18,11,.075);
+ const footShadows=new Map([[-1,groundShadow(-7.5,3.8,8,5,.13)],[1,groundShadow(7.5,3.8,8,5,.13)]]);
  const body=ball(torso,white,0,13,0,14,18,10.5);
  const neck=tube(torso,skin,6,12,0,29,0);
  const face=ball(head,animal?mat(animal==='bear'?0xb78b63:animal==='fox'?0xdba16b:animal==='cat'?0xb5bebf:0xf2e5d1):skin,0,0,0,24,23,20);
@@ -189,6 +204,11 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
    l.knee.rotation.x=pose.knee;
    l.ankle.rotation.x=pose.ankle;
    l.ankle.position.y=-13+pose.ankleLift;
+   const contact=sampleContactShadow(pose.ankleLift);
+   const shoeShadow=footShadows.get(l.side);
+   shoeShadow.material.opacity=contact.opacity;
+   shoeShadow.scale.set(8*contact.scale,5*contact.scale,1);
+   shoeShadow.position.z=3.8-5*Math.sin(pose.hip)-3*Math.sin(pose.knee);
    l.arm.rotation.x=pose.arm;
    l.elbow.rotation.x=pose.elbow;
   }
@@ -196,6 +216,7 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
  }
  function dispose(){
   root.traverse(o=>{if(o.geometry&&!Object.values(sharedGeometries).includes(o.geometry)&&!capsuleCacheHas(o.geometry))o.geometry.dispose()});
+  for(const material of shadowMaterials)material.dispose();
  }
  equip(coat,hat);return {root,equip,setFashion,animate,dispose,equipped,rig:root.userData.rig};
 }
