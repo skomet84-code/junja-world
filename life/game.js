@@ -2,23 +2,27 @@ import {installQualityHUD} from './quality-v32.js';
 import {restoreProfile,createSaveQueue} from './save-client.js';
 import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactureEstateProduct,sellEstateProduct,estateOrderProgress,fulfillEstateOrder} from './estate-trade-v34.js';
 import {createWorld} from './world3d.js';
+import {FARM_BED_CENTERS,migrateVillageBeds,VILLAGE_WALK_SPEED} from './farm-plots-v52.js';
 import {mountEstateWorld} from './estate-world-v35.js';
 import {openSecureEconomyLab} from './secure-economy-ui-v37.js';
 import {openPlayerMarket} from './player-market-ui-v38.js';
 import {openProfessionCenter} from './professions-ui-v39.js';
 import {openBusinessCenter} from './business-ui-v40.js';
+import {mountQuestsV51} from './quests-ui-v51.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
-import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
+import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js?v=v55-doubling-kst';
+import {createWorldEnergySpend} from './world-energy-v53.js?v=v54-energy-reconcile';
 import {mountHomeStudioV48} from './home-studio-ui-v48.js';
-import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js';
+import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js?v=v51-decor-placement-20261020';
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
 import {updateVillageResidents,npcDailyLine,v43Daypart} from './village-life-v43.js';
 import {CATALOG,CATALOG_BY_ID,CATEGORIES,GRADES,validFashion,petBonus} from './fashion-catalog.js';
-import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js';
-import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js';
-import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js';
+import {RODS,FISH,FISH_BY_NAME,PHRASES,rodById,fishRoll,eligibleFish,reelChallenge,STARTER_FISH_NAMES,rewardForFish,validRodSave,aquariumSlots,fishArt,dailyMissions,HOME_LEVELS} from './life-systems-v20.js?v=v53-fish';
+import {makeLivingChapters,MONTHLY_GOALS,monthProgress,initialMonth,realSeason,calendarMonth,villageTitle} from './living-world.js?v=v53-no-attendance';
+import {ECONOMY_POLICY,BAITS,economyCeiling,initEconomy,credit,debit,moneyHistory,marketDay,quoteFish,initializeFishStock,addFishStock,sellFish,buyBait,chooseBait,useBait,adjustCatchRoll} from './economy-v28.js?v=v51-starter-5000';
 import {BAG_TIERS,initBag,bagUsed,bagCapacity,bagFree,canStore,addBagItems,bagUpgrade,claimEventAutoSellTicket,useAutoSellTicket,AUTO_SELL_PRICE,purchaseAutoSellTicket,toggleFishProtection} from './inventory-v29.js';
-import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js';
+import {AUTO_FISH_PASSES,autoFishState,buyAutoFish,autoFishCatch} from './auto-fishing-v31.js?v=v55-direct-auto-sale';
+import {ARCADE_RULES_V55,arcadeStatus,playArcade} from './arcade-v55.js?v=v55-virtual-games';
 'use strict';
 (()=>{
 const cv=document.getElementById('game'),c=null,mini=document.getElementById('mini'),mctx=mini.getContext('2d');
@@ -26,9 +30,9 @@ const els=Object.fromEntries(['name','level','xp','coins','questText','questCoun
 let world3D=null,estateWorld=null,workshopPlaza=null,energyModal=null,homeStudioV48=null;
 const W=3600,H=2400; let CW=innerWidth,CH=innerHeight,dpr=1,scale=1,camera={x:1000,y:900},t=0,last=performance.now();
 const A={};
-const seedData={x:1050,y:955,dir:0,coins:1000,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
+const seedData={x:1050,y:955,dir:0,coins:ECONOMY_POLICY.starterG,xp:0,fish:0,hat:'none',coat:'mint',collection:[],harvest:0};
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
-const scopedSaveKey=accountScope?'junja-harbor-v1-user-'+accountScope:'junja-harbor-v1';
+const scopedSaveKey=accountScope?'junja-v50-opening-20261020-user-'+accountScope:'junja-v50-opening-20261020-guest';
 let cloudSave=window.__villageCloudSave||null;
 // Cloud data is loaded before module import, without top-level await.
 const initialCloudVersion=Number.isSafeInteger(Number(cloudSave?.version))?Number(cloudSave.version):0;
@@ -48,8 +52,9 @@ if(!['spring','summer','autumn','winter'].includes(state.season))state.season='s
 const seasonLabels={spring:'🌸 봄',summer:'🌿 여름',autumn:'🍂 가을',winter:'❄️ 겨울'};
 const nowDay=()=>new Date().toLocaleDateString('en-CA');
 const crops={carrot:{name:'당근',icon:'🥕',seconds:65,price:54,cost:12,color:'#df8644'},strawberry:{name:'딸기',icon:'🍓',seconds:120,price:106,cost:25,color:'#d74c61'},pumpkin:{name:'호박',icon:'🎃',seconds:220,price:210,cost:47,color:'#ebba52'},lily:{name:'별꽃',icon:'🌼',seconds:300,price:290,cost:68,color:'#f8de9a'}};
-const bedCenters=[];for(let i=0;i<14;i++)bedCenters.push({x:816+i%7*79,y:1171+Math.floor(i/7)*79});
-if(!Array.isArray(state.beds)||state.beds.length!==14)state.beds=bedCenters.map((_,i)=>i<3?{crop:'carrot',at:Date.now()-90000}:{crop:null,at:0});
+// Keep the previous 14 farm plots, adding a third row without resetting planted crops.
+const bedCenters=FARM_BED_CENTERS;
+state.beds=migrateVillageBeds(state.beds);
 if(!state.seeds||typeof state.seeds!=='object')state.seeds={carrot:6,strawberry:2,pumpkin:1,lily:0};
 if(!Array.isArray(state.decorations))state.decorations=[];
 if(!state.home)state.home={wall:'cream',floor:'oak',furniture:['sofa']};
@@ -66,6 +71,25 @@ const decorCatalog=[{id:'flower',label:'꽃 화분',emoji:'🌷',cost:75,sz:22},
 const achievements=[{id:'fish1',title:'첫 낚시',condition:()=>state.fish>=1,bonus:65},{id:'fish10',title:'바다의 친구',condition:()=>state.fish>=10,bonus:250},{id:'harvest5',title:'농장의 새싹',condition:()=>state.harvest>=5,bonus:180},{id:'decorate3',title:'마을 디자이너',condition:()=>state.decorations.length>=3,bonus:260},{id:'fashion3',title:'패션 리더',condition:()=>owned.length>=5,bonus:240}];
 if(!Array.isArray(state.achieved))state.achieved=[];
 let selectedSeed='carrot',placeDecor=null,chatSeen=0,lastClock=-1,wetFx=0;
+const decorationCancelButton=document.createElement('button');
+decorationCancelButton.type='button';
+decorationCancelButton.id='decorationCancelButtonV51';
+decorationCancelButton.textContent='✕ 배치 취소';
+decorationCancelButton.setAttribute('aria-label','제작물 배치 또는 회수 취소');
+decorationCancelButton.style.cssText='position:fixed;bottom:calc(98px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:95;display:none;min-height:48px;padding:11px 22px;border:2px solid #fff;border-radius:28px;background:#315c46;color:#fff;font-size:15px;font-weight:800;box-shadow:0 5px 22px #183e3266;touch-action:manipulation;white-space:nowrap';
+document.body.append(decorationCancelButton);
+function cancelDecorationPlacement(){
+ placeDecor=null;
+ decorationCancelButton.style.display='none';
+ els.hint.classList.add('hidden');
+ toast('🌷 제작물 배치 취소');
+}
+function showDecorationPlacement(){
+ decorationCancelButton.style.display='block';
+ els.hint.classList.remove('hidden');
+}
+decorationCancelButton.onclick=cancelDecorationPlacement;
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&placeDecor)cancelDecorationPlacement()});
 function checkAchievements(){let won=[];for(const a of achievements){if(!state.achieved.includes(a.id)&&a.condition()){state.achieved.push(a.id);earn(a.bonus,'achievement','업적 달성');won.push(a.title+' +'+a.bonus+'G')}}if(won.length){toast('🏅 '+won.join(' / '));save()}hud()}
 function cropStage(b){if(!b?.crop)return -1;return Math.min(3,Math.floor((Date.now()-b.at)/1000/crops[b.crop].seconds*3))}
 function dailyTask(){return dailyMissions(nowDay(),{
@@ -312,7 +336,7 @@ const outfits=[{id:'mint',name:'민트 피크닉룩',cost:0,emoji:'🌿',col:'#5
 outfits.push(...[{id:'lavender',name:'라벤더 원피스',cost:380,emoji:'💜',col:'#a897dc',type:'coat'},{id:'coral',name:'산호빛 데이트룩',cost:450,emoji:'🧡',col:'#f0a07a',type:'coat'},{id:'navy',name:'밤바다 정장',cost:540,emoji:'🌙',col:'#375d83',type:'coat'},{id:'cream',name:'크림 니트',cost:240,emoji:'🤍',col:'#e6d5b5',type:'coat'},{id:'forest',name:'숲속 탐험룩',cost:410,emoji:'🍃',col:'#568a60',type:'coat'},{id:'pink',name:'벚꽃 드레스',cost:610,emoji:'🎀',col:'#ee9ac7',type:'coat'},{id:'flower',name:'봄꽃 밀짚모자',cost:340,emoji:'🌸',type:'hat'},{id:'navycap',name:'청량 선장 모자',cost:480,emoji:'⚓',type:'hat'},{id:'beanie',name:'카페 비니',cost:190,emoji:'🧶',type:'hat'},{id:'cat',name:'고양이 귀',cost:600,emoji:'🐈',type:'hat'},{id:'ribbon',name:'왕리본 머리띠',cost:280,emoji:'🎀',type:'hat'},{id:'captain',name:'바다의 선장 모자',cost:420,emoji:'🧢',type:'hat'}]);
 
 outfits.push({id:'linen',name:'공방 린넨 셔츠',cost:0,emoji:'🧵',col:'#d8c7a6',type:'coat',craftOnly:true});
-let owned=['mint','none'];try{const o=resumeUnsyncedOwned||cloudSave?.owned||(accountScope?JSON.parse(localStorage.getItem('junja-harbor-owned-'+accountScope)||'[]'):[]);if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
+let owned=['mint','none'];try{const o=resumeUnsyncedOwned||cloudSave?.owned||(accountScope?JSON.parse(localStorage.getItem('junja-v50-opening-20261020-owned-'+accountScope)||'[]'):[]);if(Array.isArray(o))owned=[...new Set([...owned,...o])]}catch{}
 // Migrate in place; never discard existing coins, fish, legacy costumes or quests.
 const originalFashion=state.fashion&&typeof state.fashion==='object'?state.fashion:{};
 const fashionOwned=new Set(Array.isArray(originalFashion.owned)?originalFashion.owned.filter(id=>!!CATALOG_BY_ID[id]):[]);
@@ -325,11 +349,13 @@ const villageSaveStatus=document.createElement('div');
 villageSaveStatus.id='villageSaveStatus';
 villageSaveStatus.setAttribute('role','status');
 villageSaveStatus.setAttribute('aria-live','polite');
-villageSaveStatus.style.cssText='position:fixed;z-index:38;left:50%;bottom:calc(91px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff9e8ef;border:1px solid #b8ccac;border-radius:22px;box-shadow:0 2px 12px #253c2922;color:#3f7053;font-weight:800;font-size:11px;padding:6px 12px;max-width:92vw;white-space:nowrap;pointer-events:none';
-villageSaveStatus.textContent=cloudSave?.profile?'● 서버 기록 불러옴':(restored.recovered?'● 이 기기의 마지막 기록 복구 · 서버 저장 대기':'● 첫 저장 준비 중');
+villageSaveStatus.style.cssText='display:none;position:fixed;z-index:38;left:50%;bottom:calc(91px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff9e8ef;border:1px solid #b8ccac;border-radius:22px;box-shadow:0 2px 12px #253c2922;color:#3f7053;font-weight:800;font-size:11px;padding:6px 12px;max-width:92vw;white-space:nowrap;pointer-events:none';
+villageSaveStatus.textContent=''; // Standard saves stay silent; local backup and conflict alerts are retained.
 document.body.append(villageSaveStatus);
 function setSaveStatus(message,isError=false){
- villageSaveStatus.textContent=message;
+ villageSaveStatus.textContent=isError?message:'';
+ villageSaveStatus.style.display=isError?'block':'none';
+ villageSaveStatus.setAttribute('aria-live',isError?'assertive':'off');
  villageSaveStatus.style.color=isError?'#a34f39':'#3f7053';
  villageSaveStatus.style.borderColor=isError?'#dbad99':'#b8ccac';
 }
@@ -352,7 +378,7 @@ const saveQueue=createSaveQueue({version:initialCloudVersion,
  onStatus:(status,data)=>{
   if(status==='blocked')showSaveConflict((data?.status?'HTTP '+data.status+' · ':'')+(data?.error||'저장 요청이 거부됐어요. 새로고침 전 기기의 기록을 보존해주세요.'));
   else if(status==='retry')setSaveStatus('⚠ 서버 저장 실패 · 자동 재시도 · '+String(data?.message||'연결 오류').slice(0,75),true);
-  else setSaveStatus((status==='saved'?'✔ 서버 저장 완료':'⏳ 서버 저장 중')+' · Lv.'+(1+Math.floor((Number(data.profile.xp)||0)/160)));
+  else if(status==='saved')setSaveStatus('',false); // Saving and successful writes are silent.
  }
 });
 function queueCloudSave(){if(accountScope&&!saveBlocked)return saveQueue.enqueue(state,owned)}
@@ -367,7 +393,7 @@ function save(){
    localStorage.setItem(scopedSaveKey,JSON.stringify(state));
    if(!saveBlocked)localStorage.setItem(unsyncedKey,JSON.stringify({baseVersion:cloudVersion,profile:state,owned:[...owned],savedAt:state.savedAt}));
   }
-  if(accountScope)localStorage.setItem('junja-harbor-owned-'+accountScope,JSON.stringify(owned));
+  if(accountScope)localStorage.setItem('junja-v50-opening-20261020-owned-'+accountScope,JSON.stringify(owned));
   // Retain up to seven daily restore points, not every five-second save.
   const day=nowDay(),key='junja-village-snapshots-v27-'+accountScope;
   const shots=JSON.parse(localStorage.getItem(key)||'[]');
@@ -451,8 +477,32 @@ function lifePerkGuide(){
 }
 // v49: one discoverable menu tree. All actions are existing game functions.
 let v49ActiveSection='home';
+function openMoonArcade(){
+ const summary=arcadeStatus(state),left=ARCADE_RULES_V55.playsPerDay-summary.plays;
+ openModal(`<span class="titlebadge">🎴 달빛 게임장</span><h2>🌙 행운의 카드</h2>
+  <p>태양 또는 달 카드를 맞히는 게임이야. 실제 돈·현금 교환은 없고 <b>마을의 가상 G</b>만 사용해.</p>
+  <div class="mini-card" style="background:linear-gradient(135deg,#f3eafc,#e5f7ed);color:#365b50;border-radius:18px;padding:17px">
+   <strong>🎲 오늘의 게임</strong><p>참가비 <b>100G</b> · 당첨 확률 <b>45%</b> · 맞히면 최대 <b>200G</b> 보상(경제 일일 상한 적용)</p>
+   <p>오늘 남은 기회 <b>${left}/${ARCADE_RULES_V55.playsPerDay}</b> · 게임 골드 ${Math.floor(state.coins).toLocaleString()}G</p>
+   <p>오늘 ${summary.wins}승 · 받은 보상 ${summary.won.toLocaleString()}G · 사용 ${summary.spent.toLocaleString()}G</p>
+   <p style="font-size:12px">최대 보상 기준 평균 회수율 약 90% · 현금 거래·환전 불가 · 1일 10회 제한</p>
+  </div><div class="pill-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+   <button class="pill-btn" data-arcade="sun" ${left===0||state.coins<100?'disabled':''}>☀️ 태양 선택 · 100G</button>
+   <button class="pill-btn" data-arcade="moon" ${left===0||state.coins<100?'disabled':''}>🌙 달 선택 · 100G</button>
+  </div><div id="arcadeResult" role="status" style="margin-top:12px;font-size:13px;font-weight:750"></div>`);
+ els.panelBody.querySelectorAll('[data-arcade]').forEach(btn=>btn.onclick=()=>{
+  const choice=btn.dataset.arcade;
+  const result=playArcade(state,{choice});
+  if(!result.ok){toast(result.error);return}
+  save();hud();
+  const line=(result.drawn==='sun'?'☀️ 태양':'🌙 달')+' 카드 등장! '+
+   (result.success?'🎉 성공! +'+result.won.toLocaleString()+'G 지급(참가비 제외 순 '+result.net+'G)':'아쉽다! -100G');
+  openMoonArcade();
+  const box=document.getElementById('arcadeResult');if(box)box.textContent=line;
+ });
+}
 function openV49Component(section,elementId,lead,mount){
- openModal('<span class="titlebadge">준자마을 · '+lead+' · 시험 기능</span><div id="'+elementId+'"></div>');
+ openModal('<span class="titlebadge">준자마을 · '+lead+' · 별도 경제</span><div id="'+elementId+'"></div>');
  mount(document.getElementById(elementId),{back:()=>openVillageMenuV49(section)});
 }
 function openVillageMenuV49(section='home'){
@@ -480,6 +530,7 @@ function openVillageMenuV49(section='home'){
     case 'career':return openV49Component('life','v49Profession','직업과 계약',openProfessionCenter);
     case 'hunt':return goToHunting();
     case 'festival':return openFestival();
+    case 'arcade':return openMoonArcade();
     case 'social':return openSocial();
     case 'business':return openV49Component('production','v49Business','나의 사업장',openBusinessCenter);
     case 'district':
@@ -581,22 +632,36 @@ function openStation(id){
  }
  if(distance(player,s)>155){goStation(id);return}
  state.visits[id]=true;if(!state.dailyVisits.includes(id))state.dailyVisits.push(id);completeDaily();save();
- if(id==='workshop')return openCraft();if(id==='boutique')return openShop();if(id==='lodge')return openDelivery();if(id==='home')return openHome();if(id==='farm')return farmAll();if(id==='pier')return beginFishing();if(id==='village')return openJourney();
+ if(id==='workshop')return openCraft();if(id==='garden')return openDecor();if(id==='boutique')return openShop();if(id==='lodge')return openDelivery();if(id==='home')return openHome();if(id==='farm')return farmAll();if(id==='pier')return beginFishing();if(id==='village')return openJourney();
  toast(s.icon+' 주변 '+(id==='forest'?'나무':id==='quarry'?'바위':'꽃')+'를 터치해서 채집하세요');
 }
 
-function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
+// Send a full bag straight to the appropriate existing sales screen.
+function openFullBagSales(preferred='fish'){
+ const fishAvailable=Object.entries(state.fishStock||{}).some(([name,n])=>FISH_BY_NAME[name]&&Number(n)>0);
+ const materialAvailable=Object.entries(state.materials||{}).some(([id,n])=>MATERIAL_MARKET[id]&&Number(n)>0);
+ if(preferred==='material'&&materialAvailable||!fishAvailable&&materialAvailable)openMaterialMarket();
+ else if(fishAvailable)openMarket();
+ else openBag(); // Hunt loot/potions may fill the bag without any fish or materials to sell.
+ toast(fishAvailable||materialAvailable
+  ?'🎒 가방이 가득 찼어요 ('+bagUsed(state)+'/'+bagCapacity(state)+'). 판매창을 열었어요!'
+  :'🎒 가방이 가득 찼어요! 판매할 물고기·채집 재료가 없어 가방 정리를 열었어요.');
+}
+async function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
  const remaining=(state.nodeReady[id]||0)-Date.now();if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
  const desired=2+lifeBonus('gather'),free=bagFree(state);
- if(free<1){openBag();toast('🎒 가방이 가득 찼어요. 판매하거나 가방을 확장하세요');return}
+ if(free<1){openFullBagSales('material');return}
  const amount=Math.min(desired,free);
+ if(!await useWorldEnergy('gather'))return;
  if(!addBagItems(state,'material',n.kind,amount)){toast('🎒 가방 보관에 실패했어요. 가방을 열어 잔여 칸을 확인해 주세요');return}
- world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));
+ world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));if(bagFree(state)<1)openFullBagSales('material');
 }
 
 function openDelivery(){
  openModal(`<span class="titlebadge">FOREST EXCHANGE</span><h2>숲속 교역소</h2><p>공방에서 만든 선물 상자를 납품하고 꾸미기 비용을 마련해요.</p><div class="mini-card"><span class="emoji">📦</span><strong>숲의 선물 상자 · 개당 ${180+lifeBonus('delivery')}G</strong><p>보유 ${state.crafted.parcel||0}개 · 누적 납품 ${state.deliveries}개</p><button id="deliverParcel" ${!(state.crafted.parcel>0)?'disabled':''}>1개 납품 · ${180+lifeBonus('delivery')}G 받기</button></div><button class="pill-btn ghost" id="deliveryCraft">공방으로 이동</button>`);
- document.getElementById('deliverParcel').onclick=()=>{if(!(state.crafted.parcel>0))return;state.crafted.parcel--;state.deliveries++;state.dailyDeliver++;completeDaily();const income=180+lifeBonus('delivery');const earned=earn(income,'deliver','교역소 납품');state.xp+=25;save();hud();updateJourney(true);toast('납품 완료! +'+earned+'G');openDelivery()};document.getElementById('deliveryCraft').onclick=()=>goStation('workshop');
+ document.getElementById('deliverParcel').onclick=async()=>{if(!(state.crafted.parcel>0))return;
+  if(!await useWorldEnergy('order'))return;
+  state.crafted.parcel--;state.deliveries++;state.dailyDeliver++;completeDaily();const income=180+lifeBonus('delivery');const earned=earn(income,'deliver','교역소 납품');state.xp+=25;save();hud();updateJourney(true);toast('납품 완료! +'+earned+'G');openDelivery()};document.getElementById('deliveryCraft').onclick=()=>goStation('workshop');
 }
 
 function hud(){els.coins.textContent=Math.floor(state.coins).toLocaleString('ko-KR');const lv=lifeLevel();els.level.textContent='Lv.'+lv+' · '+(lv>=18?'로열 마을의 주인':lv>=10?'생활 장인':lv>3?'하버 주민':'새싹 주민');els.xp.style.width=((state.xp%160)/160*100)+'%';updateJourney(true)}
@@ -605,7 +670,7 @@ hud();
 // browser progress. Otherwise brand-new accounts have no cloud save until
 // a state change and can reappear at Lv.1 on another device.
 if(accountScope)queueCloudSave();
-setInterval(save,5500);
+setInterval(save,60000); // Quiet once-per-minute movement snapshots; planting/harvest/transactions still save immediately.
 if(accountScope){
  const lastAdminRevision=Number(state.__adminRevision)||0;
  async function pullAdminChanges(){
@@ -660,7 +725,7 @@ if(accountScope){
   }catch{}
   await refreshOnline();
  }
- setInterval(syncVillagePresence,10000);syncVillagePresence();
+ setInterval(syncVillagePresence,30000);syncVillagePresence();
 }
 ensureFestival();
 const festivalBtn=document.getElementById('festivalBtn');if(festivalBtn)festivalBtn.onclick=openFestival;
@@ -753,7 +818,7 @@ function showOperatorNickname(){
  els.name.textContent=socialNickname;
  world3D?.setNickname(socialNickname);
  // The relay stores the nickname at join, so reconnect with the updated name.
- if(typeof pollLive==='function')pollLive();
+ if(typeof connectSocial==='function')connectSocial();
 }
 const VILLAGE_CLIENT_KEY='junja-village-client-id';
 let villageClientId='';
@@ -767,7 +832,9 @@ try{
 let effectiveDisplayNick=socialNickname,oldSocketReplaced=false;
 let socialSocket=null,socialRoom='SPRING',socialId=null,lastPositionSent=0,retryCount=0;
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function socialSend(o){if(o?.type==='say')livePendingPhrase=o.phrase}
+function socialSend(o){if(o?.type!=='say')return;
+if(socialSocket?.readyState===WebSocket.OPEN)socialSocket.send(JSON.stringify({type:'say',phrase:o.phrase}));
+else livePendingPhrase=o.phrase}
 function updateSocialBadge(){const b=document.getElementById('socialStatus');if(!b)return;b.textContent=socialId?'🟢 친구 '+(Object.keys(peers).length+1)+'/8명 · '+socialRoom:'👫 친구 · 오프라인';}
 function openSocial(){
  const connected=Boolean(socialId);
@@ -801,33 +868,76 @@ function openSocial(){
  });
  document.getElementById('roomPlayers').onclick=()=>toast(connected?'같은 방에 '+(Object.keys(peers).length+1)+'명 접속':'현재 혼자 플레이 중');
 }
-let livePolling=false,livePendingPhrase=null,liveTimer=null;
-async function pollLive(){
- if(livePolling)return;
- livePolling=true;
- try{
- const payload={room:socialRoom,x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped};
- if(livePendingPhrase){payload.phrase=livePendingPhrase;livePendingPhrase=null}
- const response=await fetch('/api/live',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
- if(!response.ok)throw Error('presence '+response.status);
- const data=await response.json();socialId=data.id;
- const seen=new Set();
- for(const o of data.players||[]){if(!o||!o.id)continue;seen.add(o.id);const prev=peers[o.id];if(prev){Object.assign(prev,{...o,targetX:o.x,targetY:o.y})}else peers[o.id]={...o,targetX:o.x,targetY:o.y};if(o.phrase&&Number(o.phrase_at)>Date.now()-3500){peers[o.id].phrase=o.phrase;peers[o.id].phraseUntil=Number(o.phrase_at)+3200}}
- for(const id of Object.keys(peers))if(!seen.has(id))delete peers[id];
- updateSocialBadge();
- }catch(e){socialId=null;for(const id of Object.keys(peers))delete peers[id];updateSocialBadge()}
- finally{livePolling=false}
+let livePendingPhrase=null,liveTimer=null,reconnectTimer=null;
+function pollLive(){
+ if(socialSocket?.readyState!==WebSocket.OPEN||!socialId)return;
+ socialSocket.send(JSON.stringify({type:'pos',x:player.x,y:player.y,dir:player.dir,
+  coat:state.coat,hat:state.hat,fashion:state.fashion.equipped}));
+ if(livePendingPhrase){socialSocket.send(JSON.stringify({type:'say',phrase:livePendingPhrase}));livePendingPhrase=null}
 }
 function connectSocial(){
  socialRoom=(new URLSearchParams(location.search).get('room')||'SPRING').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,12)||'SPRING';
  if(liveTimer)clearInterval(liveTimer);
- pollLive();liveTimer=setInterval(()=>{if(!document.hidden)pollLive()},1500);
+ if(reconnectTimer)clearTimeout(reconnectTimer);
+ if(socialSocket){const prev=socialSocket;socialSocket=null;try{prev.onclose=null;prev.close()}catch{}}
+ oldSocketReplaced=false;socialId=null;retryCount=0;
+ function openSocket(){
+  if(oldSocketReplaced)return;
+  try{
+   const url=new URL('/api/ws',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';
+   const socket=new WebSocket(url.href);socialSocket=socket;
+   socket.onopen=()=>{
+    if(socket!==socialSocket)return;
+    socket.send(JSON.stringify({type:'join',room:socialRoom,clientId:villageClientId,nick:socialNickname,
+     x:player.x,y:player.y,dir:player.dir,coat:state.coat,hat:state.hat,fashion:state.fashion.equipped}));
+   };
+   socket.onmessage=event=>{
+    if(socket!==socialSocket)return;
+    let data;try{data=JSON.parse(event.data)}catch{return}
+    if(!data||typeof data!=='object')return;
+    if(data.type==='welcome'){
+     socialId=data.id;retryCount=0;
+     for(const key of Object.keys(peers))delete peers[key];
+     for(const p of data.players||[])if(p?.id&&p.id!==socialId)peers[p.id]={...p,targetX:p.x,targetY:p.y};
+     updateSocialBadge();
+    }else if(data.type==='join'&&data.player?.id&&data.player.id!==socialId){
+     const p=data.player;peers[p.id]={...p,targetX:p.x,targetY:p.y};updateSocialBadge();
+    }else if(data.type==='pos'&&data.id&&data.id!==socialId){
+     const old=peers[data.id]||{id:data.id,nick:'마을 친구'};
+     peers[data.id]={...old,...data,targetX:data.x,targetY:data.y};
+    }else if(data.type==='leave'&&data.id){delete peers[data.id];updateSocialBadge();
+    }else if(data.type==='speech'&&data.id&&peers[data.id]){
+     peers[data.id].phrase=data.phrase;peers[data.id].phraseUntil=Date.now()+3200;
+    }else if(data.type==='replaced'){
+     oldSocketReplaced=true;socialId=null;updateSocialBadge();
+     toast('다른 탭에서 접속하여 이 화면의 멀티플레이가 종료됐어요');
+    }else if(data.type==='error'){toast(String(data.message||'마을 접속 오류').slice(0,80))}
+   };
+   socket.onclose=()=>{
+    if(socket!==socialSocket)return;
+    socialId=null;for(const id of Object.keys(peers))delete peers[id];
+    updateSocialBadge();
+    if(oldSocketReplaced)return;
+    reconnectTimer=setTimeout(openSocket,Math.min(15000,1000*2**Math.min(retryCount++,4)));
+   };
+   socket.onerror=()=>{try{socket.close()}catch{}};
+  }catch(e){
+   socialId=null;updateSocialBadge();
+   reconnectTimer=setTimeout(openSocket,Math.min(15000,1000*2**Math.min(retryCount++,4)));
+  }
+ }
+ openSocket();
+ liveTimer=setInterval(()=>{if(!document.hidden)pollLive()},250);
 }
 
-function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
+async function farmAt(i){if(i<0||i>=state.beds.length)return;const b=state.beds[i],stage=cropStage(b);if(b.crop&&stage>=3){
+  // Harvesting is free: energy was already paid when planting.
+  let o=crops[b.crop];state.beds[i]={crop:null,at:0};const income=o.price+lifeBonus('harvest');const earned=earn(income,'harvest','작물 수확');state.harvest++;state.dailyHarvest++;addXp(16);party(bedCenters[i].x,bedCenters[i].y,18);toast(o.icon+' '+o.name+' 수확! +'+earned+'G');save();completeDaily();checkAchievements();return}
  const cards=Object.entries(crops).map(([k,v])=>`<div class="mini-card"><span class="emoji">${v.icon}</span><strong>${v.name}</strong><p>성장 ${v.seconds}초 · 수확 ${v.price+lifeBonus('harvest')}G</p><p>보유 씨앗 ${state.seeds[k]||0}개</p><button data-seed="${k}">${state.seeds[k]>0?'씨앗 선택 · 심기':'씨앗 부족'}</button></div>`).join('');
  if(b.crop){const q=crops[b.crop];let progress=Math.min(100,Math.round((Date.now()-b.at)/(q.seconds*1000)*100));openModal(`<span class="titlebadge">FARMING</span><h2>🌿 작물이 자라고 있어요</h2><p>${q.icon} ${q.name} · 자라는 중 (${progress}%)</p><div class="mini-progress"><i style="width:${progress}%"></i></div><p>남은 시간 ${Math.max(0,Math.ceil(q.seconds-(Date.now()-b.at)/1000))}초. 게임을 종료해도 자라요.</p><button class="pill-btn" id="farmClose">확인</button>`);document.getElementById('farmClose').onclick=closeModal;return}
- openModal(`<span class="titlebadge">FARMING</span><h2>🌱 씨앗을 심을까요?</h2><p>씨앗을 선택하면 즉시 심어요.</p><div class="card-grid">${cards}</div><button class="pill-btn ghost" id="buySeedLink">씨앗 상점 열기</button>`);els.panelBody.querySelectorAll('[data-seed]').forEach(btn=>btn.onclick=()=>{const type=btn.dataset.seed;if(!(state.seeds[type]>0)){toast('씨앗이 부족해요. 상점에서 구매해요');return}state.seeds[type]--;state.beds[i]={crop:type,at:Date.now()};addXp(4);closeModal();toast('🌱 '+crops[type].name+' 심기 완료!');party(bedCenters[i].x,bedCenters[i].y,8);save()});document.getElementById('buySeedLink').onclick=openFarmShop;
+ openModal(`<span class="titlebadge">FARMING</span><h2>🌱 씨앗을 심을까요?</h2><p>씨앗을 선택하면 즉시 심어요.</p><div class="card-grid">${cards}</div><button class="pill-btn ghost" id="buySeedLink">씨앗 상점 열기</button>`);els.panelBody.querySelectorAll('[data-seed]').forEach(btn=>btn.onclick=async()=>{const type=btn.dataset.seed;if(!(state.seeds[type]>0)){toast('씨앗이 부족해요. 상점에서 구매해요');return}
+  if(!await useWorldEnergy('plant'))return;
+  state.seeds[type]--;state.beds[i]={crop:type,at:Date.now()};addXp(4);closeModal();toast('🌱 '+crops[type].name+' 심기 완료!');party(bedCenters[i].x,bedCenters[i].y,8);save()});document.getElementById('buySeedLink').onclick=openFarmShop;
 }
 function farmAll(){let p=bedCenters.findIndex((_,i)=>state.beds[i].crop&&cropStage(state.beds[i])===3);if(p>=0){moveTo(bedCenters[p].x,bedCenters[p].y+56,{type:'farm',idx:p});toast('🌿 수확할 밭으로 이동해요');return}const v=bedCenters.findIndex((_,i)=>!state.beds[i].crop);if(v>=0){moveTo(bedCenters[v].x,bedCenters[v].y+56,{type:'farm',idx:v});toast('🌱 빈 밭으로 이동해요');return}openFarmShop()}
 function openFarmShop(){let cards=Object.entries(crops).map(([k,o])=>`<div class="mini-card"><span class="emoji">${o.icon}</span><strong>${o.name} 씨앗 3개</strong><p>${(o.cost*6).toLocaleString()}G · 재고 ${state.seeds[k]||0}개</p><button data-buyseed="${k}">🪙 ${(o.cost*6).toLocaleString()}G에 구매</button></div>`).join('');openModal(`<span class="titlebadge">SEED MARKET</span><h2>🌱 봄날 씨앗 상점</h2><p>구매한 씨앗을 밭에 직접 심을 수 있어요.</p><div class="card-grid">${cards}</div>`);els.panelBody.querySelectorAll('[data-buyseed]').forEach(btn=>btn.onclick=()=>{const o=crops[btn.dataset.buyseed],cost=o.cost*6;if(state.coins<cost){toast('코인이 부족해요');return}spend(cost,'씨앗 3개');state.seeds[btn.dataset.buyseed]=(state.seeds[btn.dataset.buyseed]||0)+3;hud();save();openFarmShop();toast('🌱 '+o.name+' 씨앗 3개 구매')})}
@@ -991,9 +1101,9 @@ function openNpc(npc){
   save();hud();toast('💗 '+npc.name+'의 우정 선물 '+t.name+' 획득!');openNpc(npc);
  });
 }
-function openDecor(){const cards=decorCatalog.map(o=>`<div class="mini-card"><span class="emoji">${o.emoji}</span><strong>${o.label}</strong><p>${state.crafted[o.id]>0?'제작품 '+state.crafted[o.id]+'개 · 무료 배치':'🪙 '+(o.cost*5).toLocaleString()+'G · 구매 배치'}</p><button data-decor="${o.id}">배치하기</button></div>`).join('');openModal(`<span class="titlebadge">GARDEN ATELIER</span><h2>🏡 내 마을 꾸미기</h2><p>장식을 선택하고, 마을의 원하는 빈 바닥을 터치해 배치해요.</p><div class="card-grid">${cards}</div><div class="pill-row"><button class="pill-btn ghost" id="removeDecoration">설치된 장식 회수하기</button><button class="pill-btn ghost" id="openHomeLink">내 집 꾸미기</button></div>`);els.panelBody.querySelectorAll('[data-decor]').forEach(btn=>btn.onclick=()=>{placeDecor=btn.dataset.decor;closeModal();toast('👆 비어 있는 바닥을 터치해 배치해요!');els.hint.textContent='장식 배치 모드 · 바닥 터치 / 취소는 꾸미기 버튼';els.hint.classList.remove('hidden')});document.getElementById('removeDecoration').onclick=()=>{placeDecor='remove';closeModal();toast('원래 설치한 장식을 터치하면 회수해요!')};document.getElementById('openHomeLink').onclick=openHome}
-function placeAt(x,y){if(placeDecor==='remove'){const i=state.decorations.findIndex(o=>Math.hypot(o.x-x,o.y-y)<70);if(i<0){toast('회수할 장식을 터치해주세요');return}let old=state.decorations.splice(i,1)[0],v=decorCatalog.find(a=>a.id===old.id);earn(Math.floor((v?.cost||0)*.4),'other','장식 회수 환불');placeDecor=null;toast('📦 장식 회수 완료 · 일부 코인 환급');hud();save();return}
- const o=decorCatalog.find(v=>v.id===placeDecor);if(!o)return; if(!walkable(x,y)||Math.hypot(player.x-x,player.y-y)<40||[...props,...expansionProps].some(p=>Math.hypot(p.x-x,p.y-y)<185)||state.decorations.some(p=>Math.hypot(p.x-x,p.y-y)<48)){toast('여기에는 배치할 수 없어요');return}if(!(state.crafted[o.id]>0)&&state.coins<o.cost*5){toast('코인이 부족해요');placeDecor=null;return}if(state.crafted[o.id]>0)state.crafted[o.id]--;else spend(o.cost*5,'마을 장식 배치');state.decorations.push({id:o.id,x:Math.round(x),y:Math.round(y)});placeDecor=null;els.hint.classList.add('hidden');hud();save();party(x,y-10,22);checkAchievements();toast('🏡 '+o.label+' 설치 완료!')}
+function openDecor(){const cards=decorCatalog.slice().sort((a,b)=>(state.crafted[b.id]||0)-(state.crafted[a.id]||0)).map(o=>`<div class="mini-card"><span class="emoji">${o.emoji}</span><strong>${o.label}</strong><p>${state.crafted[o.id]>0?'제작품 '+state.crafted[o.id]+'개 · 무료 배치':'🪙 '+(o.cost*5).toLocaleString()+'G · 구매 배치'}</p><button data-decor="${o.id}">배치하기</button></div>`).join('');openModal(`<span class="titlebadge">GARDEN ATELIER</span><h2>🌷 제작물 배치 · 마을 꾸미기</h2><p>① 보유한 제작물 선택 → ② 이 창을 닫고 마을의 빈 바닥 터치 → ③ 설치 완료! 구매한 장식도 같은 방법으로 배치해.</p><p style="font-weight:800;color:#38674d">📦 보유 제작물: ${decorCatalog.filter(v=>(state.crafted[v.id]||0)>0).map(v=>v.emoji+' '+v.label+' '+state.crafted[v.id]+'개').join(' · ')||'없음 · 나무결 공방에서 먼저 만들 수 있어'}</p><div class="card-grid">${cards}</div><div class="pill-row"><button class="pill-btn ghost" id="removeDecoration">📦 설치된 장식 회수</button><button class="pill-btn ghost" id="craftFromDecor">🪵 제작소로 이동</button><button class="pill-btn ghost" id="openHomeLink">🏠 내 집 꾸미기</button></div>`);els.panelBody.querySelectorAll('[data-decor]').forEach(btn=>btn.onclick=()=>{placeDecor=btn.dataset.decor;closeModal();toast('👆 비어 있는 바닥을 터치해 배치해요!');els.hint.textContent='🌷 배치 모드: 마을 빈 바닥 터치 · 취소: 아래 배치 취소 버튼';showDecorationPlacement()});document.getElementById('removeDecoration').onclick=()=>{placeDecor='remove';closeModal();showDecorationPlacement();els.hint.textContent='📦 회수 모드: 설치한 장식 터치 · 취소: 아래 배치 취소 버튼';toast('원래 설치한 장식을 터치하면 회수해요!')};document.getElementById('craftFromDecor').onclick=()=>goStation('workshop');document.getElementById('openHomeLink').onclick=openHome}
+function placeAt(x,y){if(placeDecor==='remove'){const i=state.decorations.findIndex(o=>Math.hypot(o.x-x,o.y-y)<70);if(i<0){toast('회수할 장식을 터치해주세요');return}let old=state.decorations.splice(i,1)[0],v=decorCatalog.find(a=>a.id===old.id);earn(Math.floor((v?.cost||0)*.4),'other','장식 회수 환불');placeDecor=null;decorationCancelButton.style.display='none';els.hint.classList.add('hidden');toast('📦 장식 회수 완료 · 일부 코인 환급');hud();save();return}
+ const o=decorCatalog.find(v=>v.id===placeDecor);if(!o)return; if(!walkable(x,y)||Math.hypot(player.x-x,player.y-y)<40||[...props,...expansionProps].some(p=>Math.hypot(p.x-x,p.y-y)<185)||state.decorations.some(p=>Math.hypot(p.x-x,p.y-y)<48)){toast('여기에는 배치할 수 없어요');return}if(!(state.crafted[o.id]>0)&&state.coins<o.cost*5){toast('코인이 부족해요');cancelDecorationPlacement();return}if(state.crafted[o.id]>0)state.crafted[o.id]--;else spend(o.cost*5,'마을 장식 배치');state.decorations.push({id:o.id,x:Math.round(x),y:Math.round(y)});placeDecor=null;decorationCancelButton.style.display='none';els.hint.classList.add('hidden');hud();save();party(x,y-10,22);checkAchievements();toast('🏡 '+o.label+' 설치 완료!')}
 function openHomeStudioV48(){
  openModal('<span class="titlebadge">나만의 주택 인테리어</span><div id="homeStudioHostV48"></div>');
  homeStudioV48=mountHomeStudioV48(document.getElementById('homeStudioHostV48'),{
@@ -1061,8 +1171,10 @@ function openHome(){
 }
 function openCraft(){
  if(distance(player,stations.find(s=>s.id==='workshop'))>155){goStation('workshop');return}
- openModal(`<span class="titlebadge">WOODLAND WORKSHOP</span><h2>나무결 공방</h2><p>숲과 광산에서 모은 재료로 만들어보세요.</p><div class="pill-row">${Object.entries(state.materials).map(([k,v])=>`<span class="titlebadge">${materialNames[k]} ${v}</span>`).join('')}</div><div class="card-grid">${recipes.map(r=>`<div class="mini-card"><span class="emoji">${r.icon}</span><strong>${r.name}</strong><p>${r.desc}</p><p>${Object.entries(r.needs).map(([k,v])=>materialNames[k]+' '+state.materials[k]+'/'+v).join(' · ')}</p><button data-recipe="${r.id}" ${(!r.outfit||!owned.includes(r.outfit))&&Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v)?'':'disabled'}>${r.outfit&&owned.includes(r.outfit)?'제작 완료 · 옷장 보유':'제작 · 경험치 '+r.xp}</button></div>`).join('')}</div><button class="pill-btn ghost" id="craftMap">재료 채집하러 가기</button>`);
- els.panelBody.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=()=>{const r=recipes.find(r=>r.id===b.dataset.recipe);if(!r||(r.outfit&&owned.includes(r.outfit))||!Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v))return;for(const [k,v] of Object.entries(r.needs))state.materials[k]-=v;if(r.outfit){owned.push(r.outfit)}else state.crafted[r.id]=(state.crafted[r.id]||0)+1;state.craftCount++;state.dailyCraft++;state.xp+=r.xp;completeDaily();save();hud();updateJourney(true);toast(r.name+' 제작 완료!');openCraft()});document.getElementById('craftMap').onclick=openWorldMap;
+ openModal(`<span class="titlebadge">WOODLAND WORKSHOP</span><h2>나무결 공방</h2><p>숲과 광산에서 모은 재료로 만들어보세요.</p><div class="pill-row">${Object.entries(state.materials).map(([k,v])=>`<span class="titlebadge">${materialNames[k]} ${v}</span>`).join('')}</div><div class="card-grid">${recipes.map(r=>`<div class="mini-card"><span class="emoji">${r.icon}</span><strong>${r.name}</strong><p>${r.desc}</p><p>${Object.entries(r.needs).map(([k,v])=>materialNames[k]+' '+state.materials[k]+'/'+v).join(' · ')}</p><button data-recipe="${r.id}" ${(!r.outfit||!owned.includes(r.outfit))&&Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v)?'':'disabled'}>${r.outfit&&owned.includes(r.outfit)?'제작 완료 · 옷장 보유':'제작 · 경험치 '+r.xp}</button></div>`).join('')}</div><div class="pill-row"><button class="pill-btn" id="craftPlaceDecor">🌷 제작물 배치하기 · 보유 ${decorCatalog.reduce((n,d)=>n+(state.crafted[d.id]||0),0)}개</button><button class="pill-btn ghost" id="craftMap">재료 채집하러 가기</button></div>`);
+ els.panelBody.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=async()=>{const r=recipes.find(r=>r.id===b.dataset.recipe);if(!r||(r.outfit&&owned.includes(r.outfit))||!Object.entries(r.needs).every(([k,v])=>state.materials[k]>=v))return;
+  if(!await useWorldEnergy('craft'))return;
+  for(const [k,v] of Object.entries(r.needs))state.materials[k]-=v;if(r.outfit){owned.push(r.outfit)}else state.crafted[r.id]=(state.crafted[r.id]||0)+1;state.craftCount++;state.dailyCraft++;state.xp+=r.xp;completeDaily();save();hud();updateJourney(true);toast(r.name+' 제작 완료!');openCraft()});document.getElementById('craftPlaceDecor').onclick=openDecor;document.getElementById('craftMap').onclick=openWorldMap;
 }
 function openSaveVault(){
  const backupKey='junja-village-snapshots-v27-'+accountScope;
@@ -1148,7 +1260,7 @@ function openReputation(){
  document.getElementById('rankJourney').onclick=openJourney;
  document.getElementById('rankMonthly').onclick=openLivingCalendar;
 }
-function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button><button class="pill-btn" id="journalVault">🗂️ 저장 백업</button><button class="pill-btn" id="journalCalendar">📅 월간 목표</button><button class="pill-btn" id="journalReputation">⭐ 마을 평판</button><button class="pill-btn" id="journalEconomy">🏦 내 경제 수첩</button></div><p class="item-note">접속 기기 브라우저에 자동 저장됩니다. 온라인 계정 연동은 추후 서버 배포가 필요합니다.</p>`);
+function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>${state.achieved.includes(b.id)?'✅':'▫️'} ${b.title} · ${b.bonus}G</p>`).join('');openModal(`<span class="titlebadge">JUNJA LIFE</span><h2>📖 마을 생활 수첩</h2><h3>오늘의 의뢰</h3>${tasks.map(o=>`<p>${o.done>=o.target?'✅':'▫️'} ${o.title} (${o.done}/${o.target})</p><div class="mini-progress"><i style="width:${o.done/o.target*100}%"></i></div>`).join('')}<p>${state.dailyReward?'✨ 오늘의 보상 수령 완료':'🎁 모두 완료하면 550G + 경험치 150'}</p><div id="v51QuestHost" role="region" aria-label="v51 서버 신규 콘텐츠 의뢰"></div><h3>🏅 업적</h3>${a}<div class="pill-row"><button class="pill-btn" id="journalGear">🎣 장비 성장</button><button class="pill-btn" id="journalAquarium">🐠 어항 도감</button><button class="pill-btn" id="journalHome">🏠 집 성장</button><button class="pill-btn" id="journalVault">🗂️ 저장 백업</button><button class="pill-btn" id="journalCalendar">📅 월간 목표</button><button class="pill-btn" id="journalReputation">⭐ 마을 평판</button><button class="pill-btn" id="journalEconomy">🏦 내 경제 수첩</button></div><p class="item-note">캐릭터 저장은 Cloudflare 계정 서버에서 확인하며, 신규 콘텐츠 의뢰 보상은 분리된 시험 경제 골드예요.</p>`);
  document.getElementById('journalGear').onclick=openFishingGear;
  document.getElementById('journalAquarium').onclick=openAquarium;
  document.getElementById('journalHome').onclick=openHome;
@@ -1156,6 +1268,11 @@ function openJournal(){const tasks=dailyTask();const a=achievements.map(b=>`<p>$
  document.getElementById('journalCalendar').onclick=openLivingCalendar;
  document.getElementById('journalReputation').onclick=openReputation;
  document.getElementById('journalEconomy').onclick=openEconomyDashboard;
+ mountQuestsV51(document.getElementById('v51QuestHost'),{
+  career:()=>openV49Component('life','v49Profession','직업과 계약',openProfessionCenter),
+  market:()=>openV49Component('production','v49Trade','주민 거래소',openPlayerMarket),
+  business:()=>openV49Component('production','v49Business','나의 사업장',openBusinessCenter)
+ });
 }
 function interaction(kind){if(kind==='seeds'){openFarmShop();return}if(kind.startsWith('farm:')){farmAt(Number(kind.split(':')[1]));return}if(kind==='shop'){openShop();return}if(kind==='fish'){beginFishing();return}if(kind==='market'){openMarket();return}if(kind==='fountain'){party(player.x,player.y-50,20);if(!state.fountainDate||state.fountainDate!==nowDay()){earn(35,'social','분수 소원');state.fountainDate=nowDay();toast('⛲ 오늘의 소원! +35G')}else toast('⛲ 반짝이는 행운의 분수');hud();save();return}if(kind==='home'){openHome();return}if(kind==='harvest'){farmAll();return}}
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
@@ -1222,8 +1339,8 @@ function update(dt){t+=dt;updateAmbient(dt);for(const o of Object.values(peers))
   if(els.modal.classList.contains('open')){player.vx=player.vy=0;return}
   // Pointer paths are updated from pointermove events, not a drifting frame loop.
   const kvx=Number(!!(keys.ArrowRight||keys.d||keys.D))-Number(!!(keys.ArrowLeft||keys.a||keys.A)),kvy=Number(!!(keys.ArrowDown||keys.s||keys.S))-Number(!!(keys.ArrowUp||keys.w||keys.W));
-  if(kvx||kvy){if(fishPhase!=='idle')fishFailure('이동하여 낚시를 마쳤어요');stopWalking();const len=Math.hypot(kvx,kvy),target={x:player.x+kvx/len*205*dt,y:player.y+kvy/len*205*dt};if(navigation.clear(player,target)){const moved=navigation.advance(player,[target],dt,205);if(moved>0){player.vx=kvx/len*205;player.vy=kvy/len*205}}}
-  else if(path.length){navigation.advance(player,path,dt);if(player.blocked){stopWalking();toast('길이 막혀 멈췄어요')}else if(!path.length)arrive();}
+  if(kvx||kvy){if(fishPhase!=='idle')fishFailure('이동하여 낚시를 마쳤어요');stopWalking();const len=Math.hypot(kvx,kvy),target={x:player.x+kvx/len*VILLAGE_WALK_SPEED*dt,y:player.y+kvy/len*VILLAGE_WALK_SPEED*dt};if(navigation.clear(player,target)){const moved=navigation.advance(player,[target],dt,VILLAGE_WALK_SPEED);if(moved>0){player.vx=kvx/len*VILLAGE_WALK_SPEED;player.vy=kvy/len*VILLAGE_WALK_SPEED}}}
+  else if(path.length){navigation.advance(player,path,dt,VILLAGE_WALK_SPEED);if(player.blocked){stopWalking();toast('길이 막혀 멈췄어요')}else if(!path.length)arrive();}
   else player.vx=player.vy=0;
   // A fixed follow camera avoids input drift caused by a lagging view transform.
   const halfX=CW/(scale*2),halfY=CH/(scale*2);
@@ -1252,8 +1369,13 @@ function drawMini(){const w=mini.width,h=mini.height,sx=w/W,sy=h/H;
 function disposeEstateWorld(){if(estateWorld){estateWorld.dispose();estateWorld=null}if(workshopPlaza){workshopPlaza.dispose();workshopPlaza=null}}
 function closeModal(){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();els.modal.classList.remove('open');}
 function openModal(html){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
+const worldEnergy=createWorldEnergySpend({onChange:()=>energyHudController.refresh()});
+async function useWorldEnergy(kind){
+ try{await worldEnergy.spend(kind);return true}
+ catch(error){toast('⚡ '+(error?.message||'행동력을 확인하지 못했어'));return false}
+}
 const energyHudController=mountEnergyHud(document.getElementById('energyHudV47'),{open:()=>{
- openModal('<span class="titlebadge">행동력 · 시험 경제</span><div id="energyModalV47"></div>');
+ openModal('<span class="titlebadge">행동력 · 마을 활동</span><div id="energyModalV47"></div>');
  energyModal=mountEnergyPanel(document.getElementById('energyModalV47'),{onChange:()=>energyHudController.refresh()});
 }});
 document.getElementById('close').onclick=closeModal;els.modal.addEventListener('click',e=>{if(e.target===els.modal)closeModal()});
@@ -1354,17 +1476,24 @@ function openPersonalEstate(){
  }
  const upgrade=document.getElementById('estateUpgrade');
  if(upgrade)upgrade.onclick=()=>{const cost=next.cost;if(state.coins<cost){toast('농장 구매에 필요한 골드가 부족해요');return}if(!spend(cost,'개인 농장 구매·확장'))return;e.tier++;save();toast('🌿 내 농장이 확장됐어요!');openPersonalEstate()};
- els.panelBody.querySelectorAll('[data-plot]').forEach(btn=>btn.onclick=()=>{
+ els.panelBody.querySelectorAll('[data-plot]').forEach(btn=>btn.onclick=async()=>{
   const i=Number(btn.dataset.plot),p=e.plots[i],c=p&&ESTATE_BY_ID[p.id];
   if(c){if(Date.now()<p.at+c[3]*1000){toast('⏳ '+estateClock(Math.ceil((p.at+c[3]*1000-Date.now())/1000))+' 남았어요');return}
+   // No second energy charge on personal-farm harvest.
    e.stock[c[0]]=(Number(e.stock[c[0]])||0)+1;e.plots[i]=null;recordEstateHarvest(state);state.xp+=Math.max(1,Math.floor(c[3]/90));save();toast(c[1]+' '+c[2]+' 수확!');openPersonalEstate();return}
   const selected=document.getElementById('estateCrop')?.value,crop=ESTATE_BY_ID[selected];
   if(!crop)return;if(state.coins<crop[4]){toast('씨앗 구매 골드가 부족해요');return}
+  if(!await useWorldEnergy('plant'))return;
   if(!spend(crop[4],crop[2]+' 씨앗'))return;
   e.plots[i]={id:selected,at:Date.now()};save();toast(crop[1]+' 심기 완료');openPersonalEstate();
  });
  els.panelBody.querySelectorAll('[data-sell]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.sell,c=ESTATE_BY_ID[id];if(!c||!(e.stock[id]>0))return;e.stock[id]--;earn(c[5],'farm',c[2]+' 판매');save();openPersonalEstate()});
- els.panelBody.querySelectorAll('[data-recipe]').forEach(btn=>btn.onclick=()=>{const i=Number(btn.dataset.recipe),r=ESTATE_RECIPES[i];if(!r)return;if(!r.build){const result=manufactureEstateProduct(state,ESTATE_PRODUCTS[i]?.id);if(!result.ok){toast(result.error);return}save();hud();toast(result.product.name+' 제작 완료! 주문 납품이나 판매에 이용해요');openPersonalEstate();return}if(e.buildings.includes(r.name)){toast('이미 건설한 건물이에요');return}if(Object.entries(r.needs).some(([id,n])=>(e.stock[id]||0)<n)){toast('필요한 농작물이 부족해요');return}for(const [id,n] of Object.entries(r.needs))e.stock[id]-=n;e.buildings.push(r.name);save();toast(r.name+' 건설 완료!');openPersonalEstate()});
+ els.panelBody.querySelectorAll('[data-recipe]').forEach(btn=>btn.onclick=async()=>{const i=Number(btn.dataset.recipe),r=ESTATE_RECIPES[i];if(!r)return;if(!r.build){
+   if(Object.entries(r.needs).some(([id,n])=>(e.stock[id]||0)<n)){toast('제작 재료가 부족해요');return}
+   if(!await useWorldEnergy('craft'))return;
+   const result=manufactureEstateProduct(state,ESTATE_PRODUCTS[i]?.id);if(!result.ok){toast(result.error);return}save();hud();toast(result.product.name+' 제작 완료! 주문 납품이나 판매에 이용해요');openPersonalEstate();return}if(e.buildings.includes(r.name)){toast('이미 건설한 건물이에요');return}if(Object.entries(r.needs).some(([id,n])=>(e.stock[id]||0)<n)){toast('필요한 농작물이 부족해요');return}
+  if(!await useWorldEnergy('craft'))return;
+  for(const [id,n] of Object.entries(r.needs))e.stock[id]-=n;e.buildings.push(r.name);save();toast(r.name+' 건설 완료!');openPersonalEstate()});
 }
 
 function openEstateOrders(){
@@ -1390,7 +1519,10 @@ function openEstateOrders(){
  '<p style="font-size:11px">현재는 개인 계정 저장을 사용하는 경제 시험판입니다. 금액은 활동별 하루 보상 조정 규칙이 적용됩니다. 사용자 간 거래는 서버 정산 구축 후 개방할 예정입니다.</p>'+
  '<button id="estateBackToFarm" class="pill-btn ghost">🌳 개인 농장으로 돌아가기</button>');
  document.getElementById('estateBackToFarm').onclick=openPersonalEstate;
- els.panelBody.querySelectorAll('[data-estate-make]').forEach(btn=>btn.onclick=()=>{
+ els.panelBody.querySelectorAll('[data-estate-make]').forEach(btn=>btn.onclick=async()=>{
+  const chosen=ESTATE_PRODUCTS.find(p=>p.id===btn.dataset.estateMake);
+  if(!chosen||Object.entries(chosen.needs).some(([id,n])=>(estateState().stock[id]||0)<n)||state.coins<chosen.fee){toast('제작 재료 또는 골드가 부족해요');return}
+  if(!await useWorldEnergy('craft'))return;
   const r=manufactureEstateProduct(state,btn.dataset.estateMake);
   if(!r.ok){toast(r.error);return}
   save();hud();toast(r.product.name+' 제작 완료');openEstateOrders();
@@ -1400,7 +1532,10 @@ function openEstateOrders(){
   if(!r.ok){toast(r.error);return}
   save();hud();toast(r.product.name+' 판매 · +'+estateFmt(r.amount)+(r.softCapped?' (하루 수입 조정)':''));openEstateOrders();
  });
- els.panelBody.querySelectorAll('[data-estate-order]').forEach(btn=>btn.onclick=()=>{
+ els.panelBody.querySelectorAll('[data-estate-order]').forEach(btn=>btn.onclick=async()=>{
+  const selected=estateOrderProgress(state).orders.find(x=>x.id===btn.dataset.estateOrder);
+  if(!selected||selected.complete||!selected.ready){toast('납품할 주문이나 재료를 다시 확인해 줘');return}
+  if(!await useWorldEnergy('order'))return;
   const r=fulfillEstateOrder(state,btn.dataset.estateOrder,lifeLevel());
   if(!r.ok){toast(r.error);return}
   save();hud();toast('📦 납품 완료! '+estateFmt(r.amount)+' · 명성 +'+r.order.rep+(r.softCapped?' · 수익 한도 적용':''));
@@ -1593,7 +1728,7 @@ function openAquarium(){
   <p class="item-note">🔒 레벨·낚싯대가 높아질수록 희귀 어종 해금 · 신화 Lv.22 이상 · 대어는 더 어렵게 포획</p>
   <div class="aquarium-list">${FISH.filter(f=>aquariumFilter==='all'||(aquariumFilter==='owned'?available.has(f.name):f.tier===aquariumFilter)).slice(aquariumPage*12,aquariumPage*12+12).map(f=>{
    const caught=available.has(f.name),placed=display.includes(f.name);
-   return `<div class="aquarium-item ${caught?'':'locked'}">${fishArt(f.name,100)}
+   return `<div class="aquarium-item ${caught?'':'locked'}" data-tier="${f.tier}">${fishArt(f.name,152)}
     <strong>${caught?f.name:'미발견 물고기'}</strong><small>${f.rarity} · Lv.${f.minLevel} 해금 · ${f.size>=1.7?'🐋 대형 · ':''}${state.collection.filter(x=>x===f.name).length}마리 기록</small>
     ${caught?`<small>🏆 최고 ${state.fishRecords[f.name]?.bestCm||'—'}cm</small><button data-fishprofile="${f.name}" class="specimen-info">🔍 도감 상세</button>`:''}
     <button data-fish="${f.name}" ${!caught?'disabled':''}>${placed?'전시 해제':'어항에 전시'}</button></div>`;
@@ -1662,7 +1797,7 @@ function openBag(){
 }
 function guide(){openModal(`<span class="titlebadge">HOW TO PLAY</span><h2>🌿 모여봐요 반말방숲 LIFE 1.5 · 조작법</h2><p style="font-size:14px;line-height:1.9">👆 <b>바닥 터치</b> → 정확한 목적지 이동<br>👉 <b>드래그 유지</b> → 손가락 방향으로 경로 갱신<br>🛑 <b>손 떼기</b> → 마지막 지정 위치에 정지<br>🗺️ <b>지도</b> → 장소 선택 후 자동 길찾기<br>📜 <b>성장 수첩</b> → 목표·보상·다음 목적지 확인<br>🐟 <b>낚시하기</b> → 부두에 가서 낚싯대 던지기<br>🎣 <b>입질</b> → 챔질 → 초록 영역에서 타이밍 맞추기<br>👒 <b>옷가게</b> → 코인으로 새 옷과 모자 구매<br>🌱 <b>텃밭 터치</b> → 작물 수확하고 코인 얻기<br>🎒 <b>가방</b> → 내가 낚은 물고기 확인<br>💾 진행 상황은 이 브라우저에 자동 저장됩니다.<br><br><b>개발 미리보기:</b> 아직 친구 멀티플레이·서버 저장은 연결되지 않았어요.</p>`) }
 function beginFishing(){
- if(!canStore(state,1)){closeModal();toast('🎒 가방이 가득 찼어요! 수산시장에서 판매하거나 확장해요');return}
+ if(!canStore(state,1)){closeModal();openFullBagSales('fish');return}
  closeModal();stopWalking();
  if(distance(player,{x:1465,y:1177})>190){moveTo(1464,1168,{type:'action',kind:'fish'});toast('🎣 부두로 이동하고 있어요');return}
  fishPhase='wait';hookedFish=null;reelProfile=null;reelMisses=0;fishAttempts=0;castMode=true;
@@ -1675,7 +1810,7 @@ function fishFailure(msg){
  els.fishing.classList.remove('open');fishPhase='idle';castMode=false;hookedFish=null;reelProfile=null;
  toast('💨 '+msg);
 }
-function fishingAction(){
+async function fishingAction(){
  if(fishPhase==='bite'){
   fishPhase='reel';fishAttempts=0;reelMisses=0;gaugePos=0;gaugeDir=1;
   reelDeadline=performance.now()+(reelProfile?.seconds||18)*1000;
@@ -1690,6 +1825,9 @@ function fishingAction(){
   fishAttempts++;party(player.x,player.y-30,8);
   if(fishAttempts>=reelProfile.hits){
    const f=hookedFish;
+   fishPhase='settling';els.fishAction.disabled=true;
+   const paid=await useWorldEnergy('fish');els.fishAction.disabled=false;
+   if(!paid){fishFailure('행동력 확인 후 다시 낚시해 줘');return}
    const isFirst=!state.collection.includes(f.name);
    state.fish++;state.dailyFish++;state.collection.push(f.name);
    const fishLength=Math.round((18+(f.size||1)*37)*(0.78+Math.random()*.72)*10)/10;
@@ -1703,12 +1841,12 @@ function fishingAction(){
    };
    if(!state.dailyFishNames.includes(f.name))state.dailyFishNames.push(f.name);
    state.xp+=48+reelProfile.tier*22+(isFirst?30:0);
-   if(!addBagItems(state,'fish',f.name,1))toast('🎒 가방이 가득 찼어요. 어시장에 들러보세요');
+   const stored=addBagItems(state,'fish',f.name,1);
    hud();save();completeDaily();checkAchievements();
    fishPhase='idle';castMode=false;hookedFish=null;reelProfile=null;
    els.fishing.classList.remove('open');
-   toast('🏆 '+f.rarity+' '+f.name+' 포획! '+(isFirst?'✨ 도감 신규 등록 · ':'')+'🎒 물고기 1마리 보관 · 시장에서 판매 가능');
-   party(player.x,player.y-75,30);return;
+   toast('🏆 '+f.rarity+' '+f.name+' 포획! '+(isFirst?'✨ 도감 신규 등록 · ':'')+(stored?'🎒 물고기 1마리 보관 · 시장에서 판매 가능':'🎒 가방이 가득 차 보관하지 못했어요'));
+   party(player.x,player.y-75,30);if(!stored||bagFree(state)<1)openFullBagSales('fish');return;
   }
   shiftFishingZone();fishingProgress();
  }else{
@@ -1739,17 +1877,24 @@ let autoFishRunning=false,autoFishLast=performance.now(),autoFishNext=0;
 function autoFishPanel(){
  const a=autoFishState(state),minutes=Math.ceil(a.remainingMs/60000);
  const cardStyle='border:1px solid #d8c8a6;border-radius:17px;background:linear-gradient(145deg,#fffaf0,#e7f4e9);color:#31584a;box-shadow:0 4px 10px #354f3620;padding:13px 9px;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;min-height:82px;white-space:normal;line-height:1.3;font-weight:800;font-size:15px';
- openModal('<span class="titlebadge">🎣 FISHING PASS · JUNJA LIFE</span><h2>🐟 반짝반짝 자동낚시</h2><p>🌿 낚시터에서 편하게 물고기를 잡고 골드와 경험치를 모아봐요! 게임 화면이 켜져 있을 때만 작동해요.</p>'+
+ openModal('<span class="titlebadge">🎣 FISHING PASS · JUNJA LIFE</span><h2>🐟 반짝반짝 자동낚시</h2><p>🌿 이용권을 구매하면 바로 시작해요. 일반~영웅은 잡는 즉시 판매해 가방 공간을 차지하지 않고, 전설·신화만 자동 보관해요. 게임 화면이 켜져 있을 때만 작동해요.</p>'+
  '<div style="background:linear-gradient(120deg,#e1f2e9,#fff3d8);border:1px solid #d7dfc6;border-radius:18px;padding:13px;margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;color:#315548;font-weight:750;font-size:13px">'+
  '<div>⏳ 남은 시간<br><strong style="font-size:18px">'+minutes+'분</strong></div><div>🐟 잡은 물고기<br><strong style="font-size:18px">'+a.catches+'마리</strong></div><div>💰 누적 수익<br><strong>'+a.earned.toLocaleString()+'G</strong></div><div>⭐ 누적 경험치<br><strong>'+(a.xpEarned||0).toLocaleString()+'XP</strong></div>'+
  '</div><p style="font-size:13px">💎 전설·신화 물고기는 자동 판매하지 않고 가방에 보관해요. · 보관 '+a.protected+'마리</p>'+
  '<h3 style="margin:15px 0 8px">🎟️ 이용권 고르기</h3><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">'+AUTO_FISH_PASSES.map(p=>'<button style="'+cardStyle+'" data-autofish-buy="'+p.hours+'"><span style="font-size:21px">'+(p.hours>=12?'👑':p.hours>=6?'💎':'🎣')+'</span><span>'+p.hours+'시간권</span><span style="color:#aa7a3d;font-size:13px">'+p.price.toLocaleString()+' G</span></button>').join('')+'</div>'+
  '<p style="margin:12px 0;font-size:13px">현재 '+(autoFishRunning?'🟢 자동낚시 중':'⏸ 대기 중')+' · 보유 '+Math.floor(state.coins).toLocaleString()+'G</p>'+
  '<button class="pill-btn" style="width:100%;background:linear-gradient(120deg,#91c6aa,#c5e5cf);color:#254d3d;border-radius:16px;padding:15px" id="autoFishToggle">'+(autoFishRunning?'⏹ 자동낚시 일시정지':'▶ 자동낚시 시작하기')+'</button>');
- els.panelBody.querySelectorAll('[data-autofish-buy]').forEach(b=>b.onclick=()=>{const r=buyAutoFish(state,b.dataset.autofishBuy);toast(r.ok?'🎣 이용권 구매 완료':r.error||'골드 부족');save();hud();autoFishPanel()});
+ els.panelBody.querySelectorAll('[data-autofish-buy]').forEach(b=>b.onclick=()=>{
+  const r=buyAutoFish(state,b.dataset.autofishBuy);
+  if(r.ok){
+   if(!autoFishRunning){autoFishRunning=true;autoFishLast=performance.now();autoFishNext=performance.now()+11000;}
+   toast('🎣 이용권 구매 완료 · 자동낚시 시작! 일반~영웅은 즉시 판매, 전설·신화는 보관');
+  }else toast(r.error||'골드 부족');
+  save();hud();autoFishPanel();
+ });
  const toggle=document.getElementById('autoFishToggle');if(toggle)toggle.onclick=()=>{if(autoFishRunning){autoFishRunning=false;toast('자동낚시 일시정지')}else if(!autoFishState(state).remainingMs){toast('먼저 이용권을 구매하세요')}else{autoFishRunning=true;autoFishLast=performance.now();autoFishNext=performance.now()+11000;fishPhase='idle';els.fishing.classList.remove('open');toast('🎣 자동낚시 시작!')}closeModal();save()};
 }
-function autoFishTick(){
+async function autoFishTick(){
  const now=performance.now(),elapsed=Math.max(0,Math.min(1000,now-autoFishLast));autoFishLast=now;
  if(!autoFishRunning){updateFishingTimerBadge();return}
  const a=autoFishState(state);
@@ -1765,6 +1910,7 @@ function autoFishTick(){
  const fish=FISH[fishRoll(Math.random(),state.fishingGear.equipped,lifeLevel())];
  // The manual difficulty still matters: larger fish are harder to land automatically.
  if(Math.random()<Math.min(.8,Math.max(.08,(fish.size||1)*.13)))return;
+ if(!await useWorldEnergy('fish')){autoFishRunning=false;toast('⚡ 행동력 부족으로 자동낚시 정지');save();return}
  const result=autoFishCatch(state,fish,lifeLevel());
  if(!result.ok){autoFishRunning=false;toast('🎒 자동낚시 정지: '+(result.error||'보관 또는 판매 실패'));save();return}
  state.fish++;state.dailyFish++;state.collection.push(fish.name);const gainedXp=36+Math.min(18,Math.max(0,Number(fish.size)||0)*5);state.xp+=gainedXp;autoFishState(state).xpEarned=(autoFishState(state).xpEarned||0)+gainedXp;
@@ -1776,7 +1922,7 @@ function autoFishTick(){
 }
 setInterval(autoFishTick,500);
 
-els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor){placeDecor=null;toast('꾸미기 배치 취소')}openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing; // 이용권은 낚시 장비 상점에서만 판매합니다.
+els.fishAction.addEventListener('click',fishingAction);document.getElementById('worldClock').addEventListener('click',openSeasons);document.getElementById('socialStatus').onclick=openSocial;document.getElementById('shopBtn').onclick=()=>openShop();document.getElementById('bagBtn').onclick=openBag;document.getElementById('guideBtn').onclick=openJournal;document.getElementById('farmBtn').onclick=farmAll;document.getElementById('decorBtn').onclick=()=>{if(placeDecor)cancelDecorationPlacement();openDecor()};document.getElementById('craftBtn').onclick=openCraft;document.getElementById('fishBtn').onclick=beginFishing; // 이용권은 낚시 장비 상점에서만 판매합니다.
  const gearShortcut=document.getElementById('fishGear');
  if(gearShortcut)gearShortcut.onclick=()=>{els.fishing.classList.remove('open');fishPhase='idle';openFishingGear()};document.getElementById('mapButton').onclick=()=>openModal('<span class="titlebadge">WORLD MAP</span><h2>🗺️ 모여봐요 반말방숲 안내</h2><p>🐟 바다상점은 서쪽 · 🏠 집은 북동쪽 · 🌱 농장은 남쪽 · 🎣 낚시는 동남쪽 부두</p><button class="pill-btn" id="mapGuide">조작법 확인</button>');
 function showRenderError(error){

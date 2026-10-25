@@ -4,3 +4,8 @@ server-data/
 .env
 .DS_Store
 npm-debug.log*
+
+# NEVER commit private Neon-to-D1 staging exports (contain password hashes).
+*.private-d1.sql
+*private-export.sql
+life/cf/d1/wrangler.staging.jsonc

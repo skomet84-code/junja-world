@@ -54,9 +54,14 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 @keyframes fishFloat{0%{transform:translateX(-8px) translateY(0)}100%{transform:translateX(13px) translateY(-10px)}}
 .aquarium-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
 .aquarium-item{padding:9px;background:#e7f2e8;border:1px solid #d1e2cf;border-radius:14px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;min-width:0}
+.aquarium-item svg{display:block;width:min(100%,174px);height:auto;max-width:174px;max-height:110px;object-fit:contain;overflow:visible;filter:drop-shadow(0 6px 4px #24526626)}
+.aquarium-item{background:linear-gradient(152deg,#fcfff8,#e0efeb);min-height:206px;justify-content:flex-start;box-shadow:inset 0 2px 4px #ffffffc9,0 4px 12px #174e3314}
+.aquarium-item[data-tier="rare"],.aquarium-item[data-tier="hero"]{background:linear-gradient(153deg,#effbfa,#dce9f7)}
+.aquarium-item[data-tier="legend"],.aquarium-item[data-tier="mythic"]{background:linear-gradient(154deg,#fffaf0,#f4ebd0);border-color:#cdb989}
+.aquarium-item.locked{background:linear-gradient(160deg,#f3f6ef,#e8efea)}
 .aquarium-item strong{font-size:12px;color:#40635f}
 .aquarium-item small{font-size:10px;color:#687b76}
-.aquarium-item.locked svg{filter:grayscale(1);opacity:.35}
+.aquarium-item.locked svg{filter:grayscale(1) contrast(1.2);opacity:.78}
 .aquarium-item button{width:100%;background:#6a9da1;color:#fff;padding:8px 5px;border-radius:10px;font-weight:800;font-size:11px}
 .aquarium-item button:disabled{opacity:.45}
 .home-interior{position:relative;border:9px solid #c29a6d;border-bottom:30px solid #b18757;border-radius:12px;height:165px;box-shadow:inset 0 12px 22px #0000000e;text-align:center;display:flex;align-items:center;justify-content:space-evenly;font-size:38px;overflow:hidden}
@@ -182,7 +187,35 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 <div class="hud actions v47-dock v49-legacy-actions" aria-hidden="true"><button class="act" id="shopBtn"><span class="em">👒</span><small>옷장</small></button><button class="act" id="farmBtn"><span class="em">🌱</span><small>농사</small></button><button class="act primary" id="fishBtn"><span class="em">🎣</span><small>낚시</small></button><button class="act" id="craftBtn"><span class="em">🪵</span><small>제작</small></button><button class="act" id="decorBtn"><span class="em">🏡</span><small>꾸미기</small></button><button class="act" id="bagBtn"><span class="em">🎒</span><small>가방</small></button><button class="act" id="guideBtn"><span class="em">📜</span><small>안내</small></button></div><button class="hunt-shortcut" id="huntPortal" type="button">⚔️ 사냥터 입장</button><button class="festival-shortcut" id="festivalBtn" type="button">🎪 축제·주간 의뢰</button><button class="social-status" id="socialStatus" type="button">👫 친구 · 혼자 플레이 중</button><div class="toast" id="toast"></div>
 <div class="modal" id="modal"><div class="panel" id="panel"><button class="close" id="close" aria-label="닫기">×</button><div id="panelBody"></div></div></div>
 <div class="fishingUI" id="fishing"><div class="fish-title" id="fishTitle">🎣 물고기가 오기를 기다리는 중…</div><div class="fish-desc" id="fishDesc">수면의 찌를 잘 살펴봐요</div><div class="gauge" id="gauge"><div class="needle" id="needle"></div></div><button class="fishbtn" id="fishAction">낚싯대 던지기</button><button class="fishbtn" id="fishGear" style="margin-top:7px;background:#d2e6dc;border-color:#bed7ca;font-size:12px">🎣 낚시 장비 확인·업그레이드</button></div>
-<div id="renderError" hidden role="alert"><h2>입체 마을을 열지 못했어요</h2><p>WebGL을 지원하는 Safari 또는 Chrome에서 다시 열어주세요.</p><p id="renderErrorReason" style="word-break:break-word;color:#93584d;font-size:12px"></p><button onclick="location.reload()">다시 열기</button></div><script src="navigation.js"></script><script>window.startVillageGame=async()=>{if(window.__villageGameStarted)return;window.__villageGameStarted=true;try{const r=await fetch("/api/account?action=save",{credentials:"same-origin",cache:"no-store"});if(!r.ok)throw Error("저장 서버 응답 "+r.status);const data=await r.json();window.__villageCloudSave=data.save||null;await import("./game.js?v=quality-20261018-v32")}catch(e){window.__villageGameStarted=false;const gate=document.getElementById("villageGate"),status=document.getElementById("villageGateStatus");if(gate)gate.hidden=false;if(status)status.textContent="⚠️ 저장 기록을 확인할 수 없어요. 기존 레벨을 보호하기 위해 입장을 중지했어요. 잠시 후 로그인 버튼으로 다시 시도해 주세요.";console.warn("Village startup blocked to protect save",e)}}</script><style>
+<div id="renderError" hidden role="alert"><h2>입체 마을을 열지 못했어요</h2><p>WebGL을 지원하는 Safari 또는 Chrome에서 다시 열어주세요.</p><p id="renderErrorReason" style="word-break:break-word;color:#93584d;font-size:12px"></p><button onclick="location.reload()">다시 열기</button></div><script src="navigation.js"></script><script>
+window.startVillageGame=()=>{
+ if(window.__villageGameStarted)return Promise.resolve(true);
+ if(window.__villageStartPromise)return window.__villageStartPromise;
+ window.__villageStartPromise=(async()=>{
+  let stage="save";
+  try{
+   const r=await fetch("/api/account?action=save",{credentials:"same-origin",cache:"no-store"});
+   if(!r.ok)throw Error("저장 서버 응답 "+r.status);
+   const data=await r.json();
+   window.__villageCloudSave=data.save||null;
+   stage="game";
+   await import("./game.js?v=v59-integrated-20261023");
+   window.__villageGameStarted=true;
+   return true;
+  }catch(e){
+   window.__villageGameStarted=false;
+   const gate=document.getElementById("villageGate"),status=document.getElementById("villageGateStatus");
+   if(gate)gate.hidden=false;
+   if(status)status.textContent=stage==="game"?
+    "⚠️ 게임 화면을 불러오지 못했어요. 저장 기록은 유지돼요. 새로고침 후 다시 시도해 주세요.":
+    "⚠️ 저장 기록을 확인할 수 없어요. 기존 레벨을 보호하기 위해 입장을 중지했어요. 잠시 후 다시 로그인해 주세요.";
+   console.error("Village startup blocked to protect save",e);
+   return false;
+  }finally{window.__villageStartPromise=null}
+ })();
+ return window.__villageStartPromise;
+};
+</script><style>
 #accountDock{position:fixed;z-index:25;top:calc(72px + env(safe-area-inset-top));right:9px;max-width:90vw}
 #accountDock button{background:#fff9e8;color:#365745;border:1px solid #8da891;border-radius:16px;padding:8px 12px;font-weight:700;box-shadow:0 2px 10px #0002}
 #accountLayer{display:none;position:fixed;z-index:120;inset:0;background:#182b25bd;align-items:center;justify-content:center;padding:15px}
@@ -191,15 +224,32 @@ html,body{background:#b5cc91;color:#4b6152;font-family:-apple-system,BlinkMacSys
 #accountPanel input{display:block;width:100%;margin:9px 0;padding:12px;border-radius:12px;border:1px solid #afc4b1;background:#fff;font-size:16px}
 #accountPanel button{padding:10px 14px;margin:5px;border-radius:12px;background:#bfe1c5;border:0;color:#234531;font-weight:700}
 #accountPanel p{line-height:1.55;font-size:13px}
+#accountGuest button:disabled{opacity:.55;cursor:wait}
+#accountGuest button{min-height:46px;touch-action:manipulation}
+#accountMessage{min-height:42px;overflow-wrap:anywhere}
+#accountPanel{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
 </style>
 <div id="accountDock"><button id="accountOpen" type="button">🔐 계정 · 송금</button></div>
 <div id="accountLayer" role="dialog" aria-modal="true" aria-label="계정 관리"><div id="accountPanel">
 <button id="accountClose" type="button" style="float:right">✕ 닫기</button><h2>🌳 모여봐요 반말방숲</h2>
-<p id="accountMessage">친구 계정을 만들거나 로그인하세요. 기존 브라우저 게임 기록은 삭제되지 않습니다.</p>
+<p id="accountMessage">새 Cloudflare 서버야. 예전 아이디는 이전되지 않았어. 신규 계정으로 가입하고 로그인해 줘. 기존 최고관리자는 별도 복구 대상이야.</p>
 <div id="accountGuest"><input id="accountUser" placeholder="아이디 (영문·숫자·밑줄)" autocomplete="username"/><input id="accountNick" placeholder="닉네임 (회원가입할 때)" maxlength="12"/><input id="accountPassword" type="password" placeholder="비밀번호 (4자 이상)" autocomplete="current-password"/><button id="accountLogin">로그인</button><button id="accountRegister">회원가입</button></div>
 <div id="accountMember" hidden><p id="accountIdentity"></p><p id="accountBalance"></p><input id="accountRecipient" placeholder="받는 친구 닉네임"/><input id="accountAmount" type="number" min="1" step="1" placeholder="보낼 골드"/><button id="accountTransfer">친구에게 송금</button><button id="accountLogout">로그아웃</button><div id="accountAdmin" hidden><h3>👑 준자 최고관리자</h3><p>대상 아이디를 선택하고 지급·회수·캐릭터 조정을 할 수 있어요.</p><button id="accountUsers">👥 회원 목록 새로고침</button><div id="accountUserList" style="max-height:230px;overflow:auto;border:1px solid #c7d7c9;border-radius:12px;padding:8px;margin:8px 0"></div><button id="accountSelf">👑 내 계정 선택</button><h3>💰 서버 지갑 관리</h3><button id="accountGrant">선택 계정 서버 골드 지급</button><button id="accountReclaim">선택 계정 서버 골드 회수</button><h3>🎮 게임 캐릭터 관리</h3><p>아래 금액과 레벨은 현재 값으로 설정해요. 접속 중인 친구는 로그아웃 후 다시 로그인해야 해요.</p><input id="accountCharacterValue" type="number" min="0" step="1" placeholder="설정할 골드 또는 레벨"/><button id="accountSetCoins">게임 골드 설정</button><button id="accountSetLevel">레벨 설정</button><select id="accountItem" style="width:100%;padding:12px;border-radius:12px;margin:8px 0"><option value="fashion_hair_09">울프컷 헤어</option><option value="fashion_hair_01">숏컷 헤어</option><option value="fashion_outfit_01">의상 01</option><option value="fashion_accessory_01">액세서리 01</option><option value="fashion_pet_01">펫 01</option></select><button id="accountGiveItem">아이템 지급</button></div></div>
-<p>⚠️ 현재 게임 속 골드와 서버 지갑은 별도로 관리돼요. 기존 골드를 이전하기 전에는 송금할 수 없어요.</p>
-</div></div><script type="module" src="account-ui.js"></script><script type="module" src="admin-panel.js"></script><style>
+<p>ℹ️ 새 서버에서는 게임 골드와 서버 지갑이 구분돼. 먼저 로그인한 다음 마을에 입장해 줘.</p>
+</div></div><script type="module" src="account-ui.js?v=20261020-mobile-auth2"></script>
+<script>
+window.addEventListener('load',()=>{
+ setTimeout(()=>{
+  if(window.__villageAccountUiLoaded)return;
+  const panel=document.getElementById('accountMessage');
+  const gate=document.getElementById('villageGateStatus');
+  const message='⚠️ 로그인 화면 코드가 제대로 불러와지지 않았어. 새로고침하거나 Safari에서 다시 열어 줘.';
+  if(panel)panel.textContent=message;
+  if(gate)gate.textContent=message;
+ },1500);
+});
+</script><script type="module" src="admin-panel.js?v=owner-crown-20261020"></script><style>
 #villageGate{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#193c35ee,#456b50f2),radial-gradient(circle at 45% 15%,#d4f1b8,#537b58);display:flex;align-items:center;justify-content:center;padding:18px;color:#294c37}
 #villageGate[hidden]{display:none}
 #villageGateCard{width:min(440px,100%);background:#fff8e9;border:3px solid #f2dc9e;border-radius:28px;padding:25px 20px;text-align:center;box-shadow:0 20px 80px #0007}
@@ -216,7 +266,7 @@ function openAccount(register){document.getElementById('accountLayer').classList
 document.getElementById('villageGateLogin').onclick=()=>openAccount(false);
 document.getElementById('villageGateRegister').onclick=()=>openAccount(true);
 
-window.villageGateEnter=function(user){if(!user)return;status.textContent='환영해요, '+user.nickname+'!';gate.hidden=true;window.startVillageGame?.()};
+window.villageGateEnter=async function(user){if(!user)return;status.textContent='환영해요, '+user.nickname+'! 저장 기록을 확인하고 마을을 여는 중이에요…';const ready=await window.startVillageGame?.();if(ready)gate.hidden=true;};
 window.villageGateLogout=function(){gate.hidden=false;status.textContent='계정으로 로그인하면 입장할 수 있어요.'};
 })();
 </script><style>

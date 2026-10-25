@@ -1,0 +1,41 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "junja-world",
+  "main": "./do/worker-unified.js",
+  "compatibility_date": "2026-10-20",
+  "workers_dev": true,
+  "assets": {
+    "directory": "../public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "VILLAGE_ROOMS",
+        "class_name": "VillageRoom"
+      },
+      {
+        "name": "VILLAGE_DB",
+        "class_name": "VillageDatabase"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "VillageRoom"
+      ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "VillageDatabase"
+      ]
+    }
+  ],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}

@@ -4,9 +4,11 @@ import {createAvatar} from './avatar3d.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {HUNT_ZONES,HUNT_BOSSES,HUNT_SKILLS,HUNT_CRAFTS,MAX_ACTIVE_ENEMIES,huntLevel,canCraft,dailyBossKey,zoneUnlocked} from './hunt-data.js';
 import {initEconomy,credit,debit} from './economy-v28.js';
+import {HUNT_LOOT_PRICES_V55,huntLootQuoteV55,sellHuntLootV55} from './hunt-loot-market-v55.js';
 import {initBag,bagCapacity,bagUsed,canStore,addBagItems} from './inventory-v29.js';
 import {EQUIPMENT,SKILL_PRICES,initCombat,purchaseSkill,purchaseEquipment,equipItem,equippedStats,skillStatus,spendSkill,incomingDamage} from './combat-progression-v30.js';
 import {POTIONS,ensurePotions,purchasePotion,consumePotion} from './combat-potions-v29.js';
+import {initHuntMastery,zoneAccess,bossAccess,masteryEnemy,hunterDamage,registerHuntKill,dailyHuntContracts,claimHuntContract,HUNT_MASTERY_GATES} from './hunt-balance-v54.js?v=v54-hunt-20261020';
 
 const $=id=>document.getElementById(id),canvas=$('battle');
 const accountScope=(()=>{try{return sessionStorage.getItem('village-auth-user')||''}catch{return ''}})();
@@ -32,15 +34,22 @@ state.hunt=state.hunt&&typeof state.hunt==='object'?state.hunt:{};
 state.hunt.materials=state.hunt.materials||{};
 state.hunt.bossDates=state.hunt.bossDates||{};
 state.hunt.kills=Math.max(0,state.hunt.kills||0);
+initHuntMastery(state.hunt,HUNT_ZONES);
 ensurePotions(state);initBag(state);initCombat(state);
 state.hunt.potionCooldowns=state.hunt.potionCooldowns||{};
 const level=()=>huntLevel(state.xp),stats=()=>equippedStats(state),today=()=>new Date().toLocaleDateString('en-CA');
 let cloudSaveTimer=null;
-const saveNotice=document.createElement('div');saveNotice.id='huntSaveStatus';saveNotice.style.cssText='position:fixed;top:70px;left:12px;z-index:90;background:#fff7e5;color:#31543c;padding:6px 10px;border-radius:12px;font-size:12px';document.body.append(saveNotice);
+const saveNotice=document.createElement('div');saveNotice.id='huntSaveStatus';saveNotice.style.cssText='display:none;position:fixed;top:70px;left:12px;z-index:90;background:#fff7e5;color:#31543c;padding:6px 10px;border-radius:12px;font-size:12px';document.body.append(saveNotice);
 const saveQueue=createSaveQueue({version:restored.version,
  send:payload=>fetch('/api/account?action=save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)}),
  onCommit:(version,latest)=>{try{if(latest)storage.setItem(saveKey+'-unsynced',JSON.stringify({baseVersion:version,...latest}));else storage.removeItem(saveKey+'-unsynced')}catch{}},
- onStatus:(status,data)=>{saveNotice.textContent=status==='saved'?'✔ 사냥 기록 저장 완료':status==='saving'?'⏳ 사냥 기록 저장 중':status==='retry'?'⚠ 저장 재시도 중':('⚠ '+(data.error||'최신 기록으로 재접속해 주세요'));}
+ onStatus:(status,data)=>{
+  if(status==='saving')return;
+  if(status==='saved'){saveNotice.style.display='none';saveNotice.textContent='';return}
+  saveNotice.style.display='block';
+  saveNotice.textContent=status==='retry'?'⚠ 사냥 기록 서버 저장 재시도 중…':
+   '⚠ '+(data?.error||'저장 충돌 · 최신 기록으로 재접속해 주세요');
+ }
 });
 async function syncHuntSave(){if(!accountScope)return true;return saveQueue.enqueue(state,restored.owned)}
 function save(){
@@ -48,7 +57,7 @@ function save(){
  state.hunt.lastZone=currentZone?.id||state.hunt.lastZone||null;
  state.savedAt=Date.now();
  try{storage.setItem(saveKey,JSON.stringify(state));storage.setItem(saveKey+'-unsynced',JSON.stringify({baseVersion:saveQueue.version,profile:state,owned:restored.owned}))}catch{}
- if(accountScope){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(syncHuntSave,1200)}
+ if(accountScope){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(syncHuntSave,2000)}
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const materialCache=new Map(),mat=c=>{const k=String(c);if(!materialCache.has(k))materialCache.set(k,new T.MeshStandardMaterial({color:c,roughness:.82,metalness:.03,flatShading:false}));return materialCache.get(k)};
@@ -120,7 +129,7 @@ function makeMesh(parent,geo,color,x,y,z,sx,sy,sz){const m=new T.Mesh(geo,mat(co
 function sphere(parent,color,x,y,z,sx,sy=sx,sz=sx){return makeMesh(parent,globe,color,x,y,z,sx,sy,sz)}
 function box(parent,color,x,y,z,sx,sy,sz){return makeMesh(parent,roundBox,color,x,y,z,sx,sy,sz)}
 function makeMonster(model){
- const boss=model.boss,scale=boss?1.65:1,kind=model.kind,c=model.color;
+ const boss=model.boss,scale=boss?1.65:model.elite?1.3:1,kind=model.kind,c=model.color;
  const root=new T.Group(),body=new T.Group();root.add(body);body.scale.setScalar(scale);
  const dark=new T.Color(c).multiplyScalar(.7),light=new T.Color(c).lerp(new T.Color(0xffffff),.25);
  const eyes=0x253a3c,glint=0xfffbed;
@@ -170,8 +179,8 @@ function makeMonster(model){
  }
  const smile=new T.Mesh(eyeRingGeo,mat(0x74534a));smile.position.set(0,20,20);smile.scale.set(4,3,1);smile.rotation.z=-.25;body.add(smile);
  const halo=new T.Mesh(shadowGeo,new T.MeshBasicMaterial({color:0x293a35,transparent:true,opacity:.13,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.7;halo.scale.setScalar(boss?57:28);root.add(halo);
- if(boss){
-  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;const g=sphere(body,0xf7dc89,Math.cos(a)*26,72+Math.sin(a*2)*5,Math.sin(a)*12,4,8,4);g.rotation.z=a}
+ if(boss||model.elite){
+  for(let i=0;i<(boss?7:4);i++){const a=i*Math.PI*2/7;const g=sphere(body,0xf7dc89,Math.cos(a)*26,72+Math.sin(a*2)*5,Math.sin(a)*12,4,8,4);g.rotation.z=a}
   const gem=sphere(body,0xffe48a,0,59,20,7,9,4);
   for(const x of [-17,0,17])makeMesh(body,cone,0xf6d889,x,79,0,8,16,8);
  }
@@ -199,7 +208,7 @@ function decorate(zone){
 }
 function spawnMonster(model,x,z,index){
  const m=makeMonster(model);m.root.position.set(x,0,z);scene.add(m.root);
- return {...m,model,x,z,homeX:x,homeZ:z,maxHp:model.hp,hp:model.hp,lastHit:0,attackAt:0,deadUntil:0,index,velX:0,velZ:0,hitFlashUntil:0,hitCount:0};
+ return {...m,model,x,z,homeX:x,homeZ:z,maxHp:model.hp,hp:model.hp,lastHit:0,attackAt:0,deadUntil:0,index,velX:0,velZ:0,hitFlashUntil:0,hitCount:0,windupUntil:0};
 }
 function clearZone(){
  for(const m of monsters){scene.remove(m.root);m.labelTexture?.dispose();m.root.traverse(o=>{if(o.material?.type==='SpriteMaterial'||o.material?.type==='MeshBasicMaterial'&&o.material.depthTest===false)o.material.dispose()})}
@@ -207,23 +216,40 @@ function clearZone(){
  if(worldDecor){scene.remove(worldDecor);worldDecor=null}
  for(const f of fx){scene.remove(f.mesh);if(f.mesh.geometry!==impactGeo)f.mesh.geometry.dispose();f.mesh.material.dispose()}fx.length=0;
 }
+function ensureZoneBoss(){
+ if(!currentZone||!active)return;
+ const dayKey=dailyBossKey(currentZone.id,today());
+ if(state.hunt.bossDates[dayKey]||monsters.some(m=>m.model.boss))return;
+ const trial=bossAccess(state.hunt,HUNT_ZONES,areaIndex);
+ if(!trial.ok)return;
+ const base=HUNT_BOSSES[areaIndex];
+ const boss=masteryEnemy(base,level(),currentZone.level,{boss:true});
+ monsters.push(spawnMonster(boss,0,-342,monsters.length));
+ toast('👑 정예 토벌 목표 달성! '+base.name+'이 나타났어!');
+}
 function startZone(index){
- const zone=HUNT_ZONES[index];if(!zoneUnlocked(zone,level())){toast('Lv.'+zone.level+'부터 입장할 수 있어요');return}
+ const zone=HUNT_ZONES[index],permit=zoneAccess(state.hunt,HUNT_ZONES,index,level());
+ if(!permit.ok){toast('🔒 '+permit.reason);return}
  clearZone();currentZone=zone;areaIndex=index;decorate(zone);
  hero.x=0;hero.z=140;hero.moveX=0;hero.moveZ=140;
- const s=stats();hero.hp=clamp(hero.hp,1,s.maxHp);hero.mp=clamp(hero.mp,0,s.maxMp);
+ const current=stats();hero.hp=clamp(hero.hp,1,current.maxHp);hero.mp=clamp(hero.mp,0,current.maxMp);
  const positions=[[250,-150],[-250,-140],[285,170],[-310,115],[70,-300],[-95,285]];
- for(let i=0;i<6;i++){const p=positions[i],mob=zone.mobs[i%5];monsters.push(spawnMonster(mob,p[0],p[1],i))}
- const boss=HUNT_BOSSES[index],defeated=!!state.hunt.bossDates[dailyBossKey(zone.id,today())];
- if(!defeated)monsters.push(spawnMonster(boss,0,-342,6));
- active=true;$('region').textContent=zone.icon+' '+zone.name+' · Lv.'+zone.level+'+';
- $('hint').textContent='몬스터 터치로 공격 · 교본 구매 후 스킬 사용';
+ for(let i=0;i<6;i++){
+  const p=positions[i],model=zone.mobs[i%zone.mobs.length];
+  const elite=i===2||i===5;
+  monsters.push(spawnMonster(masteryEnemy(model,level(),zone.level,{elite}),p[0],p[1],i));
+ }
+ active=true;
+ ensureZoneBoss();
+ const trial=bossAccess(state.hunt,HUNT_ZONES,index);
+ $('region').textContent=zone.icon+' '+zone.name+' · 사냥 숙련 '+state.hunt.masteryV54.score;
+ $('hint').textContent='정예 ✦ 토벌 → 보스 해금 · 몬스터 예고 공격은 이동해 회피';
  $('modal').classList.remove('open');save();updateHud();
- toast('🌸 '+zone.name+' 입장! '+(defeated?'오늘 보스는 이미 처치했어요':'보스 1일 1회 도전'));
+ toast('⚔️ '+zone.name+' · 보스 조건 '+trial.kills+'/'+trial.neededKills+' 일반 · 정예 '+trial.elites+'/'+trial.neededElites);
 }
 function healthRatio(m){return clamp(m.hp/m.maxHp,0,1)}
 function updateHud(){
- const s=stats();$('heroLevel').textContent='Lv.'+level()+' · 사냥 '+state.hunt.kills+'회';
+ const s=stats();$('heroLevel').textContent='Lv.'+level()+' · 숙련 '+state.hunt.masteryV54.score+' · 토벌 '+state.hunt.kills;
  $('cash').textContent='★ '+Math.floor(state.coins).toLocaleString('ko-KR')+' G';
  $('hpBar').style.width=clamp(hero.hp/s.maxHp*100,0,100)+'%';$('mpBar').style.width=clamp(hero.mp/s.maxMp*100,0,100)+'%';
  $('heroName').textContent='⚔️ '+(localStorage.getItem('junja-village-nickname')||'마을 모험가');
@@ -245,13 +271,47 @@ function updateHud(){
 }
 function openModal(content){$('panelBody').innerHTML=content;$('modal').classList.add('open');active=false}
 function zoneMenu(){
- const rows=HUNT_ZONES.map((zone,i)=>{
-  const unlocked=zoneUnlocked(zone,level()),won=!!state.hunt.bossDates[dailyBossKey(zone.id,today())];
-  return '<article class="zone-card"><div class="emoji">'+zone.icon+'</div><strong>'+zone.name+'</strong><small>Lv.'+zone.level+' 이상 · 몬스터 5종 · 보스 '+zone.boss+'</small><p>'+(won?'✅ 오늘 보스 처치 완료':'👑 일일 보스 도전 가능')+'</p><button data-zone="'+i+'" '+(unlocked?'':'disabled')+'>'+(unlocked?'사냥터 이동':'레벨 '+zone.level+' 필요')+'</button></article>';
+ const mastery=initHuntMastery(state.hunt,HUNT_ZONES),rows=HUNT_ZONES.map((zone,i)=>{
+  const permit=zoneAccess(state.hunt,HUNT_ZONES,i,level()),trial=bossAccess(state.hunt,HUNT_ZONES,i);
+  const won=!!state.hunt.bossDates[dailyBossKey(zone.id,today())];
+  return '<article class="zone-card"><div class="emoji">'+zone.icon+'</div><strong>'+zone.name+'</strong>'+
+   '<small>생활 Lv.'+zone.level+' · 사냥 숙련 '+HUNT_MASTERY_GATES[i]+' · 5종 몬스터 + 정예</small>'+
+   '<p>⚔️ 보스 개방: 토벌 '+trial.kills+'/'+trial.neededKills+' · 정예 '+trial.elites+'/'+trial.neededElites+'</p>'+
+   '<p>'+(trial.cleared?'🏅 지역 수호자 토벌 이력 보유':won?'✅ 오늘의 보스 처치 완료':permit.ok?'정예를 물리쳐 보스에 도전!': '🔒 '+permit.reason)+'</p>'+
+   '<button data-zone="'+i+'" '+(permit.ok?'':'disabled')+'>'+(permit.ok?'사냥터 입장':'🔒 해금 조건 부족')+'</button></article>';
  }).join('');
- openModal('<div class="hero">🌸 생활과 전투를 연결하는 준자마을 액션 모험! 사냥 재료로 의상을 만들고 친구들에게 자랑해요.</div><h2>⚔️ 마을 밖 모험 지도</h2><p>바닥을 터치하면 정확히 이동하고 몬스터를 터치하면 자동으로 다가가 공격해요. 구역별 보스는 하루 한 번 보상을 받을 수 있어요.</p><div class="grid">'+rows+'</div><button id="viewHuntLoot" class="wide">🎁 전리품 공방 열기</button><button id="returnVillage" class="wide">🏡 준자마을로 돌아가기</button>');
+ openModal('<div class="hero">⚔️ v54 사냥 대개편 · <strong>숙련 '+mastery.score+'</strong><br>생활 레벨과 별개로 전투를 익혀 새 구역에 도전해! 기존 레벨·장비·전리품은 유지돼.</div>'+
+  '<h2>🗺️ 모험가 도전 지도</h2><p>각 구역에서 정예를 포함한 몬스터를 토벌하고 보스를 이겨 다음 구역을 해금해. 몬스터의 공격 경고가 보이면 움직여 피할 수 있어.</p>'+
+  '<div class="grid">'+rows+'</div><button id="huntContracts" class="wide">📜 오늘의 토벌 의뢰 · 사냥 목표 보기</button>'+
+  '<button id="viewHuntLoot" class="wide">🎁 전리품 공방 열기</button><button id="openHuntSalvageShop" class="wide">💰 전리품 판매소</button><button id="returnVillage" class="wide">🏡 준자마을로 돌아가기</button>');
  document.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>startZone(+b.dataset.zone));
- addShopLinks();$('viewHuntLoot').onclick=craftMenu;$('returnVillage').onclick=goHome;
+ addShopLinks();$('viewHuntLoot').onclick=craftMenu;$('openHuntSalvageShop').onclick=openHuntSalvageShopV55;$('returnVillage').onclick=goHome;
+ $('huntContracts').onclick=openHuntContracts;
+}
+function openHuntContracts(){
+ const lines=HUNT_ZONES.map((zone,i)=>{
+  const p=state.hunt.masteryV54.areas[zone.id],tasks=dailyHuntContracts(state.hunt,HUNT_ZONES,i,today());
+  return '<section class="zone-card" style="margin:8px 0"><strong>'+zone.icon+' '+zone.name+'</strong>'+
+   '<small>누적 토벌 '+p.kills+'회 · 정예 '+p.elites+'회 · 보스 '+p.bosses+'회</small>'+
+   tasks.map(q=>'<p>📌 '+q.label+' · '+q.progress+'/'+q.required+' · '+q.reward+'G '+
+    '<button data-contract="'+i+':'+q.id+'" '+(!q.ready?'disabled':'')+'>'+
+    (q.claimed?'✅ 수령 완료':q.ready?'🎁 보상 받기':'진행 중')+'</button></p>').join('')+'</section>';
+ }).join('');
+ openModal('<h2>📜 오늘의 모험가 도전</h2>'+
+  '<p>매일 정찰·정예 추적·보스 임무를 완료하고 보상을 받아! 마을 레벨이 높아도 새로운 토벌 실력이 필요해.</p>'+
+  '<p>⚠️ 토벌 기록은 현재 캐릭터 게임 저장에 보관되며, 별도 서버 공인 랭킹은 아직 없어.</p>'+lines+
+  '<button class="wide" id="backToHuntMap">🗺️ 지역 선택으로 돌아가기</button>');
+ $('backToHuntMap').onclick=zoneMenu;
+ document.querySelectorAll('[data-contract]').forEach(btn=>btn.onclick=()=>{
+  const [n,id]=btn.dataset.contract.split(':'),index=Number(n),tasks=dailyHuntContracts(state.hunt,HUNT_ZONES,index,today());
+  const task=tasks.find(q=>q.id===id);
+  if(!task?.ready)return;
+  const payment=credit(state,task.reward,'hunt','모험가 토벌 의뢰 · '+task.label,level());
+  if(!payment.ok||payment.amount<1){toast('오늘 사냥 보상 한도에 도달했어');return}
+  const claimed=claimHuntContract(state.hunt,HUNT_ZONES,index,today(),id);
+  if(!claimed.ok)return;
+  save();updateHud();toast('🏅 '+task.label+' 달성! +'+payment.amount+'G');openHuntContracts();
+ });
 }
 function addShopLinks(){
  const links=document.createElement('div');
@@ -331,6 +391,52 @@ function claimOverflow(){
  else toast('가방 공간을 더 확보해야 해요');
 }
 function bagFreeSafe(){return Math.max(0,bagCapacity(state)-bagUsed(state))}
+function openHuntSalvageShopV55(){
+ const stock=state.hunt.materials||{};
+ const lots=Object.keys(stock).filter(name=>HUNT_LOOT_PRICES_V55[name]&&Number(stock[name])>0)
+  .sort((a,b)=>HUNT_LOOT_PRICES_V55[a].unitPrice-HUNT_LOOT_PRICES_V55[b].unitPrice);
+ const cards=lots.map(name=>{
+  const q=huntLootQuoteV55(state,name);
+  const key=encodeURIComponent(name);
+  const price=q.unitPrice.toLocaleString('ko-KR');
+  const protection=q.reserve>0?
+   '<p>🔒 코스튬 제작 예약 '+q.reserve+'개 · 현재 남는 재료 '+q.surplus+'개</p>':
+   '<p>✅ 제작 예약 없음 · 지금 바로 판매 가능</p>';
+  const normal=q.surplus;
+  return '<article class="craft-card"><strong>'+q.icon+' '+q.name+(q.rarity==='boss'?' · 👑 보스 희귀 재료':'')+'</strong>'+
+   '<p>보유 '+q.have+'개 · 개당 기본 '+price+'G · '+q.zone+'</p>'+protection+
+   '<button data-hunt-sell="'+key+'" data-qty="1" '+(normal>=1?'':'disabled')+'>💰 1개 팔기</button>'+
+   '<button data-hunt-sell="'+key+'" data-qty="5" '+(normal>=5?'':'disabled')+'>💰 5개 팔기</button>'+
+   '<button data-hunt-sell="'+key+'" data-qty="'+Math.min(20,normal)+'" '+(normal>0?'':'disabled')+'>📦 남는 재료 최대 20개</button>'+
+   (q.reserve>0&&q.have>0?'<button data-hunt-sell-protected="'+key+'" data-qty="1">⚠️ 제작 예약 재료 1개 판매</button>':'')+
+   '</article>';
+ }).join('');
+ const leftover=Object.entries(stock).filter(([name,qty])=>Number(qty)>0&&!HUNT_LOOT_PRICES_V55[name]);
+ openModal('<h2>💰 모험가 전리품 판매소</h2>'+
+  '<p>잡은 몬스터의 재료를 마을 골드(G)로 바꿔 장비·물약·코스튬을 구입해! 아직 만들지 않은 의상 제작 재료는 기본 보호해.</p>'+
+  '<div class="hero"><strong>현재 마을 골드 '+Math.floor(state.coins).toLocaleString('ko-KR')+'G</strong>'+
+  '<p>가방 사용 '+bagUsed(state)+'/'+bagCapacity(state)+'칸 · 판매 시 그만큼 공간이 비워져.</p></div>'+
+  '<div class="grid">'+(cards||'<p>판매 가능한 재료가 없어. 사냥하고 다시 와 줘!</p>')+'</div>'+
+  (leftover.length?'<p class="item-note">※ 과거 미등록 재료 '+leftover.length+'종은 임의 가격으로 판매하지 않아. 전리품 공방에서는 확인할 수 있어.</p>':'')+
+  '<p class="item-note">ℹ️ 기본 매입가를 보여줘. 기존 마을 물가 안정 시스템에 따라 하루 판매량이 많으면 실제 지급 골드는 낮아질 수 있어. 친구 간 거래소의 별도 골드와는 합산되지 않아.</p>'+
+  '<button id="lootVendorCraft" class="wide">🎁 재료로 의상 제작하기</button>'+
+  '<button id="lootVendorMap" class="wide">🗺️ 사냥터 선택으로</button>');
+ document.querySelectorAll('[data-hunt-sell],[data-hunt-sell-protected]').forEach(btn=>btn.onclick=()=>{
+  const name=decodeURIComponent(btn.dataset.huntSell||btn.dataset.huntSellProtected);
+  const quantity=Number(btn.dataset.qty);
+  const protectedItem=btn.hasAttribute('data-hunt-sell-protected');
+  const quote=huntLootQuoteV55(state,name,{includeProtected:protectedItem});
+  if(!quote||!(quantity>0))return;
+  if(protectedItem&&!confirm('⚠️ '+name+'은(는) 아직 만들지 않은 의상에 필요한 재료야. 정말 '+quantity+'개를 판매할까?'))return;
+  const sale=sellHuntLootV55(state,name,quantity,{includeProtected:protectedItem,level:level()});
+  if(!sale.ok){toast('⚠️ '+sale.error);return}
+  save();updateHud();
+  toast('💰 '+name+' '+sale.sold+'개 판매 · 실제 +'+sale.earned.toLocaleString('ko-KR')+'G'+(sale.reduced?' · 일일 시장 한도 적용':''));
+  openHuntSalvageShopV55();
+ });
+ $('lootVendorCraft').onclick=craftMenu;
+ $('lootVendorMap').onclick=zoneMenu;
+}
 function craftMenu(){
  const bag=state.hunt.materials||{},owned=state.fashion.owned||[];
  const recipes=HUNT_CRAFTS.map(r=>{
@@ -340,7 +446,7 @@ function craftMenu(){
   return '<article class="craft-card"><strong>'+r.icon+' '+r.name+'</strong><p>완성 아이템: '+displayName+'</p><p>'+cost+'</p><p>제작비 '+r.coins.toLocaleString()+'G</p><button data-craft="'+r.id+'" '+(got||!possible?'disabled':'')+'>'+(got?'✅ 소장 중':possible?'제작하고 옷장에 보관':'재료 부족')+'</button></article>';
  }).join('');
  const supplies=Object.entries(bag).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(([id,n])=>'<span class="item-pill">'+id+' × '+n+'</span>').join('');
- openModal('<h2>🎁 사냥 전리품 공방</h2><p>사냥 재료를 모아 기존 준자마을 의상을 제작해 보세요. 제작한 의상은 마을 옷장에서도 바로 착용할 수 있어요.</p><h3>🎒 전리품 보관함</h3><div>'+(supplies||'<p>아직 모은 재료가 없어요.</p>')+'</div><h3>👑 테마 코스튬 제작</h3><div class="grid">'+recipes+'</div><button id="potionShopLink" class="wide">🧪 HP/MP 물약 상점</button><button id="collectHuntOverflow" class="wide">📦 임시 보관함 회수</button><button id="backHuntMap" class="wide">🗺️ 사냥터 선택</button>');
+ openModal('<h2>🎁 사냥 전리품 공방</h2><p>사냥 재료를 모아 기존 준자마을 의상을 제작해 보세요. 제작한 의상은 마을 옷장에서도 바로 착용할 수 있어요.</p><h3>🎒 전리품 보관함</h3><div>'+(supplies||'<p>아직 모은 재료가 없어요.</p>')+'</div><h3>👑 테마 코스튬 제작</h3><div class="grid">'+recipes+'</div><button id="openLootSellerV55" class="wide">💰 사냥 전리품 판매소 · 남는 재료 팔기</button><button id="potionShopLink" class="wide">🧪 HP/MP 물약 상점</button><button id="collectHuntOverflow" class="wide">📦 임시 보관함 회수</button><button id="backHuntMap" class="wide">🗺️ 사냥터 선택</button>');
  document.querySelectorAll('[data-craft]').forEach(b=>b.onclick=()=>{
   const r=HUNT_CRAFTS.find(x=>x.id===b.dataset.craft);
   if(!r||!canCraft(r,state.hunt.materials,state.fashion.owned,state.coins))return;
@@ -351,6 +457,7 @@ function craftMenu(){
  $('backHuntMap').onclick=zoneMenu;
  addShopLinks();$('potionShopLink').onclick=potionShop;
  $('collectHuntOverflow').onclick=claimOverflow;
+ $('openLootSellerV55').onclick=openHuntSalvageShopV55;
 }
 async function goHome(){save();clearTimeout(cloudSaveTimer);if(!await syncHuntSave()){toast('저장 확인 후 돌아갈 수 있어요. 잠시 후 다시 눌러주세요');return}location.assign('/?room='+encodeURIComponent(room))}
 function floatNumber(x,z,label,color='#ffeaa5'){
@@ -360,9 +467,9 @@ function floatNumber(x,z,label,color='#ffeaa5'){
  el.style.left=(v.x*.5+.5)*innerWidth+'px';el.style.top=(-v.y*.5+.5)*innerHeight+'px';
  document.body.appendChild(el);setTimeout(()=>el.remove(),790);
 }
-function effect(x,z,color=0xfbe7a9){
- const mesh=new T.Mesh(new T.RingGeometry(12,15,32),new T.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false,side:T.DoubleSide}));
- mesh.position.set(x,2,z);mesh.rotation.x=-Math.PI/2;scene.add(mesh);fx.push({mesh,ttl:.42});
+function effect(x,z,color=0xfbe7a9,duration=.42,wide=false){
+ const mesh=new T.Mesh(new T.RingGeometry(wide?46:12,wide?51:15,32),new T.MeshBasicMaterial({color,transparent:true,opacity:.86,depthWrite:false,side:T.DoubleSide}));
+ mesh.position.set(x,2,z);mesh.rotation.x=-Math.PI/2;scene.add(mesh);fx.push({mesh,ttl:duration,life:duration});
 }
 function hitBurst(x,z,critical=false){
  // Reuses a tiny low-poly shared geometry. Transient mesh count is bounded on mobile.
@@ -400,14 +507,20 @@ function mobHit(m,damage){
    state.hunt.overflow[loot]=(state.hunt.overflow[loot]||0)+amount;
   }
   state.hunt.kills++;
+  const mastery=registerHuntKill(state.hunt,HUNT_ZONES,areaIndex,{elite:Boolean(m.model.elite),boss,day:today()});
   const paid=credit(state,m.model.coins,'hunt','몬스터 토벌 · '+m.model.name,huntLevel(state.xp));
+  // Combat XP grows substantially slower than life XP, while the independent
+  // mastery score measures actual combat progress and unlocks tougher regions.
   state.xp+=m.model.xp;
-  hero.hp=clamp(hero.hp+8,0,stats().maxHp);
-  m.root.visible=false;m.deadUntil=performance.now()+(boss?Infinity:7000);
+  hero.hp=clamp(hero.hp+(boss?20:m.model.elite?8:3),0,stats().maxHp);
+  m.root.visible=false;m.deadUntil=performance.now()+(boss?Infinity:m.model.elite?13000:9000);m.windupUntil=0;
   if(!added)toast('📦 전리품이 임시 보관함에 저장됐어요');
-  if(boss){state.hunt.bossDates[dailyBossKey(currentZone.id,today())]=true;toast('🏆 '+m.model.name+' 토벌 성공! +'+paid.amount+'G · '+loot+' 획득')}
-  else toast('✨ '+m.model.name+' 토벌! +'+paid.amount+'G · '+loot+' 획득');
+  if(boss){state.hunt.bossDates[dailyBossKey(currentZone.id,today())]=true;
+   toast('🏆 '+m.model.name+' 토벌! 숙련 +'+mastery.points+' · '+loot+' 획득 · 다음 구역 도전 가능')}
+  else toast((m.model.elite?'✦ 정예':'✨')+' '+m.model.name+' 토벌! 숙련 +'+mastery.points+' · '+loot+' 획득');
   if(target===m)target=null;save();
+  if(!boss)ensureZoneBoss();
+  $('region').textContent=currentZone.icon+' '+currentZone.name+' · 사냥 숙련 '+mastery.score;
  }
  updateHud();
 }
@@ -485,10 +598,18 @@ function update(time,dt){
    else continue;
   }
   const d=Math.hypot(mob.x-hero.x,mob.z-hero.z);
-  if(d<215&&d>58){
-   const speed=mob.model.boss?34:30;
-   mob.x+=(hero.x-mob.x)/d*speed*dt;mob.z+=(hero.z-mob.z)/d*speed*dt;
-  }else if(d>280){const to=Math.hypot(mob.homeX-mob.x,mob.homeZ-mob.z);if(to>8){mob.x+=(mob.homeX-mob.x)/to*15*dt;mob.z+=(mob.homeZ-mob.z)/to*15*dt}}
+  const ranged=mob.model.pattern==='ranged',keepDistance=ranged?126:58;
+  const berserk=mob.model.boss&&healthRatio(mob)<.4;
+  if(d<255&&d>keepDistance){
+   const speed=(mob.model.boss?42:mob.model.elite?58:ranged?39:33)*(berserk?1.35:1);
+   if(d>0){mob.x+=(hero.x-mob.x)/d*speed*dt;mob.z+=(hero.z-mob.z)/d*speed*dt}
+  }else if(ranged&&d<90&&d>1){
+   // Ranged enemies retreat from melee, forcing a deliberate approach.
+   mob.x-=(hero.x-mob.x)/d*22*dt;mob.z-=(hero.z-mob.z)/d*22*dt;
+  }else if(d>285){
+   const to=Math.hypot(mob.homeX-mob.x,mob.homeZ-mob.z);
+   if(to>8){mob.x+=(mob.homeX-mob.x)/to*16*dt;mob.z+=(mob.homeZ-mob.z)/to*16*dt}
+  }
   mob.root.position.set(mob.x,0,mob.z);
   const hitRemaining=Math.max(0,(mob.hitFlashUntil-now)/260);
   const breathing=1+Math.sin(time*(mob.model.boss?1.5:3.1)+mob.index)*.028;
@@ -497,16 +618,39 @@ function update(time,dt){
   mob.body.rotation.z=Math.sin(time*1.5+mob.index)*.035+hitRemaining*(mob.index%2?-.13:.13);
   mob.ui.quaternion.copy(camera.quaternion);
   if(mob.hp>0)mob.hpFill.material.color.setHex(hitRemaining>.05?0xffe7a1:mob.model.boss?0xf6c875:0x93ddb0);
-  if(d<70&&now>mob.attackAt&&now>hero.hurtAt+350){
-   mob.attackAt=now+(mob.model.boss?2200:2550);hero.hurtAt=now;
-   const amount=incomingDamage(areaIndex,mob.model.boss,s.defense);
-   hero.hp=Math.max(0,hero.hp-amount);floatNumber(hero.x,hero.z,'-'+amount,'#ff9e98');
-   effect(hero.x,hero.z,0xf79c8a);
-   if(hero.hp<=0){
-    hero.hp=s.maxHp;hero.mp=s.maxMp;
-    hero.x=0;hero.z=145;hero.moveX=0;hero.moveZ=145;target=null;hero.hurtAt=now+2400;
-    toast('💛 잠시 기절했지만 안전하게 회복했어요. 코인과 아이템은 그대로예요.');
+  const strikeRange=mob.model.boss?150:ranged?155:mob.model.elite?106:85;
+  if(mob.windupUntil&&now>=mob.windupUntil){
+   mob.windupUntil=0;
+   const aimed=mob.windupTarget||{x:mob.x,z:mob.z};
+   const hitRadius=mob.model.boss?76:ranged?60:mob.model.elite?65:46;
+   const evaded=Math.hypot(hero.x-aimed.x,hero.z-aimed.z)>hitRadius;
+   if(evaded){if(mob.model.boss||mob.model.elite)floatNumber(hero.x,hero.z,'✨ 회피!','#b8ffe0')}
+   else if(now>hero.hurtAt+350){
+    hero.hurtAt=now;
+    const damage=incomingDamage(areaIndex,mob.model.boss,s.defense);
+    const amount=hunterDamage(damage,level(),currentZone.level,{boss:mob.model.boss,elite:mob.model.elite});
+    hero.hp=Math.max(0,hero.hp-amount);
+    floatNumber(hero.x,hero.z,'-'+amount,'#ff9e98');
+    effect(hero.x,hero.z,0xf79c8a);
+    if(hero.hp<=0){
+     state.hunt.defeats=(Number(state.hunt.defeats)||0)+1;
+     hero.hp=Math.max(1,Math.ceil(s.maxHp*.6));hero.mp=Math.ceil(s.maxMp*.55);
+     hero.x=0;hero.z=145;hero.moveX=0;hero.moveZ=145;target=null;hero.hurtAt=now+2400;
+     toast('💛 안전 지점에서 회복했어! 체력이 60%라 물약과 회피가 필요해.');
+     save();
+    }
    }
+  }
+  if(!mob.windupUntil&&d<strikeRange&&now>=mob.attackAt){
+   // Clearly telegraphed aimed attacks. Walking out of the warning ring dodges
+   // the damage; elite, ranged, and berserk bosses have different timing.
+   const delay=mob.model.boss?(berserk?680:1100):mob.model.elite?850:ranged?980:700;
+   mob.windupTarget={x:hero.x,z:hero.z};
+   mob.windupUntil=now+delay;
+   mob.attackAt=now+(mob.model.boss?(berserk?1900:2800):mob.model.elite?2200:ranged?2800:3100);
+   effect(hero.x,hero.z,mob.model.boss?0xf2b478:ranged?0xc7b0ff:0xffe29f,delay/1000,true);
+   if(mob.model.boss||mob.model.elite||ranged)
+    floatNumber(mob.x,mob.z,mob.model.boss?'👑 광역 공격 예고!':ranged?'✨ 원거리 공격 예고!':'⚠️ 돌진 예고!','#ffd5a5');
   }
  }
  for(let i=fx.length-1;i>=0;i--){

@@ -1,0 +1,50 @@
+name: Village v50 D1 Migration Staging Safety
+on:
+  push:
+    branches: [feat/village-v50-d1-unification]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate private exporter syntax (do NOT run against live DB)
+        run: node --check life/cf/d1/export-neon.mjs
+      - name: Test Cloudflare D1 SQLite schema without any production data
+        run: python3 life/cf/d1/test_schema.py
+      - name: Validate standalone D1 worker and read-only gate
+        run: |
+          node --check life/cf/d1/account-staging.js
+          node --check life/cf/d1/worker-staging.js
+          node --check life/cf/d1/account-extensions.js
+          node --check life/cf/d1/economy-staging.js
+          node --check life/cf/d1/rooms.js
+          node life/cf/d1/test_account_staging.mjs
+      - name: Test existing village gameplay and Cloudflare bridge
+        working-directory: life
+        run: |
+          npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+          npm test
+          node cf/test_api_bridge.mjs
+          node test_login_gate_v50.mjs
+      - name: Compile existing safe browser assets
+        working-directory: life
+        run: npm run build
+      - name: Dry-run standalone Cloudflare D1 Worker without any credentials
+        working-directory: life
+        run: |
+          npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund wrangler@4.45.0
+          sed 's/REPLACE_WITH_REAL_D1_DATABASE_UUID/00000000-0000-0000-0000-000000000000/' cf/d1/wrangler.staging.example.jsonc > cf/d1/wrangler.staging.jsonc
+          npx wrangler deploy --config cf/d1/wrangler.staging.jsonc --dry-run --outdir /tmp/junja-d1-candidate
+          if grep -R -l 'junja-village-friends.vercel.app' /tmp/junja-d1-candidate; then
+            echo 'FAIL: Vercel reference bundled into D1 candidate'
+            exit 1
+          fi
