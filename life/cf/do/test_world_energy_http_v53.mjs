@@ -21,7 +21,7 @@ const read=async()=>{
  assert.equal(res.status,200);return res.json();
 };
 const before=await read();
-assert.equal(before.energy.current,100,'new game starts at 100 energy');
+assert.equal(before.energy.current,200,'new game starts at 200 energy');
 async function charge(kind,id=randomUUID(),origin=base){
  const res=await fetch(base+'/api/economy-v36',{
   method:'POST',headers:{cookie,origin,'content-type':'application/json'},
@@ -42,16 +42,16 @@ assert.equal(anonymous.status,401);
 let id=randomUUID();
 let result=await charge('plant',id);
 assert.equal(result.status,200,JSON.stringify(result.data));
-assert.equal(result.data.energy.current,98,'real-world planting consumes 2');
+assert.equal(result.data.energy.current,198,'real-world planting consumes 2');
 const audited=await lookup(id);
 assert.equal(audited.status,200);
 assert.deepEqual(audited.data.transaction,{found:true,kind:'plant',isWorldSpend:true},'server must locate exact authenticated world energy request');
-assert.equal(audited.data.energy.current,98,'GET reconciliation must not charge again');
+assert.equal(audited.data.energy.current,198,'GET reconciliation must not charge again');
 assert.equal(result.data.receipt.delta,0,'spending must never mint main or trial gold');
 result=await charge('plant',id);
 assert.equal(result.status,200);
 assert.equal(result.data.replayed,true);
-assert.equal(result.data.energy.current,98,'same network request cannot double-charge');
+assert.equal(result.data.energy.current,198,'same network request cannot double-charge');
 result=await charge('fish',id);
 assert.equal(result.status,409,'same id cannot be reused for another action');
 result=await charge('harvest',randomUUID(),'https://attacker.invalid');
@@ -60,20 +60,20 @@ result=await charge('free_energy');
 assert.equal(result.status,400,'unknown energy kinds rejected');
 result=await charge('gather');
 assert.equal(result.status,200);
-assert.equal(result.data.energy.current,95,'gather consumes three');
+assert.equal(result.data.energy.current,195,'gather consumes three');
 result=await charge('fish');
 assert.equal(result.status,200);
-assert.equal(result.data.energy.current,90,'catching a fish consumes five');
+assert.equal(result.data.energy.current,190,'catching a fish consumes five');
 result=await charge('craft');
 assert.equal(result.status,200);
-assert.equal(result.data.energy.current,84,'crafting consumes six');
+assert.equal(result.data.energy.current,184,'crafting consumes six');
 result=await charge('order');
 assert.equal(result.status,200);
-assert.equal(result.data.energy.current,81,'delivery consumes three');
+assert.equal(result.data.energy.current,181,'delivery consumes three');
 result=await charge('business_produce');
 assert.equal(result.status,200);
-assert.equal(result.data.energy.current,73,'workshop production consumes eight');
-for(let i=0;i<14;i++){
+assert.equal(result.data.energy.current,173,'workshop production consumes eight');
+for(let i=0;i<34;i++){
  result=await charge('fish');
  assert.equal(result.status,200,JSON.stringify(result.data));
 }

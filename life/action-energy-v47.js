@@ -1,7 +1,7 @@
-// v55: server-authoritative action energy and progressive top-up cost in separate v36 economy.
+// v62: server-authoritative action energy (200 max, +1 / 3 min) and progressive top-up cost in separate v36 economy.
 // No daily purchase-count limit. Each KST day costs 1000, 2000, 4000... trial G.
 import {economyDay} from './secure-economy-v36.js';
-export const ENERGY_MAX=100,ENERGY_REGEN_SECONDS=360;
+export const ENERGY_MAX=200,ENERGY_REGEN_SECONDS=180;
 export const ENERGY_PACK=25,ENERGY_PRICE_G=1000;
 export const ENERGY_COSTS=Object.freeze({plant:2,harvest:0,gather:3,fish:5,craft:6,order:3,business_produce:8});
 const MILLISECONDS=ENERGY_REGEN_SECONDS*1000,MAX_COIN=1_000_000_000_000;
