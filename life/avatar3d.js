@@ -1,7 +1,7 @@
 import * as T from './vendor/three.module.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {sampleFootGait,sampleBodyGait} from './gait-pose-v58.js';
-import {sampleGarmentSway} from './garment-sway-v59.js';
+import {sampleSkirtClearance} from './skirt-clearance-v62.js';
 import {sampleTurnAnticipation} from './turn-anticipation-v60.js';
 import {sampleContactShadow} from './contact-shadow-v61.js';
 import {renderHair,renderAccessory,decorateOutfit} from './fashion-3d.js';
@@ -98,8 +98,9 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
    const torsoProfile=[new T.Vector2(0,-6),new T.Vector2(11.8,-6),new T.Vector2(14.6,-2),new T.Vector2(16,5),new T.Vector2(16.8,14),new T.Vector2(16.2,21),new T.Vector2(12.2,29),new T.Vector2(6,32),new T.Vector2(0,32)];
    const shell=new T.Mesh(new T.LatheGeometry(torsoProfile,32),cloth.main);shell.name='coat-shell';shell.castShadow=true;shell.receiveShadow=true;garment.add(shell);
    if(dress){const skirtProfile=[new T.Vector2(13,4),new T.Vector2(15,0),new T.Vector2(17,-5),new T.Vector2(20,-12),new T.Vector2(22,-16.5),new T.Vector2(22.1,-18)];
-    const skirt=new T.Mesh(new T.LatheGeometry(skirtProfile.slice().reverse(),32),cloth.main);skirt.castShadow=true;skirt.receiveShadow=true;garment.add(skirt);swayingHem=skirt;
-    const hem=new T.Mesh(new T.TorusGeometry(22.1,.95,7,40),cloth.light);hem.rotation.x=Math.PI/2;hem.position.y=-18;garment.add(hem);
+    const skirtRig=group(garment);skirtRig.name='skirt-rig';
+    const skirt=new T.Mesh(new T.LatheGeometry(skirtProfile.slice().reverse(),32),cloth.main);skirt.castShadow=true;skirt.receiveShadow=true;skirtRig.add(skirt);swayingHem=skirtRig;
+    const hem=new T.Mesh(new T.TorusGeometry(22.1,.95,7,40),cloth.light);hem.rotation.x=Math.PI/2;hem.position.y=-18;skirtRig.add(hem);
    }else {disc(garment,cloth.dark,0,-5.5,0,12.8,1.5);for(const x of [-8,8]){const pocket=ball(garment,cloth.light,x,5,13.1,3.4,3.7,.9);pocket.name='pocket'}}
    for(const side of [-1,1]){const collar=tube(garment,white,2.5,12,side*4.7,25,10);collar.rotation.z=side*.44}
    for(const y of [18,11,4])ball(garment,gold,0,y,15.5,1.35,1.35,.9);
@@ -197,7 +198,7 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   pelvis.rotation.z=body.pelvisRoll;
   torso.rotation.z=body.torsoRoll;torso.rotation.y=body.torsoTurn+shoulderYaw;
   head.rotation.z=body.headRoll;head.rotation.x=body.headPitch;head.rotation.y=turnYaw;
-  if(swayingHem){const cloth=sampleGarmentSway(stride,blend,Math.hypot(vx,vy));swayingHem.rotation.z=cloth.roll;swayingHem.rotation.x=cloth.pitch;swayingHem.position.y=cloth.hemLift;}
+  if(swayingHem){const cloth=sampleSkirtClearance(stride,blend,Math.hypot(vx,vy));swayingHem.rotation.z=cloth.roll;swayingHem.rotation.x=cloth.pitch;swayingHem.position.y=cloth.hemLift;swayingHem.scale.set(cloth.spread,1,cloth.spread);}
   for(const l of limbs){
    const pose=sampleFootGait(stride,blend,l.side);
    l.hip.rotation.x=pose.hip;
