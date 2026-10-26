@@ -5,6 +5,7 @@ const clamp = (value,min,max) => Math.max(min,Math.min(max,value));
 export function sampleHeadwearMotion(stride=0,blend=0,headYaw=0,hat='none'){
  if(typeof hat!=='string'||hat==='none')return {bob:0,roll:0,pitch:0};
  const phase=finite(stride),weight=clamp(finite(blend),0,1),turn=clamp(finite(headYaw),-.32,.32);
+ if(weight===0&&turn===0)return {bob:0,roll:0,pitch:0};
  const loose=hat==='straw'||hat==='flower'?1:hat==='crown'?.55:.75;
  return {
   bob:Math.abs(Math.sin(phase))*.38*weight*loose,
