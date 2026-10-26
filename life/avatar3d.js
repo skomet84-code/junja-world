@@ -2,6 +2,7 @@ import * as T from './vendor/three.module.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {sampleFootGait,sampleBodyGait} from './gait-pose-v58.js';
 import {sampleSkirtClearance} from './skirt-clearance-v62.js';
+import {sampleHeadwearMotion} from './headwear-motion-v63.js';
 import {sampleTurnAnticipation} from './turn-anticipation-v60.js';
 import {sampleContactShadow} from './contact-shadow-v61.js';
 import {renderHair,renderAccessory,decorateOutfit} from './fashion-3d.js';
@@ -198,6 +199,11 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   pelvis.rotation.z=body.pelvisRoll;
   torso.rotation.z=body.torsoRoll;torso.rotation.y=body.torsoTurn+shoulderYaw;
   head.rotation.z=body.headRoll;head.rotation.x=body.headPitch;head.rotation.y=turnYaw;
+  // Hats are mounted to the head; a tiny counter-lean gives the brim weight.
+  const hatMotion=sampleHeadwearMotion(stride,blend,turnYaw,equipped.hat);
+  hatSocket.position.y=24+hatMotion.bob;
+  hatSocket.rotation.z=hatMotion.roll;
+  hatSocket.rotation.x=hatMotion.pitch;
   if(swayingHem){const cloth=sampleSkirtClearance(stride,blend,Math.hypot(vx,vy));swayingHem.rotation.z=cloth.roll;swayingHem.rotation.x=cloth.pitch;swayingHem.position.y=cloth.hemLift;swayingHem.scale.set(cloth.spread,1,cloth.spread);}
   for(const l of limbs){
    const pose=sampleFootGait(stride,blend,l.side);
