@@ -3,6 +3,7 @@ import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {sampleFootGait,sampleBodyGait} from './gait-pose-v58.js';
 import {sampleSkirtClearance} from './skirt-clearance-v62.js';
 import {sampleHeadwearMotion} from './headwear-motion-v63.js';
+import {resolveHairHatFit,sampleLooseHairMotion} from './hair-hat-fit-v64.js';
 import {sampleTurnAnticipation} from './turn-anticipation-v60.js';
 import {sampleContactShadow} from './contact-shadow-v61.js';
 import {renderHair,renderAccessory,decorateOutfit} from './fashion-3d.js';
@@ -73,7 +74,12 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
  }
  const hatSocket=group(head,0,24),garment=group(torso),limbs=[];
  const newHair=group(head),accHead=group(head),accTorso=group(torso),accPelvis=group(pelvis);
- let fashionHair=null,fashionAccessory=null;
+ let fashionHair=null,fashionAccessory=null,hairRig=null;
+ function syncHairHatFit(){
+  const fit=resolveHairHatFit(equipped.hat,CATALOG_BY_ID[fashionHair]?.shape);
+  newHair.visible=!!hairRig;
+  if(hairRig){hairRig.crown.visible=fit.crownVisible;hairRig.loose.visible=fit.looseVisible;}
+ }
  for(const side of [-1,1]){
   const arm=group(torso,side*17,24),elbow=group(arm,0,-15),armCloth=group(arm),foreCloth=group(elbow);
   tube(arm,skin,4.3,17,0,-7,0);tube(elbow,skin,3.7,15,0,-6,0);ball(elbow,skin,0,-14,0,4.5,5,4.5);
@@ -156,7 +162,7 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   }
   if(equipped.hat!==nextHat){
    equipped.hat=nextHat;clear(hatSocket);hair.visible=nextHat==='none'||['crown','cat','ribbon'].includes(nextHat);
-   if(nextHat==='none')return;
+   if(nextHat==='none'){syncHairHatFit();return;}
    if(nextHat==='straw'||nextHat==='flower'){disc(hatSocket,strawMat,0,-1,0,30,2.8);disc(hatSocket,strawMat,0,6,0,20,13);disc(hatSocket,ribbonMat,0,1,0,20.2,3);if(nextHat==='flower'){for(let i=0;i<5;i++)ball(hatSocket,white,16+Math.cos(i*6.28/5)*4,4+Math.sin(i*6.28/5)*4,17,3,3,1.8);ball(hatSocket,gold,16,4,19,2.2)}}
    else if(nextHat==='crown'){disc(hatSocket,gold,0,0,0,19,7);for(let i=0;i<7;i++){const a=i*Math.PI*2/7;const point=new T.Mesh(new T.ConeGeometry(5,12,4),gold);point.position.set(Math.sin(a)*17,7,Math.cos(a)*17);hatSocket.add(point);ball(hatSocket,ribbonMat,Math.sin(a)*19,1,Math.cos(a)*19,2)}}
    else if(nextHat==='cat'){for(const x of [-18,18]){const ear=new T.Mesh(new T.ConeGeometry(8,17,3),shoeMat);ear.position.set(x,2,0);hatSocket.add(ear)}}
@@ -164,12 +170,13 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
    else{const m=nextHat==='beret'?ribbonMat:nextHat==='beanie'?outfits.amber.main:nextHat==='navycap'?outfits.navy.main:white;
     ball(hatSocket,m,nextHat==='beret'?-3:0,0,0,25,10,23);disc(hatSocket,nextHat==='captain'?outfits.navy.main:m,0,-5,0,23,3);
     if(nextHat==='beanie')ball(hatSocket,white,0,10,0,5);if(nextHat==='captain'||nextHat==='navycap'){ball(hatSocket,m,0,-5,18,21,2,12);ball(hatSocket,gold,0,1,23,3,3,1)}}
+   syncHairHatFit();
   }
  }
  function setFashion({hair:hairId=null,accessory:accId=null}={}){
   const h=CATALOG_BY_ID[hairId]?.type==='hair'?hairId:null;
   const a=CATALOG_BY_ID[accId]?.type==='accessory'?accId:null;
-  if(fashionHair!==h){fashionHair=h;clear(newHair);if(h)renderHair(newHair,CATALOG_BY_ID[h])}
+  if(fashionHair!==h){fashionHair=h;clear(newHair);hairRig=h?renderHair(newHair,CATALOG_BY_ID[h]):null}
   if(fashionAccessory!==a){
    fashionAccessory=a;clear(accHead);clear(accTorso);clear(accPelvis);
    if(a)renderAccessory({head:accHead,torso:accTorso,pelvis:accPelvis},CATALOG_BY_ID[a]);
@@ -177,7 +184,7 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   const showOriginal=!fashionHair;
   hair.visible=showOriginal&&(equipped.hat==='none'||['crown','cat','ribbon'].includes(equipped.hat));
   bangs.visible=showOriginal;
-  newHair.visible=!['straw','flower','beret','beanie','navycap','captain'].includes(equipped.hat);
+  syncHairHatFit();
  }
  let angle=0,blend=0,turnYaw=0,shoulderYaw=0;root.userData.rig={pelvis,torso,head,hatSocket,garment,limbs};
  function animate({x,y,vx=0,vy=0,dir=0,stride=0},dt,time){
@@ -204,6 +211,10 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   hatSocket.position.y=24+hatMotion.bob;
   hatSocket.rotation.z=hatMotion.roll;
   hatSocket.rotation.x=hatMotion.pitch;
+  if(hairRig){const hairMotion=sampleLooseHairMotion(stride,blend,turnYaw,CATALOG_BY_ID[fashionHair]?.shape);
+   hairRig.loose.rotation.z=hairMotion.roll;
+   hairRig.loose.position.y=hairMotion.bob;
+  }
   if(swayingHem){const cloth=sampleSkirtClearance(stride,blend,Math.hypot(vx,vy));swayingHem.rotation.z=cloth.roll;swayingHem.rotation.x=cloth.pitch;swayingHem.position.y=cloth.hemLift;swayingHem.scale.set(cloth.spread,1,cloth.spread);}
   for(const l of limbs){
    const pose=sampleFootGait(stride,blend,l.side);
