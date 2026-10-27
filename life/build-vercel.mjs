@@ -3,12 +3,12 @@ import {mkdir,copyFile,readFile} from 'node:fs/promises';
 import {join,dirname,posix} from 'node:path';
 import {execFileSync} from 'node:child_process';
 // Run animation regressions and syntax checks before publishing static assets.
-for(const name of ['test_gait_v58.mjs','test_garment_sway_v59.mjs','test_turn_anticipation_v60.mjs','test_contact_shadow_v61.mjs','test_skirt_clearance_v62.mjs','test_headwear_motion_v63.mjs'])execFileSync(process.execPath,['--test',name],{stdio:'inherit'});
+for(const name of ['test_hair_hat_fit_v64.mjs','test_gait_v58.mjs','test_garment_sway_v59.mjs','test_turn_anticipation_v60.mjs','test_contact_shadow_v61.mjs','test_skirt_clearance_v62.mjs','test_headwear_motion_v63.mjs'])execFileSync(process.execPath,['--test',name],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','avatar3d.js'],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','gait-pose-v58.js'],{stdio:'inherit'});
 const assets=[
  'action-energy-v47.js','secure-economy-v36.js',
- 'index.html','account-ui.js','admin-panel.js','game.js','world-energy-v53.js','farm-plots-v52.js','world3d.js','avatar3d.js','gait-pose-v58.js','garment-sway-v59.js','turn-anticipation-v60.js','contact-shadow-v61.js','skirt-clearance-v62.js','headwear-motion-v63.js','fashion-3d.js',
+ 'index.html','account-ui.js','admin-panel.js','game.js','world-energy-v53.js','farm-plots-v52.js','world3d.js','avatar3d.js','gait-pose-v58.js','garment-sway-v59.js','turn-anticipation-v60.js','contact-shadow-v61.js','skirt-clearance-v62.js','headwear-motion-v63.js','hair-hat-fit-v64.js','fashion-3d.js',
  'fashion-catalog.js','life-systems-v20.js','navigation.js','touch-arrival-v56.js',
  'hunt.html','hunt.js','hunt-data.js','hunt-balance-v54.js','hunt-weekly-v55.js','farm-batch-v55.js','fish-portraits.js','living-world.js',
  'economy-v28.js','inventory-v29.js','combat-potions-v29.js','combat-progression-v30.js',
