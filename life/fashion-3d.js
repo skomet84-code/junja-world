@@ -12,35 +12,37 @@ const rod=(parent,c,a,b,r=1.5)=>{const start=new T.Vector3(...a),end=new T.Vecto
 export function renderHair(parent,item){
  if(!item)return;
  const color=item.color,shape=item.shape,k=item.index;
+ const crown=group(parent),loose=group(parent);crown.name='hair-crown';loose.name='hair-loose';
  // A cohesive scalp and hand-authored silhouette for each cut.
- const scalp=ball(parent,color,0,14,-4,24,16.5,20);scalp.name='hair-scalp';
+ const scalp=ball(crown,color,0,14,-4,24,16.5,20);scalp.name='hair-scalp';
  if(['bob','long','layer','wolf','wave'].includes(shape)){
   const length=shape==='long'?27:shape==='wolf'?22:shape==='layer'?19:shape==='bob'?15:13;
-  for(const side of [-1,1])ball(parent,color,side*19,3,-6,7,length+4,12);
+  for(const side of [-1,1])ball(loose,color,side*19,3,-6,7,length+4,12);
  }
  if(shape==='short'||shape==='side'||shape==='slick'){
-  for(let i=0;i<5;i++){const x=(i-2)*9;ball(parent,color,x,25-(i%2)*2,10,8,6,9)}
+  for(let i=0;i<5;i++){const x=(i-2)*9;ball(crown,color,x,25-(i%2)*2,10,8,6,9)}
  }else if(shape==='part'){
-  for(let i=0;i<5;i++)ball(parent,color,(i-2)*9,20+i*1.5,13,7,7,8);
+  for(let i=0;i<5;i++)ball(crown,color,(i-2)*9,20+i*1.5,13,7,7,8);
  }else if(shape==='bob'){
-  for(let i=0;i<6;i++)ball(parent,color,-21+i*8,12+(i%2)*2,16,7,10,7);
+  for(let i=0;i<6;i++)ball(crown,color,-21+i*8,12+(i%2)*2,16,7,10,7);
  }else if(shape==='slick'){
-  for(let i=0;i<4;i++)ball(parent,color,-16+i*11,22,6,10,6,15);
+  for(let i=0;i<4;i++)ball(crown,color,-16+i*11,22,6,10,6,15);
  }else if(shape==='bang'){
-  for(let i=0;i<7;i++)ball(parent,color,-20+i*7,17+(i%3),18,5,9,4);
+  for(let i=0;i<7;i++)ball(crown,color,-20+i*7,17+(i%3),18,5,9,4);
  }else if(shape==='wolf'||shape==='layer'){
-  for(let i=0;i<8;i++){const x=-22+i*6.2;const lock=ball(parent,color,x,16+(i%3)*3,16,5,10+(i%2)*5,6);lock.rotation.z=(i-3.5)*.09}
-  for(const side of [-1,1]){const spike=ball(parent,color,side*23,1,-8,7,12,9);spike.rotation.z=side*.36}
+  for(let i=0;i<8;i++){const x=-22+i*6.2;const lock=ball(crown,color,x,16+(i%3)*3,16,5,10+(i%2)*5,6);lock.rotation.z=(i-3.5)*.09}
+  for(const side of [-1,1]){const spike=ball(loose,color,side*23,1,-8,7,12,9);spike.rotation.z=side*.36}
  }else if(shape==='wave'){
-  for(let i=0;i<7;i++){const x=-21+i*7;const l=ball(parent,color,x,22-(i%3)*2,15,7,9,7);l.rotation.z=Math.sin(i*2)*.3}
+  for(let i=0;i<7;i++){const x=-21+i*7;const l=ball(crown,color,x,22-(i%3)*2,15,7,9,7);l.rotation.z=Math.sin(i*2)*.3}
  }else if(shape==='twin'||shape==='braid'){
   for(const side of [-1,1]){
-   ball(parent,color,side*26,6,-6,9,11,10);
-   for(let j=0;j<4;j++)ball(parent,color,side*(28+(j%2)*2),-2-j*7,-5,6-j*.5,6,6);
+   ball(loose,color,side*26,6,-6,9,11,10);
+   for(let j=0;j<4;j++)ball(loose,color,side*(28+(j%2)*2),-2-j*7,-5,6-j*.5,6,6);
   }
  }
- if(['twin','braid'].includes(shape))ball(parent,0xf4d9a7,0,21,20,5,2,3);
- if(k>=12)for(const side of [-1,1])ball(parent,item.index>=18?0xf0d06e:0xffffff,side*12,28,11,2.7,2.7,2.7);
+ if(['twin','braid'].includes(shape))ball(crown,0xf4d9a7,0,21,20,5,2,3);
+ if(k>=12)for(const side of [-1,1])ball(crown,item.index>=18?0xf0d06e:0xffffff,side*12,28,11,2.7,2.7,2.7);
+ return {crown,loose};
 }
 export function renderAccessory({head,torso,pelvis},item){
  if(!item)return;
