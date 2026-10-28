@@ -1,6 +1,7 @@
 import * as T from './vendor/three.module.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {sampleFootGait,sampleBodyGait} from './gait-pose-v58.js';
+import {sampleFaceExpression} from './face-expression-v65.js';
 import {sampleSkirtClearance} from './skirt-clearance-v62.js';
 import {sampleHeadwearMotion} from './headwear-motion-v63.js';
 import {resolveHairHatFit,sampleLooseHairMotion} from './hair-hat-fit-v64.js';
@@ -63,9 +64,9 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
   ball(head,white,0,-8,15,12,9,7);
  }else{for(const x of [-24,24]){ball(head,skin,x,-1,0,5,7,4);ball(head,blushMat,x,-1,3,2,3,1)}}
  // Face features sit on the curved head, not on a floating picture plane.
- const eyes=[];for(const x of [-8.5,8.5]){const eye=ball(head,eyeMat,x,1,18.3,3.1,4.4,1.8);eyes.push(eye);ball(head,white,x-1,2.5,20,1.1,1.25,.5);ball(head,blushMat,x*1.6,-6.3,16.1,4.8,2.4,.7);if(!animal){const brow=tube(head,hairMat,1,7,x,9,17.8);brow.rotation.z=Math.PI/2+(x>0?-.05:.05)}}
+ const eyes=[];for(const x of [-8.5,8.5]){const eyeRig=group(head,x,1,18.3);eyeRig.name='eye-rig';ball(eyeRig,eyeMat,0,0,0,3.1,4.4,1.8);ball(eyeRig,white,-1,1.5,1.7,1.1,1.25,.5);eyes.push(eyeRig);ball(head,blushMat,x*1.6,-6.3,16.1,4.8,2.4,.7);if(!animal){const brow=tube(head,hairMat,1,7,x,9,17.8);brow.rotation.z=Math.PI/2+(x>0?-.05:.05)}}
  ball(head,animal?eyeMat:skin,0,-4,20.5,animal?3:2.6,2.2,2.2);
- curve(head,[[-3.5,-10,18.7],[0,-11.7,20],[3.5,-10,18.7]],eyeMat,.65);
+ const mouth=curve(head,[[-3.5,-10,18.7],[0,-11.7,20],[3.5,-10,18.7]],eyeMat,.65);
  const hair=group(head),bangs=group(head);
  if(!animal){
   const cap=new T.Mesh(new T.SphereGeometry(25,24,16,0,Math.PI*2,0,Math.PI*.55),hairMat);cap.position.y=2;cap.scale.z=.87;hair.add(cap);cap.castShadow=true;
@@ -230,7 +231,12 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
    l.arm.rotation.x=pose.arm;
    l.elbow.rotation.x=pose.elbow;
   }
-  const blink=(time%4.7)>4.58;for(const e of eyes)e.scale.y=blink?.55:4.4;
+  // Smooth facial pose: eye glints close with lids; smile responds gently to walking.
+  const expression=sampleFaceExpression(time,blend);
+  for(const eyeRig of eyes)eyeRig.scale.y=expression.eyeOpen;
+  mouth.scale.x=expression.mouthWidth;
+  mouth.scale.y=expression.mouthHeight;
+  mouth.position.y=10*(expression.mouthHeight-1)+expression.mouthLift;
  }
  function dispose(){
   root.traverse(o=>{if(o.geometry&&!Object.values(sharedGeometries).includes(o.geometry)&&!capsuleCacheHas(o.geometry))o.geometry.dispose()});
