@@ -13,7 +13,7 @@ import {openBusinessCenter} from './business-ui-v40.js';
 import {mountQuestsV51} from './quests-ui-v51.js';
 import {openWorkshopPlaza} from './workshop-ui-v41.js';
 import {mountEnergyPanel,mountEnergyHud} from './action-energy-ui-v47.js';
-import {createWorldEnergySpend} from './world-energy-v53.js?v=v53-world-energy-release';
+import {createWorldEnergySpend} from './world-energy-v53.js?v=v71-rapid-gather-20261029';
 import {mountHomeStudioV48} from './home-studio-ui-v48.js';
 import {renderVillageMenuV49,activateVillageDockV49} from './village-navigation-v49.js?v=v55-quick-farm-20261020';
 import {BUSINESS_PORTAL_V42,portalCollision,canUseBusinessPortal,portalReturnPosition} from './district-portal-v42.js';
@@ -639,14 +639,48 @@ function openFullBagSales(preferred='fish'){
   ?'🎒 가방이 가득 찼어요 ('+bagUsed(state)+'/'+bagCapacity(state)+'). 판매창을 열었어요!'
   :'🎒 가방이 가득 찼어요! 판매할 물고기·채집 재료가 없어 가방 정리를 열었어요.');
 }
-async function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
- const remaining=(state.nodeReady[id]||0)-Date.now();if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
- const desired=2+lifeBonus('gather'),free=bagFree(state);
- if(free<1){openFullBagSales('material');return}
+// Keep gathering responsive on mobile: reserve visual pickup immediately,
+// serialize authoritative energy charges, and save only confirmed loot.
+let pendingGatherSlots=0;
+const pendingGatherNodes=new Set();
+function gather(id){
+ const n=resourceNodes.find(n=>n.id===id);
+ if(!n||distance(player,n)>110||pendingGatherNodes.has(id))return;
+ const previousReady=state.nodeReady[id]||0;
+ const remaining=previousReady-Date.now();
+ if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
+ const desired=2+lifeBonus('gather');
+ const free=Math.max(0,bagFree(state)-pendingGatherSlots);
+ if(free<1){
+  if(bagFree(state)<1)openFullBagSales('material');
+  else toast('🎒 앞서 채집한 재료를 가방에 담고 있어요');
+  return;
+ }
  const amount=Math.min(desired,free);
- if(!await useWorldEnergy('gather'))return;
- if(!addBagItems(state,'material',n.kind,amount)){toast('🎒 가방 보관에 실패했어요. 가방을 열어 잔여 칸을 확인해 주세요');return}
- world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));if(bagFree(state)<1)openFullBagSales('material');
+ const readyAt=Date.now()+45000;
+ pendingGatherNodes.add(id);
+ pendingGatherSlots+=amount;
+ state.nodeReady[id]=readyAt;
+ // The tap, pickup animation and bag capacity indicator react in this frame.
+ world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);
+ party(n.x,n.y-30,9);
+ toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸':''));
+ void worldEnergy.spend('gather').then(()=>{
+  // Only confirmed server debits may create durable inventory, XP or quests.
+  if(!addBagItems(state,'material',n.kind,amount)){
+   toast('⚠️ 가방 여유 공간이 바뀌었어. 재료 보관을 확인해 줘');
+   return;
+  }
+  state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;
+  save();hud();updateJourney(true);
+  if(bagFree(state)<1)openFullBagSales('material');
+ }).catch(error=>{
+  if(state.nodeReady[id]===readyAt)state.nodeReady[id]=previousReady;
+  toast('⚡ 채집 실패 · '+(error?.message||'행동력 서버 연결을 확인해 줘'));
+ }).finally(()=>{
+  pendingGatherNodes.delete(id);
+  pendingGatherSlots=Math.max(0,pendingGatherSlots-amount);
+ });
 }
 
 function openDelivery(){
@@ -1448,7 +1482,7 @@ function drawMini(){const w=mini.width,h=mini.height,sx=w/W,sy=h/H;
 function disposeEstateWorld(){if(estateWorld){estateWorld.dispose();estateWorld=null}if(workshopPlaza){workshopPlaza.dispose();workshopPlaza=null}}
 function closeModal(){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();els.modal.classList.remove('open');}
 function openModal(html){homeStudioV48?.dispose();homeStudioV48=null;energyModal?.dispose();energyModal=null;disposeEstateWorld();stopWalking();keys={};pointer=null;els.panelBody.innerHTML=html;els.modal.classList.add('open')}
-const worldEnergy=createWorldEnergySpend({onChange:()=>energyHudController.refresh()});
+const worldEnergy=createWorldEnergySpend({onChange:energy=>energyHudController.apply(energy)});
 async function useWorldEnergy(kind){
  try{await worldEnergy.spend(kind);return true}
  catch(error){toast('⚡ '+(error?.message||'행동력을 확인하지 못했어'));return false}
@@ -2011,7 +2045,7 @@ installQualityHUD({
   const npc=npcs.find(n=>distance(player,n)<100);
   const station=stations.filter(s=>distance(player,s)<125).sort((a,b)=>distance(player,a)-distance(player,b))[0];
   const context=resource?{type:'resource',id:resource.id,label:(resource.kind==='wood'?'🪓 목재 채집':resource.kind==='stone'?'⛏️ 돌 채집':'🌼 꽃잎 채집')}:npc?{type:'npc',npc,label:'💬 '+npc.name+'와 대화'}:station?{type:'station',id:station.id,label:station.icon+' '+station.name}:null;
-  return {used:bagUsed(state),capacity:bagCapacity(state),context,busy:els.modal.classList.contains('open')||fishPhase!=='idle'||!!placeDecor};
+  return {used:bagUsed(state)+pendingGatherSlots,capacity:bagCapacity(state),context,busy:els.modal.classList.contains('open')||fishPhase!=='idle'||!!placeDecor};
  },onBag:openBag,onMarket:openMarket,onJourney:openJourney,onMap:openWorldMap,
  onContext:context=>{if(context.type==='resource')gather(context.id);else if(context.type==='npc')openNpc(context.npc);else openStation(context.id)}
 });
