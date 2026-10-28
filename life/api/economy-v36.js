@@ -27,7 +27,7 @@ function sameOrigin(req){
 function canonical(body){
  if(!body||typeof body!=='object'||Array.isArray(body))throw Object.assign(new Error('요청 형식을 확인해 주세요'),{status:400});
  const action=body.action;
- if(typeof action!=='string'||!['plant','harvest','craft','sell','order','expand','energy_buy'].includes(action))
+ if(typeof action!=='string'||!['plant','harvest','craft','sell','order','expand','energy_buy','world_spend'].includes(action))
   throw Object.assign(new Error('지원하지 않는 거래입니다'),{status:400});
  const raw=body.payload&&typeof body.payload==='object'&&!Array.isArray(body.payload)?body.payload:{};
  // Fixed whitelists guarantee same request hashes even with unrelated client fields.
@@ -35,7 +35,7 @@ function canonical(body){
   action==='harvest'?{index:raw.index}:
   action==='craft'?{recipe:raw.recipe}:
   action==='sell'?{item:raw.item}:
-  action==='order'?{order:raw.order}:{};
+  action==='order'?{order:raw.order}:action==='world_spend'?{kind:raw.kind}:{};
  return {action,payload};
 }
 export function makeEconomyHandler({pool:database=pool,now=()=>new Date()}={}){
@@ -67,7 +67,7 @@ export function makeEconomyHandler({pool:database=pool,now=()=>new Date()}={}){
    const id=req.body?.requestId;
    if(typeof id!=='string'||!uuid.test(id))return respond(res,400,{error:'중복 거래 방지를 위한 요청 ID가 필요해요'});
    const {action,payload}=canonical(req.body);
-   if(action==='energy_buy'&&process.env.ENABLE_VILLAGE_ENERGY_V47!=='true')return respond(res,503,{error:'시험 행동력 상점이 아직 비활성화되어 있어요'});
+   if((action==='energy_buy'||action==='world_spend')&&process.env.ENABLE_VILLAGE_ENERGY_V47!=='true')return respond(res,503,{error:'시험 행동력 상점이 아직 비활성화되어 있어요'});
    const requestHash=digest(JSON.stringify({action,payload}));
    await c.query('BEGIN');inTransaction=true;
    await c.query(`INSERT INTO village_economy_v36_accounts(user_key,state)
@@ -92,6 +92,12 @@ export function makeEconomyHandler({pool:database=pool,now=()=>new Date()}={}){
     result={next:purchased.next,receipt:{action,detail:purchased.detail,delta:purchased.delta,
      balance:purchased.next.coins,day:purchased.energy.day,at:stamp.toISOString()}};
     energyMeta=purchased.energy;
+   }else if(process.env.ENABLE_VILLAGE_ENERGY_V47==='true'&&action==='world_spend'){
+    if(!['plant','gather','fish','craft','order','business_produce'].includes(payload.kind))
+     throw Object.assign(new Error('지원하지 않는 마을 활동이에요'),{status:400});
+    const charged=chargeEnergy(saved.rows[0].state,payload.kind,stamp);
+    result={next:charged.next,receipt:{action,detail:'마을 활동 '+payload.kind+' 행동력 '+charged.cost+' 사용',delta:0,balance:charged.next.coins,day:charged.energy.day,at:stamp.toISOString()}};
+    energyMeta=charged.energy;
    }else if(process.env.ENABLE_VILLAGE_ENERGY_V47==='true'){
     const charge=chargeEnergy(saved.rows[0].state,action,stamp);
     result=economyAction(charge.next,action,payload,stamp);
