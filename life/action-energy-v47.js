@@ -41,7 +41,7 @@ export function buyEnergy(state,now=new Date()){
  const projection=projectEnergy(state,now);
  if(!Number.isSafeInteger(state?.coins)||state.coins<0||state.coins>MAX_COIN)
   deny('시험 골드 기록을 확인할 수 없어요',500);
- if(projection.packsLeft<=0)deny('오늘 행동력 충전 구매는 최대 3번까지 가능해요');
+ if(projection.packsLeft<=0)deny('오늘 행동력 충전 구매는 최대 6번까지 가능해요');
  if(projection.current>=ENERGY_MAX)deny('행동력이 이미 최대치예요');
  if(state.coins<ENERGY_PRICE_G)deny('시험 골드가 부족해요. 충전은 1,200G가 필요해요');
  const next=structuredClone(state);
