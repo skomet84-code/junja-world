@@ -2,7 +2,7 @@
 import pg from 'pg';
 import {createHash} from 'node:crypto';
 import {startingEconomy,economyAction,economyView} from '../secure-economy-v36.js';
-import {projectEnergy,chargeEnergy,buyEnergy} from '../action-energy-v47.js';
+import {projectEnergy,chargeEnergy,buyEnergy,ENERGY_COSTS} from '../action-energy-v47.js';
 import {makeCheckpoint,validateCheckpointChain} from '../economy-integrity-v37.js';
 
 const dbUrl=()=>process.env.VILLAGE_DATABASE_URL||process.env.DATABASE_URL;
@@ -27,11 +27,14 @@ function sameOrigin(req){
 function canonical(body){
  if(!body||typeof body!=='object'||Array.isArray(body))throw Object.assign(new Error('요청 형식을 확인해 주세요'),{status:400});
  const action=body.action;
- if(typeof action!=='string'||!['plant','harvest','craft','sell','order','expand','energy_buy'].includes(action))
+ if(typeof action!=='string'||!['plant','harvest','craft','sell','order','expand','energy_buy','world_spend'].includes(action))
   throw Object.assign(new Error('지원하지 않는 거래입니다'),{status:400});
  const raw=body.payload&&typeof body.payload==='object'&&!Array.isArray(body.payload)?body.payload:{};
  // Fixed whitelists guarantee same request hashes even with unrelated client fields.
- const payload=action==='plant'?{index:raw.index,crop:raw.crop}:
+ if(action==='world_spend'&&(!Object.hasOwn(ENERGY_COSTS,raw.kind)||Object.keys(raw).some(key=>key!=='kind')))
+  throw Object.assign(new Error('지원하지 않는 행동력 요청입니다'),{status:400});
+ const payload=action==='world_spend'?{kind:raw.kind}:
+  action==='plant'?{index:raw.index,crop:raw.crop}:
   action==='harvest'?{index:raw.index}:
   action==='craft'?{recipe:raw.recipe}:
   action==='sell'?{item:raw.item}:
@@ -67,7 +70,7 @@ export function makeEconomyHandler({pool:database=pool,now=()=>new Date()}={}){
    const id=req.body?.requestId;
    if(typeof id!=='string'||!uuid.test(id))return respond(res,400,{error:'중복 거래 방지를 위한 요청 ID가 필요해요'});
    const {action,payload}=canonical(req.body);
-   if(action==='energy_buy'&&process.env.ENABLE_VILLAGE_ENERGY_V47!=='true')return respond(res,503,{error:'시험 행동력 상점이 아직 비활성화되어 있어요'});
+   if((action==='energy_buy'||action==='world_spend')&&process.env.ENABLE_VILLAGE_ENERGY_V47!=='true')return respond(res,503,{error:'시험 행동력 상점이 아직 비활성화되어 있어요'});
    const requestHash=digest(JSON.stringify({action,payload}));
    await c.query('BEGIN');inTransaction=true;
    await c.query(`INSERT INTO village_economy_v36_accounts(user_key,state)
@@ -87,7 +90,15 @@ export function makeEconomyHandler({pool:database=pool,now=()=>new Date()}={}){
    // v47 energy is only charged for server-owned actions with actual validation;
    // the action, energy and checkpoint are all rolled back if any step fails.
    let result,energyMeta=null;
-   if(process.env.ENABLE_VILLAGE_ENERGY_V47==='true'&&action==='energy_buy'){
+   if(process.env.ENABLE_VILLAGE_ENERGY_V47==='true'&&action==='world_spend'){
+    // The main-world game holds its own materials and XP. This endpoint only
+    // debits server-owned energy; no trial stock, gold or legacy profile is minted.
+    const charged=chargeEnergy(saved.rows[0].state,payload.kind,stamp);
+    result={next:charged.next,receipt:{action,kind:payload.kind,
+     detail:'마을 활동 행동력 -'+charged.cost,energyCost:charged.cost,
+     delta:0,balance:charged.next.coins,day:charged.energy.day,at:stamp.toISOString()}};
+    energyMeta=charged.energy;
+   }else if(process.env.ENABLE_VILLAGE_ENERGY_V47==='true'&&action==='energy_buy'){
     const purchased=buyEnergy(saved.rows[0].state,stamp);
     result={next:purchased.next,receipt:{action,detail:purchased.detail,delta:purchased.delta,
      balance:purchased.next.coins,day:purchased.energy.day,at:stamp.toISOString()}};
