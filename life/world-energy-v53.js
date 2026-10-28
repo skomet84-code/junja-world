@@ -1,14 +1,10 @@
-// v53 main-world actions share the server-owned energy meter with v47 lab.
-// Every confirmed expense is idempotent, never changes character XP/coins,
-// and refuses the world action when the account/API cannot validate the charge.
+// v71: FIFO queue prevents a slow server round trip from rejecting fast taps.
+// Only the server can charge energy; each queued action has its own replay-safe ID.
 export const WORLD_ENERGY_KINDS=Object.freeze(['plant','gather','fish','craft','order','business_produce']);
 export function createWorldEnergySpend({request=fetch,onChange=()=>{}}={}){
- let inFlight=false,pending=null;
- async function spend(kind){
-  if(!WORLD_ENERGY_KINDS.includes(kind))throw Error('존재하지 않는 행동력 사용이야');
-  if(inFlight)throw Error('이전 행동력을 확인하는 중이야. 잠깐 기다려 줘');
-  // Following an ambiguous connection loss, the original request ID must be
-  // retried. A new action is blocked until the first server charge is resolved.
+ let inFlight=false,pending=null,tail=Promise.resolve(),waiting=0;
+ async function charge(kind){
+  // Preserve the request ID after a network/5xx uncertainty. Never double-debit.
   if(pending&&pending.kind!==kind)
    throw Error('이전 행동력이 저장됐는지 확인해야 해. 먼저 같은 행동을 다시 시도해 줘');
   if(!pending)pending={kind,requestId:crypto.randomUUID()};
@@ -31,5 +27,13 @@ export function createWorldEnergySpend({request=fetch,onChange=()=>{}}={}){
    return data.energy;
   }finally{inFlight=false}
  }
- return {spend,get busy(){return inFlight},get unresolved(){return !!pending}};
+ function spend(kind){
+  if(!WORLD_ENERGY_KINDS.includes(kind))return Promise.reject(Error('존재하지 않는 행동력 사용이야'));
+  waiting++;
+  // Each tap waits only within the network queue, never triggers an in-flight toast.
+  const task=tail.then(()=>charge(kind));
+  tail=task.catch(()=>{});
+  return task.finally(()=>{waiting--});
+ }
+ return {spend,get busy(){return inFlight||waiting>0},get queued(){return waiting},get unresolved(){return !!pending}};
 }
