@@ -1,7 +1,7 @@
 import * as T from './vendor/three.module.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {sampleFootGait,sampleBodyGait} from './gait-pose-v58.js';
-import {sampleFaceExpression} from './face-expression-v65.js';
+import {sampleExpressionPolish} from './expression-polish-v70.js';
 import {sampleSkirtClearance} from './skirt-clearance-v62.js';
 import {sampleHeadwearMotion} from './headwear-motion-v63.js';
 import {resolveHairHatFit,sampleLooseHairMotion} from './hair-hat-fit-v64.js';
@@ -232,7 +232,8 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
    l.elbow.rotation.x=pose.elbow;
   }
   // Smooth facial pose: eye glints close with lids; smile responds gently to walking.
-  const expression=sampleFaceExpression(time,blend);
+  const expression=sampleExpressionPolish(time,blend);
+  head.rotation.z+=expression.headIdleRoll;head.rotation.x+=expression.headIdlePitch;
   for(const eyeRig of eyes)eyeRig.scale.y=expression.eyeOpen;
   mouth.scale.x=expression.mouthWidth;
   mouth.scale.y=expression.mouthHeight;
