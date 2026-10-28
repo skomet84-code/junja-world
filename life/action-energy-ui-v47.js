@@ -94,13 +94,17 @@ export function mountEnergyHud(host,{open}={}){
   host.textContent='⚡ '+current+'/'+latest.max;
   host.setAttribute('aria-label','마을 행동력 '+current+'/'+latest.max+' · 눌러서 회복·구매');
  };
+ const apply=energy=>{
+  if(!active||!energy||!Number.isSafeInteger(energy.current))return;
+  latest=energy;lastRead=Date.now();display();
+ };
  const refresh=async()=>{
   try{
    const res=await fetch('/api/economy-v36',{cache:'no-store',credentials:'same-origin'});
    if(!res.ok)return;
    const body=await res.json();
    if(!active||!body.energy)return;
-   latest=body.energy;lastRead=Date.now();display();
+   apply(body.energy);
   }catch{}
  };
  host.onclick=()=>{if(typeof open==='function')open()};
@@ -108,5 +112,5 @@ export function mountEnergyHud(host,{open}={}){
  host.setAttribute('aria-label','마을 행동력 조회·충전');
  const interval=setInterval(display,15000);
  refresh();
- return {refresh,dispose(){active=false;clearInterval(interval)}};
+ return {refresh,apply,dispose(){active=false;clearInterval(interval)}};
 }
