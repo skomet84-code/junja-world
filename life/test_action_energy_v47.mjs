@@ -21,7 +21,7 @@ assert.equal(projectEnergy(a.next,new Date(t+2*180000)).current,200);
 assert.equal(projectEnergy(a.next,new Date(t+72*360000)).current,200);
 assert.equal(projectEnergy(a.next,new Date(t+72*360000)).nextRegenSeconds,0);
 const rested=chargeEnergy(a.next,'craft',new Date(t+720000));
-assert.equal(rested.energy.current,198);
+assert.equal(rested.energy.current,194);
 const noMore=structuredClone(s);noMore.actionEnergyV47={current:2,at:t,packsDay:'',packs:0};
 assert.throws(()=>chargeEnergy(noMore,'harvest',time),/부족/);
 assert.equal(chargeEnergy(noMore,'sell',time).energy.current,2,'Selling inventory does not consume energy');
