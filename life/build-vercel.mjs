@@ -3,8 +3,10 @@ import {mkdir,copyFile,readFile} from 'node:fs/promises';
 import {join,dirname,posix} from 'node:path';
 import {execFileSync} from 'node:child_process';
 // Run animation regressions and syntax checks before publishing static assets.
-for(const name of ['test_expression_polish_v70.mjs','test_action_energy_v47.mjs','test_face_expression_v65.mjs','test_hair_hat_fit_v64.mjs','test_gait_v58.mjs','test_garment_sway_v59.mjs','test_turn_anticipation_v60.mjs','test_contact_shadow_v61.mjs','test_skirt_clearance_v62.mjs','test_headwear_motion_v63.mjs'])execFileSync(process.execPath,['--test',name],{stdio:'inherit'});
+for(const name of ['test_touch_arrival_v57.mjs','test_touch_arrival_v72.mjs','test_expression_polish_v70.mjs','test_action_energy_v47.mjs','test_face_expression_v65.mjs','test_hair_hat_fit_v64.mjs','test_gait_v58.mjs','test_garment_sway_v59.mjs','test_turn_anticipation_v60.mjs','test_contact_shadow_v61.mjs','test_skirt_clearance_v62.mjs','test_headwear_motion_v63.mjs'])execFileSync(process.execPath,['--test',name],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','api/economy-v36.js'],{stdio:'inherit'});
+execFileSync(process.execPath,['--check','game.js'],{stdio:'inherit'});
+execFileSync(process.execPath,['--check','touch-arrival-v56.js'],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','avatar3d.js'],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','gait-pose-v58.js'],{stdio:'inherit'});
 const assets=[
