@@ -68,6 +68,17 @@ export function createTouchArrivalFeedback(doc = document) {
  return {press,drag,arrive,cancel,element:cue};
 }
 
+/** Pointer capture routes release events to the canvas even when the finger is
+ * outside its visible bounds. Use viewport coordinates, not canvas pixel size. */
+export function isCanvasPointInside(canvas,x,y){
+ if(!canvas?.getBoundingClientRect||!Number.isFinite(x)||!Number.isFinite(y))return false;
+ const rect=canvas.getBoundingClientRect();
+ return Number.isFinite(rect.left)&&Number.isFinite(rect.top)&&
+  Number.isFinite(rect.right)&&Number.isFinite(rect.bottom)&&
+  rect.right>rect.left&&rect.bottom>rect.top&&
+  x>=rect.left&&x<=rect.right&&y>=rect.top&&y<=rect.bottom;
+}
+
 /** Passive visual listeners: do not cancel events, capture pointers or alter game movement. */
 export function installTouchArrivalFeedback(canvas,doc=document){
  if(!canvas)return null;
@@ -88,7 +99,7 @@ export function installTouchArrivalFeedback(canvas,doc=document){
  const finish=(e,onCanvas)=>{
   if(pointerId!==e.pointerId)return;
   pointerId=null;
-  if(onCanvas)cue.arrive(e.clientX,e.clientY);else cue.cancel();
+  if(onCanvas&&isCanvasPointInside(canvas,e.clientX,e.clientY))cue.arrive(e.clientX,e.clientY);else cue.cancel();
  };
  canvas.addEventListener('pointerup',e=>finish(e,true),{passive:true});
  doc.defaultView?.addEventListener('pointerup',e=>finish(e,false),{passive:true});

@@ -8,7 +8,8 @@ class Mock {
  emit(type,data={}){for(const fn of this.listeners[type]||[])fn({type,...data})}
 }
 const doc=new Mock();doc.head=new Mock();doc.body=new Mock();doc.defaultView=new Mock();doc.createElement=()=>new Mock();
-const canvas=new Mock(),cue=installTouchArrivalFeedback(canvas,doc);
+const canvas=new Mock();canvas.getBoundingClientRect=()=>({left:0,top:0,right:400,bottom:700});
+const cue=installTouchArrivalFeedback(canvas,doc);
 canvas.emit('pointerdown',{pointerId:1,button:0,isPrimary:true,clientX:30,clientY:50});
 canvas.emit('pointermove',{pointerId:1,clientX:50,clientY:80});
 assert.match(cue.element.className,/is-drag/);

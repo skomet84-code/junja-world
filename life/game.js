@@ -1,4 +1,5 @@
 import {installQualityHUD} from './quality-v32.js';
+import {installTouchArrivalFeedback,isCanvasPointInside} from './touch-arrival-v56.js';
 import {restoreProfile,createSaveQueue} from './save-client.js';
 import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactureEstateProduct,sellEstateProduct,estateOrderProgress,fulfillEstateOrder} from './estate-trade-v34.js';
 import {createWorld} from './world3d.js';
@@ -1368,6 +1369,8 @@ function handleTap(sx,sy){
  }
  moveTo(x,y);
 }
+// Visible tap/drag/arrival feedback; passive listeners never interfere with movement.
+installTouchArrivalFeedback(cv,document);
 let pointer=null;
 function screenWorld(x,y){return world3D?world3D.screenToWorld(x,y):{x:(x-CW/2)/scale+camera.x,y:(y-CH/2)/scale+camera.y}}
 cv.addEventListener('pointerdown',e=>{if(pointer||e.button!==0||els.modal.classList.contains('open'))return;e.preventDefault();cv.setPointerCapture(e.pointerId);pointer={id:e.pointerId,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,drag:false,stamp:0};},{passive:false});
@@ -1386,9 +1389,11 @@ cv.addEventListener('pointermove',e=>{
  moveTo(target.x,target.y,null,true);
 },{passive:false});
 cv.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;const p=pointer;pointer=null;if(cv.hasPointerCapture(e.pointerId))cv.releasePointerCapture(e.pointerId);
+ // Captured pointerup can arrive outside the canvas: never trigger an offscreen tap.
+ if(!isCanvasPointInside(cv,e.clientX,e.clientY)){stopWalking();return;}
  if(p.drag){const sameFingerPosition=p.projectedScreen&&Math.hypot(p.projectedScreen.x-e.clientX,p.projectedScreen.y-e.clientY)<4;const w=sameFingerPosition?p.lastTarget:screenWorld(e.clientX,e.clientY);if(!p.lastTarget||Math.hypot(p.lastTarget.x-w.x,p.lastTarget.y-w.y)>2)moveTo(w.x,w.y,null,true)}else handleTap(e.clientX,e.clientY);
 });
-cv.addEventListener('pointercancel',()=>{pointer=null;stopWalking()});
+cv.addEventListener('pointercancel',e=>{if(pointer?.id!==e.pointerId)return;pointer=null;stopWalking()});
 let keys={};const movementKeys=['w','a','s','d','W','A','S','D','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
 window.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)||els.modal.classList.contains('open')){if(e.key==='Escape')closeModal();return}if(movementKeys.includes(e.key)){e.preventDefault();keys[e.key]=true}if(e.key==='Escape'){stopWalking();placeDecor=null;if(fishPhase!=='idle')fishFailure('낚시 취소')}});
 window.addEventListener('keyup',e=>{delete keys[e.key]});
