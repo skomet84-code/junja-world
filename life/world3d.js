@@ -4,6 +4,7 @@ import {createPet} from './fashion-3d.js';
 import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {BUSINESS_PORTAL_V42} from './district-portal-v42.js';
 import {v43LightMood} from './village-life-v43.js';
+import {sampleCanopyBreeze} from './canopy-breeze-v73.js';
 
 const materials=new Map();
 function material(color){if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:.95}));return materials.get(color)}
@@ -63,10 +64,15 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
  return g;
 }
 function tree(scene,x,z,{fruit=false,pink=false,size=1}={}){
- const g=group(scene,x,0,z);g.scale.setScalar(size);cylinder(g,0x9f8059,0,40,0,11,80);const b=cylinder(g,0x9f8059,-9,63,0,6,40);b.rotation.z=.55;
+ const g=group(scene,x,0,z);g.scale.setScalar(size);
+  // Keep the trunk anchored while the crown moves independently in the wind.
+  const trunk=group(g),canopy=group(g,0,90,0);
+  g.userData.windTrunk=trunk;g.userData.windCanopy=canopy;
+  cylinder(trunk,0x9f8059,0,40,0,11,80);
+  const b=cylinder(trunk,0x9f8059,-9,63,0,6,40);b.rotation.z=.55;
  const colors=pink?[0xe8b4be,0xf2c7c5,0xdca7b6]:[0x83b36b,0x9fc17b,0x75a565];
- for(const [i,a] of [[0,[-27,101,0,35]],[1,[22,105,0,37]],[2,[0,127,-3,41]],[3,[0,102,23,35]]])sphere(g,colors[i%3],a[0],a[1],a[2],a[3],a[3]*.95,a[3]);
- if(fruit)for(const [xx,yy,zz] of [[-24,105,29],[18,122,26],[7,89,35]]){sphere(g,0xe7b166,xx,yy,zz,8);const leaf=sphere(g,0x648c53,xx+3,yy+7,zz,5,2,3);leaf.rotation.z=.4}
+ for(const [i,a] of [[0,[-27,101,0,35]],[1,[22,105,0,37]],[2,[0,127,-3,41]],[3,[0,102,23,35]]])sphere(canopy,colors[i%3],a[0],a[1]-90,a[2],a[3],a[3]*.95,a[3]);
+ if(fruit)for(const [xx,yy,zz] of [[-24,105,29],[18,122,26],[7,89,35]]){sphere(canopy,0xe7b166,xx,yy-90,zz,8);const leaf=sphere(canopy,0x648c53,xx+3,yy+7-90,zz,5,2,3);leaf.rotation.z=.4}
  return g;
 }
 function flower(scene,x,z,color=0xe9bcb5){const g=group(scene,x,.5,z);cylinder(g,0x6d9557,0,6,0,1.1,12);sphere(g,0x85a863,-3,4,0,4,1.4,2);for(let j=0;j<5;j++){const a=j*Math.PI*2/5;sphere(g,color,Math.cos(a)*4,12,Math.sin(a)*4,3.5,1.8,3.5)}sphere(g,0xe4bf6c,0,13,0,2.8);return g}
@@ -167,10 +173,15 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  for(const [i,[x,z]] of treeCoords.entries()){treeGroups.push(tree(scene,x,z,{pink:i%5===0,fruit:i%4===0,size:.9+(i%3)*.11}));solids.push({x,z,r:18})}
  const resGroups=new Map();for(const r of resources){let g;if(r.kind==='wood'){g=tree(scene,r.x,r.y,{fruit:true,size:.8});solids.push({x:r.x,z:r.y,r:12})}else if(r.kind==='stone'){g=group(scene,r.x,0,r.y);for(const [x,z,s] of [[0,0,25],[-15,13,14],[20,5,12]]){const rock=new T.Mesh(new T.DodecahedronGeometry(s,1),material(0xa7b1a3));rock.position.set(x,s*.6,z);rock.scale.y=.7;rock.castShadow=true;rock.receiveShadow=true;g.add(rock)}}else{g=group(scene,r.x,0,r.y);for(let j=0;j<5;j++)flower(g,Math.cos(j*1.25)*13,Math.sin(j*1.25)*13,j%2?0xe4c56e:0xeab4b2)}g.userData.pick={type:'gather',id:r.id};resGroups.set(r.id,g);pickRoots.push(g)}
  // Small ground details use instancing to keep the mobile draw-call cost bounded.
- const grassDetail=new T.InstancedMesh(new T.ConeGeometry(2,8,3),material(0x9bb97d),700);const matrix=new T.Matrix4();let count=0;for(let i=0;i<3000&&count<700;i++){const x=100+(i*173)%3400,z=160+(i*317)%2100;if(!walkable(x,z))continue;matrix.makeTranslation(x,4,z);grassDetail.setMatrixAt(count++,matrix)}grassDetail.count=count;scene.add(grassDetail);
+ const windCanopies=[...treeGroups,...resources.filter(r=>r.kind==='wood').map(r=>resGroups.get(r.id))].filter(Boolean);
+  const grassDetail=new T.InstancedMesh(new T.ConeGeometry(2,8,3),material(0x9bb97d),700);const matrix=new T.Matrix4();let count=0;for(let i=0;i<3000&&count<700;i++){const x=100+(i*173)%3400,z=160+(i*317)%2100;if(!walkable(x,z))continue;matrix.makeTranslation(x,4,z);grassDetail.setMatrixAt(count++,matrix)}grassDetail.count=count;scene.add(grassDetail);
  const bedGroups=beds.map((b,i)=>soilBed(scene,b.x,b.y,i)),cropGroups=beds.map((b)=>group(scene,b.x,0,b.y));let cropKey='';
  pickRoots.push(...bedGroups);
- for(const object of [...scene.children])if(object.isGroup)batchStatic(object);
+ for(const object of [...scene.children])if(object.isGroup){
+   // Preserve the canopy pivot instead of flattening it into the static trunk.
+   if(object.userData.windCanopy){batchStatic(object.userData.windTrunk);batchStatic(object.userData.windCanopy)}
+   else batchStatic(object);
+  }
  const player=createAvatar(),villagers=npcs.map((n,i)=>{const a=createAvatar({coat:n.coat,hat:n.hat});a.root.userData.pick={type:'npc',index:i};scene.add(a.root);label(a.root,n.name,0,142,0,118);pickRoots.push(a.root);return a});scene.add(player.root);
  const residents=animals.map((n,i)=>{const a=createAvatar({coat:['lavender','mint','amber','rose'][i],animal:n.species});a.root.scale.setScalar(.85);a.root.userData.pick={type:'animal',id:n.id};scene.add(a.root);label(a.root,n.name,0,n.species==='rabbit'?161:140,0,118);pickRoots.push(a.root);return a});
  const questMarkers=animals.map(()=>{const mark=label(scene,'❗',0,185,0,48);mark.visible=false;return mark});
@@ -332,7 +343,14 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
    }
   }
   for(let i=0;i<burstParts.length;i++){const p=burstParts[i];p.life=Math.max(0,p.life-dt*1.4);if(p.life){p.x+=p.dx*dt;p.z+=p.dz*dt;p.dy-=110*dt;p.y+=p.dy*dt}dummy.position.set(p.x||0,Math.max(2,p.y||0),p.z||0);dummy.scale.setScalar(p.life);dummy.updateMatrix();burstMesh.setMatrixAt(i,dummy.matrix)}burstMesh.instanceMatrix.needsUpdate=true;
-  if(!reducedMotion){for(let i=0;i<treeGroups.length;i++){const g=treeGroups[i];if(g.visible)g.rotation.z=Math.sin(time*.9+i*1.7)*.009}destination.scale.setScalar(1+Math.sin(time*3)*.09)}
+  if(!reducedMotion){
+    for(const g of windCanopies){if(!g.visible)continue;
+     const canopy=g.userData.windCanopy;
+     canopy.rotation.z=sampleCanopyBreeze(time,g.position.x,g.position.z);
+     canopy.rotation.x=sampleCanopyBreeze(time,g.position.x,g.position.z,1);
+    }
+    destination.scale.setScalar(1+Math.sin(time*3)*.09);
+   }
 
   resize();follow(actor);
   if(time-lastShadowTime>.28||Math.hypot(actor.x-lastShadowPos.x,actor.y-lastShadowPos.y)>75){
