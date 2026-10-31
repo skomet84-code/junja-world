@@ -1,4 +1,5 @@
 import {installQualityHUD} from './quality-v32.js';
+import {createGatherGate} from './gather-interaction-v74.js';
 import {installTouchArrivalFeedback,isCanvasPointInside} from './touch-arrival-v56.js';
 import {restoreProfile,createSaveQueue} from './save-client.js';
 import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactureEstateProduct,sellEstateProduct,estateOrderProgress,fulfillEstateOrder} from './estate-trade-v34.js';
@@ -640,14 +641,37 @@ function openFullBagSales(preferred='fish'){
   ?'🎒 가방이 가득 찼어요 ('+bagUsed(state)+'/'+bagCapacity(state)+'). 판매창을 열었어요!'
   :'🎒 가방이 가득 찼어요! 판매할 물고기·채집 재료가 없어 가방 정리를 열었어요.');
 }
-async function gather(id){const n=resourceNodes.find(n=>n.id===id);if(!n||distance(player,n)>110)return;
- const remaining=(state.nodeReady[id]||0)-Date.now();if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
+// Prevent double energy charges when a player taps the same tree repeatedly.
+// Show work feedback immediately, but grant materials only after server approval.
+const gatherGate=createGatherGate({onChange:id=>world3D?.setGathering(id)});
+async function gather(id){
+ if(gatherGate.activeId!==null)return;
+ const n=resourceNodes.find(n=>n.id===id);
+ if(!n||distance(player,n)>110)return;
+ const remaining=(state.nodeReady[id]||0)-Date.now();
+ if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return}
  const desired=2+lifeBonus('gather'),free=bagFree(state);
  if(free<1){openFullBagSales('material');return}
  const amount=Math.min(desired,free);
- if(!await useWorldEnergy('gather'))return;
- if(!addBagItems(state,'material',n.kind,amount)){toast('🎒 가방 보관에 실패했어요. 가방을 열어 잔여 칸을 확인해 주세요');return}
- world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));if(bagFree(state)<1)openFullBagSales('material');
+ try{
+  await gatherGate.run(id,async()=>{
+   toast('⏳ '+materialNames[n.kind]+' 채집 확인 중…');
+   if(!await useWorldEnergy('gather'))return false;
+   if(!addBagItems(state,'material',n.kind,amount)){
+    toast('🎒 가방 보관에 실패했어요. 가방을 열어 잔여 칸을 확인해 주세요');
+    return false;
+   }
+   world3D?.burst(n.x,n.y,n.kind==='wood'?0xd4b482:n.kind==='stone'?0xc6d8df:0xf3b8d2);
+   state.nodeReady[id]=Date.now()+45000;state.gathered++;state.dailyGather++;
+   completeDaily();state.xp+=8;save();hud();updateJourney(true);party(n.x,n.y-30,9);
+   toast(materialNames[n.kind]+' +'+amount+(amount<desired?' · 빈칸 '+free+'칸만큼 채집했어요':' · 가방에 보관했어요'));
+   if(bagFree(state)<1)openFullBagSales('material');
+   return true;
+  });
+ }catch(error){
+  console.error('village gather interaction',error);
+  toast('⚠️ 채집 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요');
+ }
 }
 
 function openDelivery(){
@@ -2016,7 +2040,7 @@ installQualityHUD({
   const npc=npcs.find(n=>distance(player,n)<100);
   const station=stations.filter(s=>distance(player,s)<125).sort((a,b)=>distance(player,a)-distance(player,b))[0];
   const context=resource?{type:'resource',id:resource.id,label:(resource.kind==='wood'?'🪓 목재 채집':resource.kind==='stone'?'⛏️ 돌 채집':'🌼 꽃잎 채집')}:npc?{type:'npc',npc,label:'💬 '+npc.name+'와 대화'}:station?{type:'station',id:station.id,label:station.icon+' '+station.name}:null;
-  return {used:bagUsed(state),capacity:bagCapacity(state),context,busy:els.modal.classList.contains('open')||fishPhase!=='idle'||!!placeDecor};
+  return {used:bagUsed(state),capacity:bagCapacity(state),context:gatherGate.activeId?{type:'resource',id:gatherGate.activeId,label:'⏳ 채집 처리 중…'}:context,gathering:!!gatherGate.activeId,busy:els.modal.classList.contains('open')||fishPhase!=='idle'||!!placeDecor};
  },onBag:openBag,onMarket:openMarket,onJourney:openJourney,onMap:openWorldMap,
  onContext:context=>{if(context.type==='resource')gather(context.id);else if(context.type==='npc')openNpc(context.npc);else openStation(context.id)}
 });
