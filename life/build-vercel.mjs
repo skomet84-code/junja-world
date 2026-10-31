@@ -8,6 +8,7 @@ execFileSync(process.execPath,['--check','api/economy-v36.js'],{stdio:'inherit'}
 execFileSync(process.execPath,['--check','canopy-breeze-v73.js'],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','gather-interaction-v74.js'],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','quality-v32.js'],{stdio:'inherit'});
+execFileSync(process.execPath,['--check','action-energy-ui-v47.js'],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','world3d.js'],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','game.js'],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','touch-arrival-v56.js'],{stdio:'inherit'});
