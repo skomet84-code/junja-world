@@ -36,7 +36,7 @@ export function installQualityHUD({snapshot,onBag,onMarket,onJourney,onContext,o
  const bag=bar.querySelector('#bagQuick'),action=bar.querySelector('#nearbyAction');let current;
  bag.onclick=onBag;action.onclick=()=>current?.context?onContext(current.context):onJourney();
  const map=document.getElementById('mapButton');map.onclick=onMap;map.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onMap()}};
- const update=()=>{current=snapshot();bar.hidden=current.busy;bar.style.display=current.busy?'none':'flex';bag.textContent='🎒 '+current.used+'/'+current.capacity;bag.dataset.full=String(current.used>=current.capacity);action.textContent=current.context?.label||'📖 다음 생활 목표';};
+ const update=()=>{current=snapshot();bar.hidden=current.busy;bar.style.display=current.busy?'none':'flex';bag.textContent='🎒 '+current.used+'/'+current.capacity;bag.dataset.full=String(current.used>=current.capacity);action.textContent=current.context?.label||'📖 다음 생활 목표';action.disabled=!!current.gathering;action.setAttribute('aria-busy',String(!!current.gathering));};
  update();const timer=setInterval(update,250);
  return {dispose(){clearInterval(timer);bar.remove();style.remove()}};
 }

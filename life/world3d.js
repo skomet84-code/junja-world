@@ -5,6 +5,7 @@ import {CATALOG_BY_ID} from './fashion-catalog.js';
 import {BUSINESS_PORTAL_V42} from './district-portal-v42.js';
 import {v43LightMood} from './village-life-v43.js';
 import {sampleCanopyBreeze} from './canopy-breeze-v73.js';
+import {sampleGatherPulse} from './gather-interaction-v74.js';
 
 const materials=new Map();
 function material(color){if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:.95}));return materials.get(color)}
@@ -174,6 +175,11 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  const resGroups=new Map();for(const r of resources){let g;if(r.kind==='wood'){g=tree(scene,r.x,r.y,{fruit:true,size:.8});solids.push({x:r.x,z:r.y,r:12})}else if(r.kind==='stone'){g=group(scene,r.x,0,r.y);for(const [x,z,s] of [[0,0,25],[-15,13,14],[20,5,12]]){const rock=new T.Mesh(new T.DodecahedronGeometry(s,1),material(0xa7b1a3));rock.position.set(x,s*.6,z);rock.scale.y=.7;rock.castShadow=true;rock.receiveShadow=true;g.add(rock)}}else{g=group(scene,r.x,0,r.y);for(let j=0;j<5;j++)flower(g,Math.cos(j*1.25)*13,Math.sin(j*1.25)*13,j%2?0xe4c56e:0xeab4b2)}g.userData.pick={type:'gather',id:r.id};resGroups.set(r.id,g);pickRoots.push(g)}
  // Small ground details use instancing to keep the mobile draw-call cost bounded.
  const windCanopies=[...treeGroups,...resources.filter(r=>r.kind==='wood').map(r=>resGroups.get(r.id))].filter(Boolean);
+ let gatheringPulseGroup=null;
+ function setGathering(id=null){
+  if(gatheringPulseGroup){gatheringPulseGroup.scale.x=1;gatheringPulseGroup.scale.z=1}
+  gatheringPulseGroup=id?resGroups.get(id)||null:null;
+ }
   const grassDetail=new T.InstancedMesh(new T.ConeGeometry(2,8,3),material(0x9bb97d),700);const matrix=new T.Matrix4();let count=0;for(let i=0;i<3000&&count<700;i++){const x=100+(i*173)%3400,z=160+(i*317)%2100;if(!walkable(x,z))continue;matrix.makeTranslation(x,4,z);grassDetail.setMatrixAt(count++,matrix)}grassDetail.count=count;scene.add(grassDetail);
  const bedGroups=beds.map((b,i)=>soilBed(scene,b.x,b.y,i)),cropGroups=beds.map((b)=>group(scene,b.x,0,b.y));let cropKey='';
  pickRoots.push(...bedGroups);
@@ -352,6 +358,7 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
     destination.scale.setScalar(1+Math.sin(time*3)*.09);
    }
 
+  if(gatheringPulseGroup){const pulse=sampleGatherPulse(time,reducedMotion);gatheringPulseGroup.scale.x=pulse;gatheringPulseGroup.scale.z=pulse;}
   resize();follow(actor);
   if(time-lastShadowTime>.28||Math.hypot(actor.x-lastShadowPos.x,actor.y-lastShadowPos.y)>75){
    renderer.shadowMap.needsUpdate=true;lastShadowPos={x:actor.x,y:actor.y};lastShadowTime=time;
@@ -386,5 +393,5 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,burst,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,daypart:lastVillageLightPhase,residentMotion:villagers.length,residentPositions:villagers.map(v=>({x:Math.round(v.root.position.x),y:Math.round(v.root.position.z)})),displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(595-46,880)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{burstMesh.geometry.dispose();burstMesh.material.dispose();for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();for(const guest of guestAvatars.values())if(guest.pet)guest.pet.dispose();renderer.dispose();previewRenderer?.dispose()}};
+ return {render,burst,setGathering,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,daypart:lastVillageLightPhase,residentMotion:villagers.length,residentPositions:villagers.map(v=>({x:Math.round(v.root.position.x),y:Math.round(v.root.position.z)})),displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(595-46,880)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{burstMesh.geometry.dispose();burstMesh.material.dispose();for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();for(const guest of guestAvatars.values())if(guest.pet)guest.pet.dispose();renderer.dispose();previewRenderer?.dispose()}};
 }
