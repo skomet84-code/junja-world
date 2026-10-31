@@ -94,14 +94,22 @@ export function mountEnergyHud(host,{open}={}){
   host.textContent='⚡ '+current+'/'+latest.max;
   host.setAttribute('aria-label','마을 행동력 '+current+'/'+latest.max+' · 눌러서 회복·구매');
  };
+ const unavailable=message=>{
+  if(!active)return;
+  latest=null;
+  host.textContent='⚡ 연결 확인';
+  host.title=message;
+  host.setAttribute('aria-label','마을 행동력 '+message+' · 눌러서 상태 확인');
+ };
  const refresh=async()=>{
   try{
    const res=await fetch('/api/economy-v36',{cache:'no-store',credentials:'same-origin'});
-   if(!res.ok)return;
    const body=await res.json();
-   if(!active||!body.energy)return;
-   latest=body.energy;lastRead=Date.now();display();
-  }catch{}
+   if(!res.ok){unavailable(body.error||'서버 연결 오류');return}
+   if(!active)return;
+   if(!body.energy){unavailable('서버 행동력 기능 비활성화');return}
+   latest=body.energy;lastRead=Date.now();host.title='';display();
+  }catch{unavailable('서버 응답을 확인할 수 없어요')}
  };
  host.onclick=()=>{if(typeof open==='function')open()};
  host.textContent='⚡ 행동력';
