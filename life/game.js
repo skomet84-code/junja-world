@@ -1,5 +1,6 @@
 import {installQualityHUD} from './quality-v32.js';
 import {createGatherGate} from './gather-interaction-v74.js';
+import {nearestGatherResource,quickGatherLabel} from './quick-gather-v75.js';
 import {installTouchArrivalFeedback,isCanvasPointInside} from './touch-arrival-v56.js';
 import {restoreProfile,createSaveQueue} from './save-client.js';
 import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactureEstateProduct,sellEstateProduct,estateOrderProgress,fulfillEstateOrder} from './estate-trade-v34.js';
@@ -2036,13 +2037,25 @@ try{world3D=createWorld({canvas:cv,width:W,height:H,stations,resources:resourceN
 els.name.textContent=socialNickname;initJourney();installVillageDockV49();connectSocial();
 installQualityHUD({
  snapshot:()=>{
-  const resource=resourceNodes.filter(n=>distance(player,n)<105&&!(state.nodeReady[n.id]>Date.now())).sort((a,b)=>distance(player,a)-distance(player,b))[0];
+  const now=Date.now();
+  const nearbyResource=nearestGatherResource(resourceNodes,player,state.nodeReady,now,105);
   const npc=npcs.find(n=>distance(player,n)<100);
   const station=stations.filter(s=>distance(player,s)<125).sort((a,b)=>distance(player,a)-distance(player,b))[0];
-  const context=resource?{type:'resource',id:resource.id,label:(resource.kind==='wood'?'🪓 목재 채집':resource.kind==='stone'?'⛏️ 돌 채집':'🌼 꽃잎 채집')}:npc?{type:'npc',npc,label:'💬 '+npc.name+'와 대화'}:station?{type:'station',id:station.id,label:station.icon+' '+station.name}:null;
+  // Keep immediate NPC/station interactions above distant gather targets.
+  const resource=nearbyResource||(!npc&&!station?nearestGatherResource(resourceNodes,player,state.nodeReady,now):null);
+  const context=resource?{type:'resource',id:resource.id,label:quickGatherLabel(resource)}:npc?{type:'npc',npc,label:'💬 '+npc.name+'와 대화'}:station?{type:'station',id:station.id,label:station.icon+' '+station.name}:null;
   return {used:bagUsed(state),capacity:bagCapacity(state),context:gatherGate.activeId?{type:'resource',id:gatherGate.activeId,label:'⏳ 채집 처리 중…'}:context,gathering:!!gatherGate.activeId,busy:els.modal.classList.contains('open')||fishPhase!=='idle'||!!placeDecor};
  },onBag:openBag,onMarket:openMarket,onJourney:openJourney,onMap:openWorldMap,
- onContext:context=>{if(context.type==='resource')gather(context.id);else if(context.type==='npc')openNpc(context.npc);else openStation(context.id)}
+ onContext:context=>{
+  if(context.type==='resource'){
+   const n=resourceNodes.find(item=>item.id===context.id);
+   if(!n||state.nodeReady[n.id]>Date.now())return;
+   if(bagFree(state)<1){openFullBagSales('material');return}
+   if(distance(player,n)>110){
+    if(moveTo(n.x,n.y+48,{type:'gather',id:n.id}))toast('🚶 '+materialNames[n.kind]+' 채집 장소로 이동할게요');
+   }else gather(n.id);
+  }else if(context.type==='npc')openNpc(context.npc);else openStation(context.id)
+ }
 });
 
 // Preview-only owner funding: bearer link, NOT server-side authentication.
