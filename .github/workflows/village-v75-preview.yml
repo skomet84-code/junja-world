@@ -1,0 +1,27 @@
+name: Village v75 preview regression
+on:
+  push:
+    branches:
+      - feat/village-v75-quick-gather-20261101
+  pull_request:
+    branches:
+      - feat/village-v74-gather-touch-feedback-20261031
+permissions:
+  contents: read
+jobs:
+  village-preview:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: life
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Quick gather, resource touch and navigation tests
+        run: node --test test_quick_gather_v75.mjs test_gather_interaction_v74.mjs test_touch_arrival_v72.mjs
+      - name: Validate browser syntax
+        run: node --check game.js && node --check quick-gather-v75.js && node --check quality-v32.js
+      - name: Build and validate complete browser module graph
+        run: node build-vercel.mjs
