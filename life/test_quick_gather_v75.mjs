@@ -39,6 +39,6 @@ test('game integrates discover, path-to-gather and full-bag guard',async()=>{
  const {readFile}=await import('node:fs/promises');
  const game=await readFile(new URL('./game.js',import.meta.url),'utf8');
  assert.match(game,/nearestGatherResource\(resourceNodes,player,state\.nodeReady/);
- assert.match(game,/if\(bagFree\(state\)<1\)\{openFullBagSales\('material'\);return\}/);
- assert.match(game,/moveTo\(n\.x,n\.y\+48,\{type:'gather',id:n\.id\}\)/);
+ assert.match(game,/if\(bagFree\(state\)<1\)\{openFullBagSales\('material'\);return false\}/);
+ assert.match(game,/approachGatherResource\(n\)/);
 });
