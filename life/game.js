@@ -1,6 +1,7 @@
 import {installQualityHUD} from './quality-v32.js';
 import {createGatherGate} from './gather-interaction-v74.js';
 import {nearestGatherResource,quickGatherLabel} from './quick-gather-v75.js';
+import {findGatherApproach} from './gather-approach-v76.js';
 import {installTouchArrivalFeedback,isCanvasPointInside} from './touch-arrival-v56.js';
 import {restoreProfile,createSaveQueue} from './save-client.js';
 import {ESTATE_PRODUCTS,initEstateTrade,estateRank,recordEstateHarvest,manufactureEstateProduct,sellEstateProduct,estateOrderProgress,fulfillEstateOrder} from './estate-trade-v34.js';
@@ -673,6 +674,21 @@ async function gather(id){
   console.error('village gather interaction',error);
   toast('⚠️ 채집 처리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요');
  }
+}
+
+ // The same reachable approach is used for direct tree taps and the mobile
+ // quick-action button. No energy is spent until the avatar actually arrives.
+function approachGatherResource(n){
+ if(!n||gatherGate.activeId!==null)return false;
+ const remaining=(state.nodeReady[n.id]||0)-Date.now();
+ if(remaining>0){toast('다시 채집까지 '+Math.ceil(remaining/1000)+'초');return false}
+ if(bagFree(state)<1){openFullBagSales('material');return false}
+ if(distance(player,n)<=100){gather(n.id);return true}
+ const approach=findGatherApproach(n,player,navigation);
+ if(!approach){toast('🌳 이 자원 주변에는 갈 수 있는 길이 없어요. 다른 방향에서 시도해 주세요');return false}
+ const moved=moveTo(approach.x,approach.y,{type:'gather',id:n.id});
+ if(moved)toast('🚶 '+materialNames[n.kind]+' 채집 위치로 이동할게요');
+ return moved;
 }
 
 function openDelivery(){
@@ -1385,7 +1401,7 @@ function handleTap(sx,sy){
  const {x,y}=screenWorld(sx,sy);if(placeDecor){placeAt(x,y);return}
  const hit=world3D?.pick(sx,sy);
  if(hit){
-  if(hit.type==='gather'){const n=resourceNodes.find(n=>n.id===hit.id);if(distance(player,n)<100)gather(n.id);else moveTo(n.x,n.y+48,{type:'gather',id:n.id});return}
+  if(hit.type==='gather'){const n=resourceNodes.find(n=>n.id===hit.id);approachGatherResource(n);return}
   if(hit.type==='farm'){const b=bedCenters[hit.idx];if(distance(player,b)<130)farmAt(hit.idx);else moveTo(b.x,b.y+45,{type:'farm',idx:hit.idx});return}
   if(hit.type==='npc'){const n=npcs[hit.index];if(distance(player,n)<115)openNpc(n);else moveTo(n.x-55,n.y+35,{type:'npc',npc:n});return}
   if(hit.type==='animal'){const a=animalFriends.find(n=>n.id===hit.id);if(distance(player,a)<132)openAnimal(a);else moveTo(a.x,a.y+45,{type:'animal',animalId:a.id});return}
@@ -2049,11 +2065,7 @@ installQualityHUD({
  onContext:context=>{
   if(context.type==='resource'){
    const n=resourceNodes.find(item=>item.id===context.id);
-   if(!n||state.nodeReady[n.id]>Date.now())return;
-   if(bagFree(state)<1){openFullBagSales('material');return}
-   if(distance(player,n)>110){
-    if(moveTo(n.x,n.y+48,{type:'gather',id:n.id}))toast('🚶 '+materialNames[n.kind]+' 채집 장소로 이동할게요');
-   }else gather(n.id);
+   approachGatherResource(n);
   }else if(context.type==='npc')openNpc(context.npc);else openStation(context.id)
  }
 });
