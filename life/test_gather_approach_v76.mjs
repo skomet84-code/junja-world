@@ -23,7 +23,7 @@ test('already close to a resource never triggers unnecessary walking',()=>{
   {x:150,y:200,immediate:true});
 });
 test('if nearest tree-side point is blocked, pick an alternate safe approach',()=>{
- const nav={...clearNav,safe:p=>p.y>200&&Number.isFinite(p.x)&&Number.isFinite(p.y)};
+ const nav={...clearNav,safe:p=>(p.x<100||p.y>200)&&Number.isFinite(p.x)&&Number.isFinite(p.y)};
  const result=findGatherApproach(tree,player,nav);
  assert.ok(result);
  assert.ok(result.y>200);
