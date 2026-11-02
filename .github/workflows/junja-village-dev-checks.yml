@@ -1,0 +1,24 @@
+name: JUNJA Village development interaction checks
+on:
+  push:
+    branches:
+      - feat/village-v76-reachable-gather-20261102
+  pull_request:
+    paths:
+      - 'life/**'
+      - '.github/workflows/junja-village-dev-checks.yml'
+jobs:
+  village-interaction:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: life
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check new and existing gathering behavior
+        run: node --test test_gather_approach_v76.mjs test_quick_gather_v75.mjs test_gather_interaction_v74.mjs
+      - name: Check browser entrypoint and navigation syntax
+        run: node --check game.js && node --check gather-approach-v76.js && node --check navigation.js
