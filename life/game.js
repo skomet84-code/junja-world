@@ -2058,7 +2058,12 @@ installQualityHUD({
   const npc=npcs.find(n=>distance(player,n)<100);
   const station=stations.filter(s=>distance(player,s)<125).sort((a,b)=>distance(player,a)-distance(player,b))[0];
   // Keep immediate NPC/station interactions above distant gather targets.
-  const resource=nearbyResource||(!npc&&!station?nearestGatherResource(resourceNodes,player,state.nodeReady,now):null);
+  // A quick-action must not offer a tree behind an impassable obstacle.
+  // Keep immediate interactions responsive; only inspect paths for distant resources.
+  const resource=nearbyResource||(!npc&&!station?resourceNodes
+   .filter(n=>!(state.nodeReady[n.id]>now)&&distance(player,n)<=280)
+   .sort((a,b)=>distance(player,a)-distance(player,b))
+   .find(n=>distance(player,n)<=100||!!findGatherApproach(n,player,navigation)):null);
   const context=resource?{type:'resource',id:resource.id,label:quickGatherLabel(resource)}:npc?{type:'npc',npc,label:'💬 '+npc.name+'와 대화'}:station?{type:'station',id:station.id,label:station.icon+' '+station.name}:null;
   return {used:bagUsed(state),capacity:bagCapacity(state),context:gatherGate.activeId?{type:'resource',id:gatherGate.activeId,label:'⏳ 채집 처리 중…'}:context,gathering:!!gatherGate.activeId,busy:els.modal.classList.contains('open')||fishPhase!=='idle'||!!placeDecor};
  },onBag:openBag,onMarket:openMarket,onJourney:openJourney,onMap:openWorldMap,
