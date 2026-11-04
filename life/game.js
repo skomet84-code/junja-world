@@ -2051,6 +2051,9 @@ cv.addEventListener('webglcontextlost',e=>{e.preventDefault();save();showRenderE
 cv.addEventListener('webglcontextrestored',()=>location.reload());
 try{world3D=createWorld({canvas:cv,width:W,height:H,stations,resources:resourceNodes,beds:bedCenters,npcs,animals:animalFriends,walkable,nickname:socialNickname})}catch(error){console.error(error);showRenderError(error);}
 els.name.textContent=socialNickname;initJourney();installVillageDockV49();connectSocial();
+// Cache pathfinding for the mobile context button: avoid recalculating routes
+// every animation frame while still updating quickly as the avatar moves.
+let quickContextCache={at:0,x:NaN,y:NaN,resource:null};
 installQualityHUD({
  snapshot:()=>{
   const now=Date.now();
@@ -2060,10 +2063,17 @@ installQualityHUD({
   // Keep immediate NPC/station interactions above distant gather targets.
   // A quick-action must not offer a tree behind an impassable obstacle.
   // Keep immediate interactions responsive; only inspect paths for distant resources.
-  const resource=nearbyResource||(!npc&&!station?resourceNodes
-   .filter(n=>!(state.nodeReady[n.id]>now)&&distance(player,n)<=280)
-   .sort((a,b)=>distance(player,a)-distance(player,b))
-   .find(n=>distance(player,n)<=100||!!findGatherApproach(n,player,navigation)):null);
+  const refreshRoutes=now-quickContextCache.at>250||distance(player,quickContextCache)>18||
+   (quickContextCache.resource&&state.nodeReady[quickContextCache.resource.id]>now);
+  if(refreshRoutes){
+   const resource=resourceNodes
+    .filter(n=>!(state.nodeReady[n.id]>now)&&distance(player,n)<=280)
+    .sort((a,b)=>distance(player,a)-distance(player,b))
+    .find(n=>!!findGatherApproach(n,player,navigation))||null;
+   quickContextCache={at:now,x:player.x,y:player.y,resource};
+  }
+  const resource=nearbyResource&&findGatherApproach(nearbyResource,player,navigation)?nearbyResource:
+   (!npc&&!station?quickContextCache.resource:null);
   const context=resource?{type:'resource',id:resource.id,label:quickGatherLabel(resource)}:npc?{type:'npc',npc,label:'💬 '+npc.name+'와 대화'}:station?{type:'station',id:station.id,label:station.icon+' '+station.name}:null;
   return {used:bagUsed(state),capacity:bagCapacity(state),context:gatherGate.activeId?{type:'resource',id:gatherGate.activeId,label:'⏳ 채집 처리 중…'}:context,gathering:!!gatherGate.activeId,busy:els.modal.classList.contains('open')||fishPhase!=='idle'||!!placeDecor};
  },onBag:openBag,onMarket:openMarket,onJourney:openJourney,onMap:openWorldMap,
