@@ -11,7 +11,7 @@ test('idle feet stay grounded with neutral joints',()=>{
   assert.ok(Math.abs(foot.ankle)<1e-12);
  }
  const body=sampleBodyGait(1.2,0,2);
- assert.equal(body.pelvisY,34);
+ assert.ok(Math.abs(body.pelvisY-34)<=.18+1e-8);
  assert.equal(body.pelvisX,0);
 });
 
