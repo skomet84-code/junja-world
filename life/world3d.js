@@ -73,6 +73,13 @@ function tree(scene,x,z,{fruit=false,pink=false,size=1}={}){
   const b=cylinder(trunk,0x9f8059,-9,63,0,6,40);b.rotation.z=.55;
  const colors=pink?[0xe8b4be,0xf2c7c5,0xdca7b6]:[0x83b36b,0x9fc17b,0x75a565];
  for(const [i,a] of [[0,[-27,101,0,35]],[1,[22,105,0,37]],[2,[0,127,-3,41]],[3,[0,102,23,35]]])sphere(canopy,colors[i%3],a[0],a[1]-90,a[2],a[3],a[3]*.95,a[3]);
+ // v80: sculpted foliage silhouette, original low-cost geometry (no textures/assets).
+ // Details are children of the wind canopy, so existing sway and picking stay intact.
+ const accents=pink?[0xf8d8d7,0xeab7c5]:[0xb4d38c,0x6e9d62];
+ for(const [i,xx,yy,zz,r] of [[0,-47,103,8,13],[1,44,110,-4,12],[2,-13,155,-4,14],[3,25,143,22,12],[4,-32,119,29,11],[5,15,90,45,10]]){
+  const tuft=sphere(canopy,accents[i%2],xx,yy-90,zz,r,r*.72,r*.86);
+  tuft.castShadow=false; // six extra shadow casters per tree would be expensive on phones
+ }
  if(fruit)for(const [xx,yy,zz] of [[-24,105,29],[18,122,26],[7,89,35]]){sphere(canopy,0xe7b166,xx,yy-90,zz,8);const leaf=sphere(canopy,0x648c53,xx+3,yy+7-90,zz,5,2,3);leaf.rotation.z=.4}
  return g;
 }
