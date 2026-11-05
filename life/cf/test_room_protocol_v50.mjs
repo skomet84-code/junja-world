@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {MAX_ROOM_PLAYERS,normalizeRoom,normalizeClientId,sanitizeText,
+ sanitizeFashion,sanitizeAvatar,isAllowedPhrase,playerSummary} from './room-protocol-v50.js';
+import {PHRASES} from '../life-systems-v20.js';
+assert.equal(MAX_ROOM_PLAYERS,8);
+assert.equal(normalizeRoom(' foo-1 '),'FOO-1');
+assert.equal(normalizeRoom('<a>b'),'AB');
+assert.equal(normalizeRoom('!!'),'SPRING');
+assert.equal(normalizeClientId('short'),null);
+assert.equal(normalizeClientId('client-87c8a081-cc33-4fb2-bbea'),'client-87c8a081-cc33-4fb2-bbea');
+assert(!sanitizeText('<script>input</script>').includes('<'));
+const f=sanitizeFashion({hair:'invalid',pet:'invalid',outfit:12});
+assert(Object.values(f).every(v=>v===null));
+const s=sanitizeAvatar({x:9999,y:-9,dir:300,coat:'evil',hat:'evil',fashion:{}});
+assert.equal(s.x,3515);assert.equal(s.y,120);assert.equal(s.dir,3);assert.equal(s.coat,'mint');
+assert(isAllowedPhrase(PHRASES[0]));assert(!isAllowedPhrase('임의로 입력하는 채팅'));
+assert.equal(playerSummary({id:'1',nick:'친구',...s}).nick,'친구');
+const fs=await import('node:fs/promises');
+const config=JSON.parse((await fs.readFile(new URL('./wrangler.jsonc',import.meta.url),'utf8')).replace(/^\s*\/\/.*$/mg,''));
+assert(config.migrations[0].new_sqlite_classes.includes('VillageRoom'));
+assert(config.assets.directory==='../public');
+const worker=await fs.readFile(new URL('./worker.js',import.meta.url),'utf8');
+assert(worker.includes('return bridgeApi(request)'),'Account requests must use the authoritative API bridge');
+assert(worker.includes('this.ctx.acceptWebSocket'),'Must use persistent Durable Object relay');
+console.log('PASS v50 CF: eight person rooms, safe input, speech whitelist, SQLite-backed relay and authoritative API bridge');
