@@ -112,7 +112,35 @@ function tree(scene,x,z,{fruit=false,pink=false,size=1}={}){
  return g;
 }
 function flower(scene,x,z,color=0xe9bcb5){const g=group(scene,x,.5,z);cylinder(g,0x6d9557,0,6,0,1.1,12);sphere(g,0x85a863,-3,4,0,4,1.4,2);for(let j=0;j<5;j++){const a=j*Math.PI*2/5;sphere(g,color,Math.cos(a)*4,12,Math.sin(a)*4,3.5,1.8,3.5)}sphere(g,0xe4bf6c,0,13,0,2.8);return g}
-function road(scene,points,width=70,color=0xdfcea7){const g=group(scene);for(let i=1;i<points.length;i++){const [x1,z1]=points[i-1],[x2,z2]=points[i];const len=Math.hypot(x2-x1,z2-z1),piece=box(g,color,(x1+x2)/2,1,(z1+z2)/2,width,2,len);piece.rotation.y=Math.atan2(x2-x1,z2-z1);piece.castShadow=false;cylinder(g,color,x1,1,z1,width/2,2).castShadow=false;}const last=points.at(-1);cylinder(g,color,last[0],1,last[1],width/2,2).castShadow=false;return g}
+function road(scene,points,width=70,color=0xdfcea7){
+ const g=group(scene);
+ // Commercial-alpha visual pass: continuous cream-stone edging and understated
+ // paving seams. Shared geometries/materials, no textures or extra shadow casters.
+ const edgeColor=0xf4e6c8, seamColor=0xc4b18e;
+ for(let i=1;i<points.length;i++){
+  const [x1,z1]=points[i-1],[x2,z2]=points[i];
+  const len=Math.hypot(x2-x1,z2-z1);
+  if(len<1)continue;
+  const cx=(x1+x2)/2,cz=(z1+z2)/2,yaw=Math.atan2(x2-x1,z2-z1);
+  const piece=box(g,color,cx,1,cz,width,2,len);piece.rotation.y=yaw;piece.castShadow=false;
+  const dx=Math.cos(yaw),dz=-Math.sin(yaw);
+  for(const side of [-1,1]){
+   const border=box(g,edgeColor,cx+side*dx*(width/2-2),2.6,cz+side*dz*(width/2-2),3,1.3,len);
+   border.rotation.y=yaw;border.castShadow=false;border.receiveShadow=false;
+  }
+  // Bounded number of joints keeps long roads readable without excessive draw calls.
+  const jointCount=Math.min(24,Math.floor(len/55));
+  for(let j=1;j<=jointCount;j++){
+   const along=(j/(jointCount+1)-.5)*len;
+   const seam=box(g,seamColor,cx+Math.sin(yaw)*along,2.3,cz+Math.cos(yaw)*along,width-11,.35,1.2);
+   seam.rotation.y=yaw;seam.castShadow=false;seam.receiveShadow=false;
+  }
+  cylinder(g,color,x1,1,z1,width/2,2).castShadow=false;
+ }
+ const last=points.at(-1);
+ if(last)cylinder(g,color,last[0],1,last[1],width/2,2).castShadow=false;
+ return g;
+}
 function bench(scene,x,z){const g=group(scene,x,0,z);for(const xx of [-25,25])for(const zz of [-10,10])box(g,0x8c7756,xx,11,zz,5,22,5);for(let j=0;j<3;j++)box(g,0xd2b686,0,24,-10+j*9,65,5,7);box(g,0xc4a475,0,40,-14,65,17,5);return g}
 function lamp(scene,x,z){const g=group(scene,x,0,z);cylinder(g,0x79917c,0,42,0,3,84);cylinder(g,0x79917c,0,3,0,10,6);box(g,0xf5dc9b,0,90,0,15,22,15);const roof=new T.Mesh(new T.ConeGeometry(15,12,4),material(0x6f8776));roof.position.y=107;roof.rotation.y=Math.PI/4;g.add(roof);return g}
 function fountain(scene){const g=group(scene,1010,0,695);g.userData.pick={type:'action',kind:'fountain'};cylinder(g,0xe4d4b6,0,5,0,91,10);cylinder(g,0xc8c5ae,0,15,0,79,18);cylinder(g,0x8ec7c1,0,25,0,70,2);cylinder(g,0xc8c5ae,0,47,0,13,43);cylinder(g,0xdad6be,0,66,0,40,12);cylinder(g,0xa5d5c9,0,73,0,34,2);sphere(g,0xe4d4b6,0,87,0,11);
