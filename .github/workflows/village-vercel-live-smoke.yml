@@ -1,0 +1,145 @@
+name: Junja Village Public URL Smoke
+on:
+  push:
+    branches: [junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25, village-hunt-polish-v26, village-living-world-v27, village-economy-v28]
+  workflow_dispatch:
+
+jobs:
+  test-public-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check public HTML, WebGL scripts and real WebSocket connections
+        env:
+          SITE: https://junja-village-friends.vercel.app
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const base=process.env.SITE;
+          const abort=(ms=15000)=>AbortSignal.timeout(ms);
+          const html=await fetch(base+'/',{signal:abort()});
+          const text=await html.text();
+          console.log('HTML',html.status,html.url,'bytes',text.length,'head',text.slice(0,150));
+          assert.equal(html.status,200,'public homepage should not be a 404, 401 or Vercel protection page');
+          assert(text.includes('fittingHost')||text.includes('준자마을'),'homepage should contain the village');
+          for(const path of ['/game.js','/world3d.js','/vendor/three.module.js']){
+            const response=await fetch(base+path,{signal:abort()});
+            console.log('SCRIPT',path,response.status,response.headers.get('content-type'));
+            assert.equal(response.status,200,'static asset is missing: '+path);
+            const body=await response.text();
+            if(path==='/game.js'){
+              assert(body.includes("isLegacyPlaceholder"),'nickname migration code not in production');
+              assert(body.includes("STYLE_SETS"),'five complete premium cosmetic sets missing');
+              assert(body.includes("CHAPTER_COUNT"),'50-chapter UI not deployed');
+              assert(body.includes("openSaveVault"),'local backup/export not available');
+              assert(body.includes("openLivingCalendar"),'monthly calendar not deployed');
+              assert(body.includes("openFishProfile"),'fish specimen details missing');
+              assert(body.includes("openEconomyDashboard"),'game economy ledger UI missing');
+              assert(body.includes("openBaitShop"),'bait purchase shop missing');
+              assert(body.includes("addFishStock(state,f.name,1)"),'no-instant-cash catch logic missing');
+              assert(body.includes("sellFish(state,fish"),'actual fish stock market missing');
+              assert(body.includes("goToHunting"),'hunting entry button not deployed');
+              assert(body.includes("reelChallenge("),'fish rarity difficulty not in production');
+              assert(body.includes("STARTER_FISH_NAMES"),'collection compatibility not deployed');
+              assert(body.includes("aquariumFilter"),'70-fish aquarium filters not deployed');
+              assert(body.includes("coins:1000"),'1000G new player balance missing');
+              assert(body.includes("FESTIVAL_TASKS"),'weekly festival content missing');
+              assert(body.includes("villageClientId"),'duplicate-identity session feature missing');
+              assert(body.includes("location.host+(document.querySelector"),'correct realtime WSS hostname not deployed');
+            }
+            if(path==='/world3d.js')assert(body.includes("Math.atan2(595-46,880)"),'camera angle update not in production');
+          }
+          const fishLib=await fetch(base+'/life-systems-v20.js',{signal:abort()});
+          assert.equal(fishLib.status,200,'fishing data not accessible');
+          const fishingData=await fishLib.text();
+          assert(fishingData.includes('용의 수염 잉어'),'mythic fish entries not deployed');
+          assert(fishingData.includes('eligibleFish('),'fishing level gates not deployed');
+          assert(fishingData.includes('reelChallenge('),'rarity-based reel challenge not deployed');
+          const huntHtml=await fetch(base+'/hunt.html',{signal:abort()});
+          assert.equal(huntHtml.status,200,'standalone hunt 3D page unavailable');
+          const huntHtmlBody=await huntHtml.text();
+          assert(huntHtmlBody.includes('data-skill="strike"'),'hunt skill buttons absent');
+          assert(huntHtmlBody.includes('id="resetView"'),'mobile reset view button missing');
+          const huntJs=await fetch(base+'/hunt.js',{signal:abort()});
+          assert.equal(huntJs.status,200,'hunt combat script unavailable');
+          const huntLogic=await huntJs.text();
+          assert(huntLogic.includes('function skillUse('),'combat mechanics are not deployed');
+          assert(huntLogic.includes('function mobHit('),'enemy damage mechanics are not deployed');
+          assert(huntLogic.includes("function antiZoomTouch("),'iPhone pinch and double-tap handling not deployed');
+          assert(huntLogic.includes("raycaster.intersectObjects(m.body.children,true)"),'touching actual monster geometry not deployed');
+          assert(huntLogic.includes("function hitBurst("),'hit sparks and attack arcs missing');
+          assert(huntLogic.includes("function resetView("),'camera reset function missing');
+          assert(huntLogic.includes("function mobOverhead("),'monster name and HP graphics missing');
+          const huntData=await fetch(base+'/hunt-data.js',{signal:abort()});
+          assert.equal(huntData.status,200,'hunt level and monster data unavailable');
+          assert((await huntData.text()).includes('태고의 수호룡 아스트라'),'4th region boss unavailable');
+          console.log('PASS live hunt 3D static assets, mobs and skill source');
+          for(const [asset,keyword] of [
+            ['/living-world.js','LONG_CHAPTER_BLUEPRINTS'],
+            ['/fish-portraits.js','drawFishPortrait']
+          ]){
+            const r=await fetch(base+asset,{signal:abort()});
+            assert.equal(r.status,200,'Missing living world bundle '+asset);
+            assert((await r.text()).includes(keyword),'Wrong version deployed: '+asset);
+          }
+          const economyAsset=await fetch(base+'/economy-v28.js',{signal:abort()});
+          assert.equal(economyAsset.status,200,'economic policy bundle missing');
+          const economyLogic=await economyAsset.text();
+          assert(economyLogic.includes('export function sellFish('),'NPC fish sale missing');
+          assert(economyLogic.includes('export function debit('),'coin sink ledger missing');
+          assert(economyLogic.includes('export function credit('),'coin issuer ledger missing');
+          console.log('PASS live economy v28 NPC market, ledgers, player sinks and preserved multiplayer');
+          function makeConnection(name){
+            const ws=new WebSocket(base.replace(/^http/,'ws')+'/api/ws');
+            const inbox=[],waiting=[];
+            const receive=(type)=>new Promise((resolve,reject)=>{
+              const old=inbox.findIndex(x=>x.type===type);
+              if(old>=0){resolve(inbox.splice(old,1)[0]);return;}
+              let timer;const entry={type,resolve:(v)=>{clearTimeout(timer);resolve(v)}};
+              waiting.push(entry);
+              timer=setTimeout(()=>{waiting.splice(waiting.indexOf(entry),1);reject(new Error('Timed out waiting for '+type+' for '+name))},12000)
+            });
+            ws.addEventListener('message',e=>{
+              const msg=JSON.parse(e.data),index=waiting.findIndex(x=>x.type===msg.type);
+              if(index>=0)waiting.splice(index,1)[0].resolve(msg);else inbox.push(msg);
+            });
+            const opened=new Promise((resolve,reject)=>{
+              const timer=setTimeout(()=>reject(new Error(name+' public WebSocket open timeout')),15000);
+              ws.addEventListener('open',()=>{clearTimeout(timer);resolve()},{once:true});
+              ws.addEventListener('error',()=>{clearTimeout(timer);reject(new Error(name+' public WebSocket connection error'))},{once:true})
+            });
+            return {ws,opened,receive}
+          }
+          const a=makeConnection('first player');
+          await a.opened;
+          a.ws.send(JSON.stringify({type:'join',room:'SMOKEQA',nick:'첫번째',x:1050,y:955,coat:'mint',hat:'none',dir:0,fashion:{}}));
+          const wa=await a.receive('welcome');
+          assert(wa.id);
+          const b=makeConnection('second player');
+          await b.opened;
+          b.ws.send(JSON.stringify({type:'join',room:'SMOKEQA',nick:'두번째',x:1050,y:955,coat:'mint',hat:'none',dir:0,fashion:{hair:'fashion_hair_01'}}));
+          const wb=await b.receive('welcome');
+          const arrival=await a.receive('join');
+          assert.equal(arrival.player.nick,'두번째');
+          assert.equal(arrival.player.fashion.hair,'fashion_hair_01');
+          assert.equal(wb.players.length,1,'two connections must land in the same room');
+          a.ws.close();b.ws.close();
+          // Verify that a same-browser reconnect replaces its previous avatar.
+          const c=makeConnection('old tab');
+          await c.opened;
+          c.ws.send(JSON.stringify({type:'join',room:'DUPQA',nick:'갓준자',clientId:'mobile-v23-4ccdc489-710e-43',x:1050,y:955,coat:'mint',hat:'none',dir:0}));
+          await c.receive('welcome');
+          const d=makeConnection('new tab');
+          await d.opened;
+          d.ws.send(JSON.stringify({type:'join',room:'DUPQA',nick:'갓준자',clientId:'mobile-v23-4ccdc489-710e-43',x:1050,y:955,coat:'mint',hat:'none',dir:0}));
+          const replaced=await c.receive('replaced');
+          const fresh=await d.receive('welcome');
+          assert.equal(replaced.type,'replaced');
+          assert.equal(fresh.players.length,0,'same browser should not have two avatars');
+          c.ws.close();d.ws.close();
+          console.log('PASS public premium village, live 2-player test and replaced duplicate avatar');
+
+          NODE

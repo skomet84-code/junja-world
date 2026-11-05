@@ -1,0 +1,25 @@
+[Unit]
+Description=Junja Village v50 Node API and WebSocket
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=junja
+Group=junja
+WorkingDirectory=/opt/junja-village/life
+Environment=NODE_ENV=production
+Environment=PORT=3000
+EnvironmentFile=/etc/junja-village.env
+ExecStart=/usr/bin/node /opt/junja-village/life/server.mjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+MemoryMax=750M
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

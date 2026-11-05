@@ -1,0 +1,29 @@
+name: Village v48 Home 3D Mobile QA
+on:
+  push:
+    branches: [feat/village-homestead-interiors-v48]
+permissions:
+  contents: read
+jobs:
+  homestead:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --no-package-lock
+        working-directory: life
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+        working-directory: life
+      - run: npx playwright install --with-deps chromium
+        working-directory: life
+      - run: node test_home_mobile_v48.mjs
+        working-directory: life
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v48-3d-home-mobile-screens
+          path: life/artifacts/v48-homestead-*.png
+          if-no-files-found: ignore
