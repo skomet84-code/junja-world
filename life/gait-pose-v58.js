@@ -23,14 +23,16 @@ export function sampleBodyGait(phase, blend, time) {
  const p=Number.isFinite(phase)?phase:0;
  const t=Number.isFinite(time)?time:0;
  const step=Math.sin(p)*weight;
+ // Quiet breathing continues when stationary, fades smoothly as walking begins.
+ const breath=(1-weight)*Math.sin(t*1.65);
  const idle=(1-weight)*Math.sin(t*1.25);
  return {
-  pelvisY:34+Math.sin(p)**2*.55*weight,
+  pelvisY:34+Math.sin(p)**2*.55*weight+breath*.18,
   pelvisX:Math.sin(p)*1.1*weight,
   pelvisRoll:Math.sin(p)*.018*weight,
   torsoRoll:-step*.026+idle*.008,
-  torsoTurn:step*.038,
+  torsoTurn:step*.038+breath*.004,
   headRoll:step*.014,
-  headPitch:-weight*.025+idle*.014
+  headPitch:-weight*.025+idle*.014-breath*.006
  };
 }
