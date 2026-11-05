@@ -1,0 +1,34 @@
+name: Village v47 Energy QA
+on:
+  push:
+    branches: [feat/village-energy-ui-v47]
+permissions:
+  contents: read
+jobs:
+  postgresql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: energy_test
+          POSTGRES_USER: qa
+          POSTGRES_PASSWORD: qa_local
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U qa -d energy_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --no-package-lock
+        working-directory: life
+      - run: node test_action_energy_postgres_v47.mjs
+        working-directory: life
+        env:
+          JUNJA_V47_DISPOSABLE_DB: 'true'
+          JUNJA_V47_TEST_DATABASE_URL: postgresql://qa:qa_local@127.0.0.1:5432/energy_test

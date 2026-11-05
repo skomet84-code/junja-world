@@ -1,0 +1,26 @@
+name: Junja Village Living World v27 Quick QA
+on:
+  push:
+    branches: [village-living-world-v27]
+  workflow_dispatch:
+
+jobs:
+  living-world:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax, 50 chapter and fish illustration regressions
+        working-directory: life
+        run: npm test
+      - name: Install mobile browser
+        working-directory: life
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New 50 chapter progression and museum mobile test
+        working-directory: life
+        run: node test_living_browser_v27.mjs

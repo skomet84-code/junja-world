@@ -1,0 +1,90 @@
+name: Village v51 Decoration Placement Recovery QA
+on:
+  push:
+    branches: [fix/v51-crafted-item-placement]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unified-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install game and Wrangler build tools
+        working-directory: life
+        run: |
+          npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+          npm install --no-save --ignore-scripts --no-package-lock --no-audit --no-fund wrangler@4.151.2 ws@8.18.3
+      - name: Verify bundled Workers and save handling syntax
+        working-directory: life
+        run: |
+          node --check cf/do/database.js
+          node --check cf/do/worker-unified.js
+          node --check cf/do/schema.js
+          node --check cf/d1/account-staging.js
+          node --check cf/d1/account-extensions.js
+          node --check cf/d1/economy-staging.js
+          node --check game.js
+          node cf/d1/test_account_staging.mjs
+          node cf/do/test_pbkdf2_cap_v50.mjs
+          node test_account_mobile_v50.mjs
+          node test_admin_crown_v50.mjs
+          python3 cf/do/test_fresh_opening.py
+          node cf/do/test_owner_promotion_v50.mjs
+          node --check cf/do/market-v51.js
+          node cf/do/test_market_v51.mjs
+          node --check cf/do/professions-v51.js
+          node cf/do/test_professions_v51.mjs
+          node --check cf/do/business-v51.js
+          node cf/do/test_business_v51.mjs
+          node --check cf/do/quests-v51.js
+          node --check quests-ui-v51.js
+          node cf/do/test_quests_v51.mjs
+          node test_starter_gold_v51.mjs
+          node test_decor_placement_v51.mjs
+      - name: Build v50 game and run complete existing suite
+        working-directory: life
+        run: |
+          npm test
+          node test_login_gate_v50.mjs
+          npm run build
+      - name: Bundle a separate Cloudflare-only Worker with no external API
+        working-directory: life
+        run: |
+          npx wrangler deploy --config cf/wrangler.jsonc --dry-run --outdir /tmp/junja-unified-package
+          if grep -R -l 'junja-village-friends.vercel.app' /tmp/junja-unified-package; then
+            echo 'FAIL old Vercel API is still bundled into single-platform Worker'
+            exit 1
+          fi
+      - name: Test real Wrangler local Durable Objects and SQLite (no remote changes)
+        working-directory: life
+        run: |
+          set -euo pipefail
+          npx wrangler dev --config cf/wrangler.jsonc --local --port 8788 --ip 127.0.0.1 > /tmp/junja-unified-dev.log 2>&1 &
+          WRANGLER_PID=$!
+          trap 'kill $WRANGLER_PID || true; tail -100 /tmp/junja-unified-dev.log' EXIT
+          READY=0
+          for i in $(seq 1 45); do
+            if curl --silent --fail http://127.0.0.1:8788/health > /tmp/junja-health.json; then READY=1; break; fi
+            if ! kill -0 $WRANGLER_PID 2>/dev/null; then
+              echo 'Wrangler exited unexpectedly'
+              tail -100 /tmp/junja-unified-dev.log
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ "$READY" != "1" ]; then
+            echo 'Local Worker failed /health readiness'
+            tail -100 /tmp/junja-unified-dev.log
+            exit 1
+          fi
+          cat /tmp/junja-health.json
+          node cf/do/test_unified_local.mjs
+          node cf/do/test_multiplayer_local.mjs
+          node cf/do/test_market_http_v51.mjs

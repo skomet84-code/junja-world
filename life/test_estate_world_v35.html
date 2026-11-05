@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>준자마을 3D 개인농장 QA</title><style>
+body{margin:0;background:#f1f3e7;color:#345941;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif}
+main{max-width:470px;margin:0 auto;padding:18px}
+#farm{height:340px;border:3px solid #e6d8ae;border-radius:20px;overflow:hidden;background:#b4cf8d}
+button{padding:13px;border:0;border-radius:12px;margin:12px 5px;background:#82ae87;color:#fff;font-weight:bold}
+</style></head>
+<body><main><h1>🌳 나의 3D 농장</h1><p>밭을 터치하거나 빈 땅을 누르면 캐릭터가 움직입니다.</p>
+<div id="farm"></div><button id="plotTest" type="button">첫 번째 밭으로 걸어가기</button><button id="closeTest" type="button">농장 닫기</button><p id="status">입장 준비 중</p></main>
+<script type="module">
+import {mountEstateWorld} from './estate-world-v35.js';
+const estate={tier:0,plots:[{id:'berry',at:Date.now()-80000},{id:'apple',at:Date.now()-900000},null,null,null,null],buildings:['🏡 목조 온실']};
+const cropMap={berry:{seconds:90},apple:{seconds:900}};
+const selected=[];
+const scene=mountEstateWorld({host:document.getElementById('farm'),estate,cropMap,
+ onPlot:i=>{selected.push(i);document.getElementById('status').textContent='밭 '+(i+1)+' 도착'}});
+window.estateDemo={scene,selected,estate};
+document.getElementById('plotTest').onclick=()=>scene.visitPlot(0);
+document.getElementById('closeTest').onclick=()=>scene.dispose();
+document.getElementById('status').textContent='농장 입장 완료';
+</script></body></html>
