@@ -115,7 +115,30 @@ function flower(scene,x,z,color=0xe9bcb5){const g=group(scene,x,.5,z);cylinder(g
 function road(scene,points,width=70,color=0xdfcea7){const g=group(scene);for(let i=1;i<points.length;i++){const [x1,z1]=points[i-1],[x2,z2]=points[i];const len=Math.hypot(x2-x1,z2-z1),piece=box(g,color,(x1+x2)/2,1,(z1+z2)/2,width,2,len);piece.rotation.y=Math.atan2(x2-x1,z2-z1);piece.castShadow=false;cylinder(g,color,x1,1,z1,width/2,2).castShadow=false;}const last=points.at(-1);cylinder(g,color,last[0],1,last[1],width/2,2).castShadow=false;return g}
 function bench(scene,x,z){const g=group(scene,x,0,z);for(const xx of [-25,25])for(const zz of [-10,10])box(g,0x8c7756,xx,11,zz,5,22,5);for(let j=0;j<3;j++)box(g,0xd2b686,0,24,-10+j*9,65,5,7);box(g,0xc4a475,0,40,-14,65,17,5);return g}
 function lamp(scene,x,z){const g=group(scene,x,0,z);cylinder(g,0x79917c,0,42,0,3,84);cylinder(g,0x79917c,0,3,0,10,6);box(g,0xf5dc9b,0,90,0,15,22,15);const roof=new T.Mesh(new T.ConeGeometry(15,12,4),material(0x6f8776));roof.position.y=107;roof.rotation.y=Math.PI/4;g.add(roof);return g}
-function fountain(scene){const g=group(scene,1010,0,695);g.userData.pick={type:'action',kind:'fountain'};cylinder(g,0xe4d4b6,0,5,0,91,10);cylinder(g,0xc8c5ae,0,15,0,79,18);cylinder(g,0x8ec7c1,0,25,0,70,2);cylinder(g,0xc8c5ae,0,47,0,13,43);cylinder(g,0xdad6be,0,66,0,40,12);cylinder(g,0xa5d5c9,0,73,0,34,2);sphere(g,0xe4d4b6,0,87,0,11);return g}
+function fountain(scene){const g=group(scene,1010,0,695);g.userData.pick={type:'action',kind:'fountain'};cylinder(g,0xe4d4b6,0,5,0,91,10);cylinder(g,0xc8c5ae,0,15,0,79,18);cylinder(g,0x8ec7c1,0,25,0,70,2);cylinder(g,0xc8c5ae,0,47,0,13,43);cylinder(g,0xdad6be,0,66,0,40,12);cylinder(g,0xa5d5c9,0,73,0,34,2);sphere(g,0xe4d4b6,0,87,0,11);
+ // v82: a coherent, original fountain-garden landmark, built as actual 3D geometry.
+ // Keep the interactable fountain parent and existing collision/picking untouched.
+ const rim=new T.Mesh(new T.TorusGeometry(91,4,8,48),material(0xf6e8ca));
+ rim.rotation.x=Math.PI/2;rim.position.y=10;rim.castShadow=false;g.add(rim);
+ const poolRing=new T.Mesh(new T.TorusGeometry(69,2,6,48),material(0xf4f4dc));
+ poolRing.rotation.x=Math.PI/2;poolRing.position.y=27;poolRing.castShadow=false;g.add(poolRing);
+ for(let i=0;i<12;i++){
+  const a=i*Math.PI/6,cs=Math.cos(a),sn=Math.sin(a);
+  const pebble=sphere(g,i%2?0xe4d9bd:0xf5e8ce,cs*105,2,sn*105,10,2.5,7);
+  pebble.rotation.y=a;pebble.castShadow=false;
+ }
+ // Low, flowered planters at four corners add color without covering the fountain.
+ for(const a of [Math.PI/4,3*Math.PI/4,5*Math.PI/4,7*Math.PI/4]){
+  const x=Math.cos(a)*113,z=Math.sin(a)*113;
+  cylinder(g,0xb99c78,x,6,z,15,12).castShadow=false;
+  cylinder(g,0x6e915f,x,13,z,12,3).castShadow=false;
+  for(let j=0;j<3;j++){
+   const b=j*Math.PI*2/3;
+   sphere(g,0x6f9e6d,x+Math.cos(b)*7,20,z+Math.sin(b)*7,7,7,7).castShadow=false;
+   sphere(g,j===0?0xf3c7b2:j===1?0xf8e2aa:0xe3bedc,x+Math.cos(b)*7,26,z+Math.sin(b)*7,3.5,3.5,3.5).castShadow=false;
+  }
+ }
+ return g}
 function soilBed(scene,x,z,i){const g=group(scene,x,0,z);g.userData.pick={type:'farm',idx:i};box(g,0x9e8059,0,2,0,64,4,62);for(let j=-1;j<=1;j++)box(g,0x92734f,0,4,j*17,58,2,2);return g}
 
 // Merge static meshes by material inside each object. The parent still owns picking and transforms.
