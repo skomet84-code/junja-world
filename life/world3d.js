@@ -59,7 +59,35 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
  const door=box(g,0x897558,0,49,d/2+4,43,83,8);box(g,0x6c927f,0,63,d/2+9,28,36,2);sphere(g,0xe8cc7a,13,43,d/2+11,3);box(g,0xf6edd4,0,97,d/2+9,54,9,10);
  for(const xx of [-w*.31,w*.31]){box(g,0xeee3c8,xx,82,d/2+4,59,65,10);box(g,0x89b6b7,xx,83,d/2+10,46,52,2);box(g,0xf7eacb,xx,83,d/2+13,4,54,3);box(g,0xf7eacb,xx,83,d/2+13,48,4,3);box(g,0x9eaf78,xx,46,d/2+14,65,16,18);for(let j=-1;j<=1;j++){sphere(g,0x70955b,xx+j*16,58,d/2+14,11,11,9);sphere(g,0xe6b3b0,xx+j*17,65,d/2+15,5)}}
  if(kind!=='home'){for(let i=0;i<7;i++){const awning=box(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,119,d/2+25,w*.123,7,55);awning.rotation.x=.12;const lip=cylinder(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,112,d/2+52,8,w*.123);lip.rotation.z=Math.PI/2}}
- const chimney=box(g,0xb08b75,w*.3,211,-d*.25,28,70,30);box(g,0x876e62,w*.3,248,-d*.25,35,9,37);
+ // v81 original architecture pass: real depth, not a pasted facade.
+ // Low-poly geometry shares cached materials; only the front elevation is detailed.
+ const frontage=d/2+17;
+ for(const side of [-1,1]){
+  const wx=side*w*.31;
+  // Deep timber shutters frame each front window.
+  for(const dx of [-37,37]){
+   box(g,0x8b9876,wx+dx,84,frontage,8,69,5);
+   for(const yy of [63,83,103])box(g,0xb1b78c,wx+dx,yy,frontage+3,10,3,6);
+  }
+  // Sill planter and flowers create a readable foreground silhouette.
+  box(g,0xb88e70,wx,44,frontage+9,67,13,20);
+  box(g,0x6c895b,wx,52,frontage+10,60,5,17);
+  for(const dx of [-21,0,21]){
+   sphere(g,0x648c62,wx+dx,59,frontage+12,10,9,9).castShadow=false;
+   sphere(g,side===1?0xf3c3aa:0xf1d59b,wx+dx,65,frontage+17,4,4,4).castShadow=false;
+  }
+ }
+ // Doorframe, carved porch columns and a warm lantern above the entry.
+ for(const dx of [-29,29])box(g,0xe9d9b5,dx,52,d/2+12,6,100,10);
+ box(g,0xe9d9b5,0,104,d/2+13,64,9,11);
+ for(const dx of [-w*.43,w*.43]){
+  cylinder(g,0xd4bb91,dx,42,d/2+34,5,84);
+  cylinder(g,0xe8d5ae,dx,85,d/2+34,9,7);
+ }
+ const lantern=box(g,0xf4d995,0,128,d/2+28,13,18,13);
+ lantern.castShadow=false;
+ box(g,0x7d8067,0,140,d/2+28,20,5,20).castShadow=false;
+  const chimney=box(g,0xb08b75,w*.3,211,-d*.25,28,70,30);box(g,0x876e62,w*.3,248,-d*.25,35,9,37);
  box(g,0xe1ceaa,0,5,d/2+31,67,10,35);
  label(g,name,0,260,0,170);
  return g;
