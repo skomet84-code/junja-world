@@ -1,0 +1,44 @@
+name: Junja Village Life Preview QA
+on:
+  push:
+    branches: [junja-village-life-v17, junja-village-life-v18, junja-village-life-v19, junja-village-life-v20, junja-village-atelier-v21, junja-village-online-v1, junja-village-vercel-online-v1, village-friends-balance-v23, village-fishing-v24, village-hunting-v25, village-hunt-polish-v26, village-living-world-v27, village-economy-v28, village-inventory-combat-v29, village-progression-v30]
+  workflow_dispatch:
+
+jobs:
+  village-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify 3D rig, clothing variants, collision and navigation
+        working-directory: life
+        run: npm test
+      - name: Install Playwright Chromium
+        working-directory: life
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify actual mobile 3D render, navigation and wardrobe
+        working-directory: life
+        run: |
+          node test_progression_browser_v30.mjs
+          node test_inventory_browser_v29.mjs
+          node test_economy_browser_v28.mjs
+          node test_living_browser_v27.mjs
+          node test_hunt_browser_v25.mjs
+          node test_nickname_browser_v22.mjs
+          node test_atelier_browser_v21.mjs
+          node test_fashion_browser_v19.mjs
+          node test_life_browser_v20.mjs
+          node test_browser.mjs
+          node test_real_tap_v18.mjs
+      - name: Keep mobile screenshots for visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junja-village-v17-mobile-screens
+          path: life/artifacts/
+          if-no-files-found: ignore

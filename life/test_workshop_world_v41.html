@@ -1,0 +1,25 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>준자마을 v41 3D 사업장 시험</title>
+<style>body{margin:0;background:#edf1e7;color:#34594c;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif}main{max-width:480px;padding:16px;margin:auto}#plaza{height:370px;border:3px solid #e1d2b1;border-radius:18px;overflow:hidden;background:#bad4a6}button{padding:10px;margin:5px;border:0;border-radius:12px;background:#76a48c;color:#fff;font-weight:700}</style></head><body><main>
+<h2>🏡 준자마을 입체 사업장</h2><p>건물로 걸어가서 실내 시설을 구경해 보세요.</p><div id="plaza"></div>
+<button id="go" type="button">베이커리로 이동</button><button id="enter" type="button">실내 입장</button><button id="exit" type="button">실외 복귀</button><button id="guest" type="button">방문자 모드</button><button id="close" type="button">3D 화면 닫기</button><p id="message">장면 구성 중</p>
+</main><script type="module">
+import {mountWorkshopVillage} from './workshop-world-v41.js';
+const buildings=[{role:'farmer',level:1,site:0},{role:'chef',level:3,site:4},{role:'merchant',level:2,site:8}];
+const arrived=[],interior=[];
+let scene=null;
+function mount(readOnly){
+ scene?.dispose();
+ scene=mountWorkshopVillage({host:document.getElementById('plaza'),buildings,readOnly,ownerName:'시험 주민',
+ onArrival:e=>{arrived.push(e);document.getElementById('message').textContent=e.role+' 시설 도착'},
+ onInteriorChange:e=>{interior.push(e);document.getElementById('message').textContent=e.inside?'시설 안으로 입장':'시설 밖으로 이동'}});
+ window.workshopDemo.scene=scene;
+}
+window.workshopDemo={arrived,interior,buildings,scene:null};
+mount(false);
+document.getElementById('go').onclick=()=>scene.visitRole('chef');
+document.getElementById('enter').onclick=()=>scene.enter('chef');
+document.getElementById('exit').onclick=()=>scene.exit();
+document.getElementById('guest').onclick=()=>mount(true);
+document.getElementById('close').onclick=()=>{scene.dispose();scene=null};
+document.getElementById('message').textContent='3D 마을 입장 완료';
+</script></body></html>

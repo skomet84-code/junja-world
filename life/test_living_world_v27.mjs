@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict';
+import {FISH,FISH_BY_NAME,fishArt} from './life-systems-v20.js';
+import {LONG_CHAPTER_BLUEPRINTS,makeLivingChapters,livingMetric,MONTHLY_GOALS,initialMonth,monthProgress,realSeason,calendarMonth,villageTitle} from './living-world.js';
+assert.equal(LONG_CHAPTER_BLUEPRINTS.length,42,'Original 8 + 42 = 50 life story quests');
+assert.deepEqual(LONG_CHAPTER_BLUEPRINTS.map(q=>q.id),Array.from({length:42},(_,i)=>i+9));
+assert(LONG_CHAPTER_BLUEPRINTS.every(q=>q.total>0&&q.reward>0&&q.xp>0));
+const state={fish:12,harvest:16,gathered:32,craftCount:12,deliveries:8,collection:['송사리','붕어','비단 송어','금붕어'],friends:{리나:4,토비:2},animalBonds:{choco:{love:3}},visits:{farm:true,pier:true,forest:true},decorations:[1,2,3],home:{furniture:['bed','lamp'],level:1},fashion:{owned:['fashion_hair_01','fashion_outfit_02']},hunt:{kills:5},attendance:{total:4}};
+const chapters=makeLivingChapters(state,FISH_BY_NAME);
+assert.equal(chapters.length,42);
+assert.equal(chapters[0].done(),10,'Chapter 9 uses existing fish achievements but no initial wallet reset');
+assert(chapters[3].done()>0,'Villager bond quest uses saved heart levels');
+assert.equal(livingMetric(state,'huntKills'),5);
+assert.equal(livingMetric(state,'fishUnique',FISH_BY_NAME),4);
+assert.equal(livingMetric(state,'attendance'),4);
+assert.equal(villageTitle(0),'새싹 주민');
+assert.equal(villageTitle(50),'마을의 전설');
+assert.equal(realSeason(new Date('2026-04-15')).id,'spring');
+assert.equal(realSeason(new Date('2026-07-15')).id,'summer');
+assert.equal(realSeason(new Date('2026-10-15')).id,'autumn');
+assert.equal(realSeason(new Date('2027-01-15')).id,'winter');
+assert.equal(calendarMonth(new Date('2026-10-20')),'2026-10');
+const october=new Date('2026-10-20');
+let monthly=initialMonth(state,october,FISH_BY_NAME);
+assert.equal(monthly.claimed.length,0);
+assert.equal(monthProgress(state,MONTHLY_GOALS[0],FISH_BY_NAME),0);
+state.fish+=30;
+assert.equal(monthProgress(state,MONTHLY_GOALS[0],FISH_BY_NAME),30);
+monthly.claimed.push('fish');
+assert.equal(initialMonth(state,new Date('2026-10-29'),FISH_BY_NAME).claimed[0],'fish','claim remains locked this month');
+monthly=initialMonth(state,new Date('2026-11-01'),FISH_BY_NAME);
+assert.equal(monthly.id,'2026-11');
+assert.equal(monthProgress(state,MONTHLY_GOALS[0],FISH_BY_NAME),0,'New month starts from current lifetime total');
+assert.equal(monthly.claimed.length,0);
+assert.equal(FISH.length,70);
+const category=new Set(),art=new Set(),svgIds=new Set();
+for(const f of FISH){
+ const svg=fishArt(f.name,160);
+ assert(svg.startsWith('<svg'));
+ assert(svg.includes('data-fish-shape='));
+ assert(svg.includes('aria-label="'+f.name+' 그림"'));
+ assert(svg.includes('<ellipse'),f.name+' has illustrated curved geometry');
+ assert(svg.includes('<path'),f.name+' has custom fins/body');
+ const m=svg.match(/data-fish="([^"]+)"/);
+ assert(m,f.name+' has stable design identity');
+ svgIds.add(m[1]);art.add(svg);category.add(f.tier);
+}
+assert.equal(svgIds.size,70,'Every fish gets a unique SVG specimen image');
+assert.equal(art.size,70,'70 distinct SVG pictures');
+assert.equal(category.size,6);
+for(const name of ['황새치','대왕 오징어','꽃게','귀상어','심해 유령상어']){
+ const fish=FISH.find(f=>f.name===name);if(fish)assert(fishArt(name).includes('data-fish-shape='));
+}
+console.log('PASS 50-chapter quest data, six seasons/tiers, independent monthly baselines, unique 70-species artwork and original player saves');
