@@ -1,0 +1,41 @@
+name: Junja Village v41 3D Workshops and Permissions QA
+on:
+  push:
+    branches:
+      - feat/village-walkable-workshops-v41
+  pull_request:
+    branches:
+      - feat/village-business-workshops-v40
+permissions:
+  contents: read
+jobs:
+  mobile-business-village:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Install isolated QA dependencies
+        working-directory: life
+        run: |
+          npm install --no-package-lock --ignore-scripts
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify actual mobile 3D business scene
+        working-directory: life
+        run: node test_workshop_browser_v41.mjs
+      - name: Upload inspected mobile screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: village-v41-3d-workshops
+          path: |
+            life/artifacts/v41-workshop-village-mobile.png
+            life/artifacts/v41-workshop-interior-mobile.png
+          if-no-files-found: ignore

@@ -1,0 +1,133 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/share-image.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/account.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/economy-v36.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/economy-v37.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/market-v38.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/professions-v39.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/business-v40.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/workshop-visits-v41.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/resident-demand-v44.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/customer-loyalty-v45.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/business-honors-v46.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/ws.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "hunt.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "vendor/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*\\.js)",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      },
+      "continue": true
+    },
+    {
+      "src": "/api/share-image",
+      "dest": "/api/share-image.js"
+    },
+    {
+      "src": "/api/account",
+      "dest": "/api/account.js"
+    },
+    {
+      "src": "/api/economy-v36",
+      "dest": "/api/economy-v36.js"
+    },
+    {
+      "src": "/api/economy-v37",
+      "dest": "/api/economy-v37.js"
+    },
+    {
+      "src": "/api/market-v38",
+      "dest": "/api/market-v38.js"
+    },
+    {
+      "src": "/api/professions-v39",
+      "dest": "/api/professions-v39.js"
+    },
+    {
+      "src": "/api/business-v40",
+      "dest": "/api/business-v40.js"
+    },
+    {
+      "src": "/api/workshop-visits-v41",
+      "dest": "/api/workshop-visits-v41.js"
+    },
+    {
+      "src": "/api/resident-demand-v44",
+      "dest": "/api/resident-demand-v44.js"
+    },
+    {
+      "src": "/api/customer-loyalty-v45",
+      "dest": "/api/customer-loyalty-v45.js"
+    },
+    {
+      "src": "/api/business-honors-v46",
+      "dest": "/api/business-honors-v46.js"
+    },
+    {
+      "src": "/api/ws",
+      "dest": "/api/ws.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
+    }
+  ]
+}
