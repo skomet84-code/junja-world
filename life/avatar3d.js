@@ -66,7 +66,19 @@ export function createAvatar({coat='mint',hat='none',animal=null}={}){
  // Face features sit on the curved head, not on a floating picture plane.
  const eyes=[];for(const x of [-8.5,8.5]){const eyeRig=group(head,x,1,18.3);eyeRig.name='eye-rig';ball(eyeRig,eyeMat,0,0,0,3.1,4.4,1.8);ball(eyeRig,white,-1,1.5,1.7,1.1,1.25,.5);eyes.push(eyeRig);ball(head,blushMat,x*1.6,-6.3,16.1,4.8,2.4,.7);if(!animal){const brow=tube(head,hairMat,1,7,x,9,17.8);brow.rotation.z=Math.PI/2+(x>0?-.05:.05)}}
  ball(head,animal?eyeMat:skin,0,-4,20.5,animal?3:2.6,2.2,2.2);
- const mouth=curve(head,[[-3.5,-10,18.7],[0,-11.7,20],[3.5,-10,18.7]],eyeMat,.65);
+ // v83: subtle original sculpted facial details, rigged to the head.
+ // Keep all details within the face silhouette to avoid clipping hats and hair.
+ if(!animal){
+  for(const side of [-1,1]){
+   const cheek=ball(head,skin,side*15,-9,12.8,7,5,4.5);
+   cheek.castShadow=false;
+   const lowerLid=curve(head,[[side*5,-2.5,19.6],[side*8.5,-3.3,19.3],[side*11.8,-2.2,18.4]],blushMat,.46);
+   lowerLid.castShadow=false;
+  }
+  const philtrum=ball(head,blushMat,0,-7.2,20.4,.65,1.1,.35);
+  philtrum.castShadow=false;
+ }
+  const mouth=curve(head,[[-3.5,-10,18.7],[0,-11.7,20],[3.5,-10,18.7]],eyeMat,.65);
  const hair=group(head),bangs=group(head);
  if(!animal){
   const cap=new T.Mesh(new T.SphereGeometry(25,24,16,0,Math.PI*2,0,Math.PI*.55),hairMat);cap.position.y=2;cap.scale.z=.87;hair.add(cap);cap.castShadow=true;
