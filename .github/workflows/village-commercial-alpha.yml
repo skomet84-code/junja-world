@@ -1,0 +1,27 @@
+name: Village commercial alpha quality gate
+on:
+  push:
+    branches:
+      - feat/village-commercial-alpha-quality-gate-20261106
+  pull_request:
+    paths:
+      - 'life/**'
+      - '.github/workflows/village-commercial-alpha.yml'
+permissions:
+  contents: read
+jobs:
+  animation-and-interaction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: life
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Avatar gait, idle breathing, landing and touch checks
+        run: node --test test_gait_v58.mjs test_avatar_idle_v84.mjs test_foot_plant_v85.mjs test_touch_arrival_v56.mjs test_touch_arrival_v57.mjs
+      - name: Character and world browser entrypoint syntax
+        run: node --check avatar3d.js && node --check world3d.js && node --check game.js
