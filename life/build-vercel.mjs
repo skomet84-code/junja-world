@@ -18,7 +18,7 @@ execFileSync(process.execPath,['--check','avatar3d.js'],{stdio:'inherit'});
 execFileSync(process.execPath,['--check','gait-pose-v58.js'],{stdio:'inherit'});
 const assets=[
  'action-energy-v47.js','secure-economy-v36.js',
- 'index.html','account-ui.js','admin-panel.js','game.js','world-energy-v53.js','farm-plots-v52.js','world3d.js','canopy-breeze-v73.js','gather-interaction-v74.js','quick-gather-v75.js','gather-approach-v76.js','avatar3d.js','face-expression-v65.js','expression-polish-v70.js','gait-pose-v58.js','garment-sway-v59.js','turn-anticipation-v60.js','contact-shadow-v61.js','skirt-clearance-v62.js','headwear-motion-v63.js','hair-hat-fit-v64.js','fashion-3d.js',
+ 'index.html','commercial-hud-v79.css','account-ui.js','admin-panel.js','game.js','world-energy-v53.js','farm-plots-v52.js','world3d.js','canopy-breeze-v73.js','gather-interaction-v74.js','quick-gather-v75.js','gather-approach-v76.js','avatar3d.js','face-expression-v65.js','expression-polish-v70.js','gait-pose-v58.js','garment-sway-v59.js','turn-anticipation-v60.js','contact-shadow-v61.js','skirt-clearance-v62.js','headwear-motion-v63.js','hair-hat-fit-v64.js','fashion-3d.js',
  'fashion-catalog.js','life-systems-v20.js','navigation.js','touch-arrival-v56.js',
  'village-arcade-v55.js','hunt.html','hunt.js','hunt-data.js','hunt-balance-v54.js','hunt-weekly-v55.js','farm-batch-v55.js','fish-portraits.js','living-world.js',
  'economy-v28.js','inventory-v29.js','combat-potions-v29.js','combat-progression-v30.js',
