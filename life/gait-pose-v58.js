@@ -7,12 +7,14 @@ export function sampleFootGait(phase, blend, side) {
  const cycle=(Number.isFinite(phase)?phase:0)+(side>0?Math.PI:0);
  const stride=Math.sin(cycle);
  const swing=Math.max(0,Math.cos(cycle));
+ // Smooth lift-off and landing instead of a sharp foot-height corner.
+ const lift=swing*swing*(3-2*swing);
  const stance=Math.max(0,-Math.cos(cycle));
  return {
   hip:stride*.53*weight,
   knee:(swing*.52+Math.max(0,-stride)*.08)*weight,
   ankle:(-swing*.33+stance*.09-stride*.09)*weight,
-  ankleLift:swing*2.6*weight,
+  ankleLift:lift*2.6*weight,
   arm:-stride*.38*weight,
   elbow:-.12-Math.max(0,-stride)*.17*weight
  };
