@@ -54,8 +54,21 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
  box(g,0xd6c29b,0,20,d/2+1,w,22,4);
  gable(g,roof,w+42,d+40,75,155);
  for(const xx of [-w/2-18,w/2+18])box(g,0xf5e7ce,xx,152,0,10,10,d+50);
- // Roof boards follow the two sloping faces; no photograph facades.
- for(let i=0;i<9;i++){const z=-d/2-14+i*(d+28)/8;const a=box(g,0xffffff, -w/4,192,z,w*.58,2,2);a.rotation.z=.49;a.material=material(new T.Color(roof).lerp(new T.Color(0xffffff),.1).getHex());const b=a.clone();b.position.x=w/4;b.rotation.z=-.49;g.add(b)}
+ // Keep decorative roof battens ON the gable slopes. The old fixed y=192,
+ // angle=.49 and w*.58 crossed the ridge or floated on differently sized houses.
+ const roofWidth=w+42,roofRise=75,roofBase=155;
+ const halfRun=roofWidth/2,roofSlope=Math.atan2(roofRise,halfRun);
+ const battenLength=Math.hypot(halfRun,roofRise)-8;
+ const battenY=roofBase+roofRise/2+3;
+ const battenColor=new T.Color(roof).lerp(new T.Color(0xffffff),.12).getHex();
+ for(let i=0;i<9;i++){
+  const z=-d/2-14+i*(d+28)/8;
+  for(const side of [-1,1]){
+   const a=box(g,battenColor,side*roofWidth/4,battenY,z,battenLength,2,2);
+   a.rotation.z=-side*roofSlope;
+   a.castShadow=false;
+  }
+ }
  const door=box(g,0x897558,0,49,d/2+4,43,83,8);box(g,0x6c927f,0,63,d/2+9,28,36,2);sphere(g,0xe8cc7a,13,43,d/2+11,3);box(g,0xf6edd4,0,97,d/2+9,54,9,10);
  for(const xx of [-w*.31,w*.31]){box(g,0xeee3c8,xx,82,d/2+4,59,65,10);box(g,0x89b6b7,xx,83,d/2+10,46,52,2);box(g,0xf7eacb,xx,83,d/2+13,4,54,3);box(g,0xf7eacb,xx,83,d/2+13,48,4,3);box(g,0x9eaf78,xx,46,d/2+14,65,16,18);for(let j=-1;j<=1;j++){sphere(g,0x70955b,xx+j*16,58,d/2+14,11,11,9);sphere(g,0xe6b3b0,xx+j*17,65,d/2+15,5)}}
  if(kind!=='home'){for(let i=0;i<7;i++){const awning=box(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,119,d/2+25,w*.123,7,55);awning.rotation.x=.12;const lip=cylinder(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,112,d/2+52,8,w*.123);lip.rotation.z=Math.PI/2}}
