@@ -81,6 +81,23 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
  }
  const ridge=box(g,fasciaColor,0,roofBase+roofRise+4,0,12,6,roofDepth+12);
  ridge.castShadow=false;
+ // v88: warm entry sconces make doorways legible at game-camera distance.
+ // Geometry-only glow avoids extra realtime lights and mobile shadow costs.
+ const entryZ=d/2+15;
+ for(const side of [-1,1]){
+  const sx=side*43;
+  const mount=box(g,0x7d7259,sx,102,entryZ,10,19,5);
+  mount.castShadow=false;
+  const lantern=box(g,0xffe2a0,sx,99,entryZ+5,12,17,10);
+  lantern.castShadow=false;
+  lantern.material=material(0xffe2a0).clone();
+  lantern.material.emissive=new T.Color(0xffbd65);
+  lantern.material.emissiveIntensity=.32;
+  for(const yy of [89,109]){
+   const cap=box(g,0x78684f,sx,yy,entryZ+5,16,3,14);
+   cap.castShadow=false;
+  }
+ }
  const door=box(g,0x897558,0,49,d/2+4,43,83,8);box(g,0x6c927f,0,63,d/2+9,28,36,2);sphere(g,0xe8cc7a,13,43,d/2+11,3);box(g,0xf6edd4,0,97,d/2+9,54,9,10);
  for(const xx of [-w*.31,w*.31]){box(g,0xeee3c8,xx,82,d/2+4,59,65,10);box(g,0x89b6b7,xx,83,d/2+10,46,52,2);box(g,0xf7eacb,xx,83,d/2+13,4,54,3);box(g,0xf7eacb,xx,83,d/2+13,48,4,3);box(g,0x9eaf78,xx,46,d/2+14,65,16,18);for(let j=-1;j<=1;j++){sphere(g,0x70955b,xx+j*16,58,d/2+14,11,11,9);sphere(g,0xe6b3b0,xx+j*17,65,d/2+15,5)}}
  if(kind!=='home'){for(let i=0;i<7;i++){const awning=box(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,119,d/2+25,w*.123,7,55);awning.rotation.x=.12;const lip=cylinder(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,112,d/2+52,8,w*.123);lip.rotation.z=Math.PI/2}}
