@@ -98,6 +98,23 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
    cap.castShadow=false;
   }
  }
+ // v89: grounded, readable entrance stonework. Steps project into the front
+ // yard, never into the roof or doorway; no extra realtime lights or textures.
+ // Keep the existing station picking root and collision geometry unchanged.
+ const porchZ=d/2+26;
+ const porch=box(g,0xdac8a6,0,7,porchZ,90,14,54);
+ porch.castShadow=false;
+ const top=box(g,0xf5e8cd,0,15,porchZ-6,84,3,40);
+ top.castShadow=false;
+ const lowerStep=box(g,0xcbb89a,0,3,porchZ+40,112,6,26);
+ lowerStep.castShadow=false;
+ for(const side of [-1,1]){
+  const x=side*51;
+  const post=box(g,0xbca17c,x,13,porchZ-9,7,26,7);
+  post.castShadow=false;
+  const finial=sphere(g,0xf2dfb6,x,28,porchZ-9,5,5,5);
+  finial.castShadow=false;
+ }
  const door=box(g,0x897558,0,49,d/2+4,43,83,8);box(g,0x6c927f,0,63,d/2+9,28,36,2);sphere(g,0xe8cc7a,13,43,d/2+11,3);box(g,0xf6edd4,0,97,d/2+9,54,9,10);
  for(const xx of [-w*.31,w*.31]){box(g,0xeee3c8,xx,82,d/2+4,59,65,10);box(g,0x89b6b7,xx,83,d/2+10,46,52,2);box(g,0xf7eacb,xx,83,d/2+13,4,54,3);box(g,0xf7eacb,xx,83,d/2+13,48,4,3);box(g,0x9eaf78,xx,46,d/2+14,65,16,18);for(let j=-1;j<=1;j++){sphere(g,0x70955b,xx+j*16,58,d/2+14,11,11,9);sphere(g,0xe6b3b0,xx+j*17,65,d/2+15,5)}}
  if(kind!=='home'){for(let i=0;i<7;i++){const awning=box(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,119,d/2+25,w*.123,7,55);awning.rotation.x=.12;const lip=cylinder(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,112,d/2+52,8,w*.123);lip.rotation.z=Math.PI/2}}
