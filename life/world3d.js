@@ -146,7 +146,19 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
  const lantern=box(g,0xf4d995,0,128,d/2+28,13,18,13);
  lantern.castShadow=false;
  box(g,0x7d8067,0,140,d/2+28,20,5,20).castShadow=false;
-  const chimney=box(g,0xb08b75,w*.3,211,-d*.25,28,70,30);box(g,0x876e62,w*.3,248,-d*.25,35,9,37);
+ // v90: size-aware chimney that grows from the actual roof slope instead of
+ // a fixed world-space height. The collar masks the roof/chimney intersection.
+ // Keep the chimney near the back slope to avoid covering the entrance.
+ const chimneyX=w*.3,chimneyZ=-d*.25;
+ const roofSurfaceY=roofBase+roofRise*(1-Math.abs(chimneyX)/(roofWidth/2));
+ const chimneyHeight=78,chimneyCenterY=roofSurfaceY+chimneyHeight/2-5;
+ const chimney=box(g,0xb08b75,chimneyX,chimneyCenterY,chimneyZ,28,chimneyHeight+10,30);
+ chimney.castShadow=false;
+ const flashing=box(g,0x827e74,chimneyX,roofSurfaceY+3,chimneyZ,39,7,42);
+ flashing.rotation.z=-roofSlope;flashing.castShadow=false;
+ const capY=chimneyCenterY+(chimneyHeight+10)/2+4;
+ box(g,0x876e62,chimneyX,capY,chimneyZ,37,9,39).castShadow=false;
+ box(g,0x5d514c,chimneyX,capY+5,chimneyZ,23,2,25).castShadow=false;
  box(g,0xe1ceaa,0,5,d/2+31,67,10,35);
  label(g,name,0,260,0,170);
  return g;
