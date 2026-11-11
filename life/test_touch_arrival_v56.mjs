@@ -36,6 +36,9 @@ test('destination cue positions in CSS pixels, remains pointer-transparent, and 
 });
 test('passive canvas handlers track one finger, cancel cleanly and never prevent input',()=>{
  const doc=fakeDoc(),canvas=new FakeElement();
+ // Model the canvas viewport: newer touch handling correctly rejects releases
+ // outside the actual canvas, which the old fake element did not implement.
+ canvas.getBoundingClientRect=()=>({left:0,top:0,right:320,bottom:240});
  const cue=installTouchArrivalFeedback(canvas,doc);
  assert.ok(cue);
  canvas.emit('pointerdown',{pointerId:1,button:0,clientX:10,clientY:20});
