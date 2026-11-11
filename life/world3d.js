@@ -49,7 +49,12 @@ function gable(parent,color,width,depth,height,y){
 }
 function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게',action}){
  const g=group(scene,x,0,y);g.userData.pick={type:'station',id:action};
- box(g,0xc6ae87,0,7,0,w+32,14,d+25);box(g,0xf3e5c7,0,82,0,w,145,d);
+ // v91: distinguish homes from commerce with an original, coherent facade palette.
+ // Keep the same footprints and station picking/collision behavior.
+ const isHome=kind==='home';
+ const wallColor=isHome?0xf4dfc6:0xe6e8d4;
+ const foundationColor=isHome?0xbda58b:0x9daea2;
+ box(g,foundationColor,0,7,0,w+32,14,d+25);box(g,wallColor,0,82,0,w,145,d);
  for(const xx of [-w/2,w/2])for(const zz of [-d/2,d/2])cylinder(g,0xb79b6f,xx,76,zz,7,145);
  box(g,0xd6c29b,0,20,d/2+1,w,22,4);
  gable(g,roof,w+42,d+40,75,155);
@@ -117,7 +122,23 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
  }
  const door=box(g,0x897558,0,49,d/2+4,43,83,8);box(g,0x6c927f,0,63,d/2+9,28,36,2);sphere(g,0xe8cc7a,13,43,d/2+11,3);box(g,0xf6edd4,0,97,d/2+9,54,9,10);
  for(const xx of [-w*.31,w*.31]){box(g,0xeee3c8,xx,82,d/2+4,59,65,10);box(g,0x89b6b7,xx,83,d/2+10,46,52,2);box(g,0xf7eacb,xx,83,d/2+13,4,54,3);box(g,0xf7eacb,xx,83,d/2+13,48,4,3);box(g,0x9eaf78,xx,46,d/2+14,65,16,18);for(let j=-1;j<=1;j++){sphere(g,0x70955b,xx+j*16,58,d/2+14,11,11,9);sphere(g,0xe6b3b0,xx+j*17,65,d/2+15,5)}}
- if(kind!=='home'){for(let i=0;i<7;i++){const awning=box(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,119,d/2+25,w*.123,7,55);awning.rotation.x=.12;const lip=cylinder(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,112,d/2+52,8,w*.123);lip.rotation.z=Math.PI/2}}
+ if(!isHome){
+  // Shops have a striped canopy and a raised sign band; homes keep a calm facade.
+  for(let i=0;i<7;i++){
+   const awning=box(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,119,d/2+25,w*.123,7,55);
+   awning.rotation.x=.12;
+   const lip=cylinder(g,i%2?0xf5eac9:roof,-w*.37+i*w*.123,112,d/2+52,8,w*.123);
+   lip.rotation.z=Math.PI/2;
+  }
+  box(g,0x718f80,0,147,d/2+7,w*.68,17,8).castShadow=false;
+  box(g,0xf5ead5,0,147,d/2+12,w*.59,7,2).castShadow=false;
+ }else{
+  // Homes have timber wainscoting and restrained roof-toned flower boxes.
+  box(g,0xc9ad8c,0,31,d/2+6,w-20,8,5).castShadow=false;
+  for(const xx of [-w*.43,w*.43]){
+   box(g,0xc9ad8c,xx,68,d/2+6,6,67,5).castShadow=false;
+  }
+ }
  // v81 original architecture pass: real depth, not a pasted facade.
  // Low-poly geometry shares cached materials; only the front elevation is detailed.
  const frontage=d/2+17;
