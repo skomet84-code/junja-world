@@ -38,7 +38,11 @@ test('invalid nodes and ties are safe and deterministic, no mutation',()=>{
 test('game integrates discover, path-to-gather and full-bag guard',async()=>{
  const {readFile}=await import('node:fs/promises');
  const game=await readFile(new URL('./game.js',import.meta.url),'utf8');
- assert.match(game,/nearestGatherResource\(resourceNodes,player,state\.nodeReady/);
+ assert.match(game,/resourceNodes\s*\.filter\(n=>!\(state\.nodeReady\[n\.id\]>now\)/);
+ // Current implementation caches only reachable resources rather than using
+ // the obsolete nearest-only lookup that could select blocked trees.
+ assert.match(game,/findGatherApproach\(n,player,navigation\)/);
+ assert.match(game,/quickContextCache=\{at:now,x:player\.x,y:player\.y,resource\}/);
  assert.match(game,/if\(bagFree\(state\)<1\)\{openFullBagSales\('material'\);return false\}/);
  assert.match(game,/approachGatherResource\(n\)/);
 });
