@@ -89,6 +89,7 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
  // v88: warm entry sconces make doorways legible at game-camera distance.
  // Geometry-only glow avoids extra realtime lights and mobile shadow costs.
  const entryZ=d/2+15;
+ g.userData.entryLanterns=[];
  for(const side of [-1,1]){
   const sx=side*43;
   const mount=box(g,0x7d7259,sx,102,entryZ,10,19,5);
@@ -98,6 +99,7 @@ function building(scene,{x,y,w=280,d=180,roof=0x6e9a99,kind='shop',name='가게'
   lantern.material=material(0xffe2a0).clone();
   lantern.material.emissive=new T.Color(0xffbd65);
   lantern.material.emissiveIntensity=.32;
+  g.userData.entryLanterns.push(lantern);
   for(const yy of [89,109]){
    const cap=box(g,0x78684f,sx,yy,entryZ+5,16,3,14);
    cap.castShadow=false;
@@ -514,6 +516,9 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  burstMesh.instanceMatrix.setUsage(T.DynamicDrawUsage);burstMesh.frustumCulled=false;scene.add(burstMesh);
  const burstParts=Array.from({length:24},()=>({life:0})),dummy=new T.Object3D();let burstCursor=0;
  function burst(x,z,color=0xf6d793){if(reducedMotion)return;for(let i=0;i<10;i++){const p=burstParts[burstCursor%24],angle=i*Math.PI*2/10;Object.assign(p,{x,z,y:25,dx:Math.cos(angle)*38,dz:Math.sin(angle)*38,dy:40+Math.random()*25,life:1});burstMesh.setColorAt(burstCursor%24,new T.Color(color));burstCursor++}burstMesh.instanceColor.needsUpdate=true}
+ // v92: gather emissive porch lamps once, not during every animation frame.
+ const animatedEntryLanterns=[];
+ scene.traverse(node=>{if(node.userData.entryLanterns) animatedEntryLanterns.push(...node.userData.entryLanterns)});
  let lastVillageLightPhase='',nextVillageLightPoll=0;
  function render({state,actor,npcs:ns,animals:as,peers={},time,dt,goal,path}){
   if(time>=nextVillageLightPoll){
@@ -525,6 +530,13 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
     skyAmbient.intensity=mood.hemisphere;sun.intensity=mood.sun;
     renderer.shadowMap.needsUpdate=true;
    }
+  }
+  // Warm, subtle lantern breathing at dusk/night. No dynamic lights or new draw calls.
+  // Reduced-motion users receive a stable glow instead of pulsing animation.
+  const nightGlow=lastVillageLightPhase==='night'||lastVillageLightPhase==='evening';
+  for(let i=0;i<animatedEntryLanterns.length;i++){
+   const lamp=animatedEntryLanterns[i];
+   lamp.material.emissiveIntensity=nightGlow?(reducedMotion?.52:.48+.075*Math.sin(time*1.7+i*1.31)):.16;
   }
   for(let i=0;i<burstParts.length;i++){const p=burstParts[i];p.life=Math.max(0,p.life-dt*1.4);if(p.life){p.x+=p.dx*dt;p.z+=p.dz*dt;p.dy-=110*dt;p.y+=p.dy*dt}dummy.position.set(p.x||0,Math.max(2,p.y||0),p.z||0);dummy.scale.setScalar(p.life);dummy.updateMatrix();burstMesh.setMatrixAt(i,dummy.matrix)}burstMesh.instanceMatrix.needsUpdate=true;
   if(!reducedMotion){
