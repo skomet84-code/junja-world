@@ -6,6 +6,7 @@ import {BUSINESS_PORTAL_V42} from './district-portal-v42.js';
 import {v43LightMood} from './village-life-v43.js';
 import {sampleCanopyBreeze} from './canopy-breeze-v73.js';
 import {sampleGatherPulse} from './gather-interaction-v74.js';
+import {approachGlow,porchGlowTarget} from './porch-glow-v93.mjs';
 
 const materials=new Map();
 function material(color){if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:.95}));return materials.get(color)}
@@ -533,10 +534,11 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   }
   // Warm, subtle lantern breathing at dusk/night. No dynamic lights or new draw calls.
   // Reduced-motion users receive a stable glow instead of pulsing animation.
-  const nightGlow=lastVillageLightPhase==='night'||lastVillageLightPhase==='evening';
+  // v93: fade smoothly when daypart changes, independent of FPS; no extra lights.
   for(let i=0;i<animatedEntryLanterns.length;i++){
    const lamp=animatedEntryLanterns[i];
-   lamp.material.emissiveIntensity=nightGlow?(reducedMotion?.52:.48+.075*Math.sin(time*1.7+i*1.31)):.16;
+   const target=porchGlowTarget(lastVillageLightPhase,time,i,reducedMotion);
+   lamp.material.emissiveIntensity=approachGlow(lamp.material.emissiveIntensity,target,dt);
   }
   for(let i=0;i<burstParts.length;i++){const p=burstParts[i];p.life=Math.max(0,p.life-dt*1.4);if(p.life){p.x+=p.dx*dt;p.z+=p.dz*dt;p.dy-=110*dt;p.y+=p.dy*dt}dummy.position.set(p.x||0,Math.max(2,p.y||0),p.z||0);dummy.scale.setScalar(p.life);dummy.updateMatrix();burstMesh.setMatrixAt(i,dummy.matrix)}burstMesh.instanceMatrix.needsUpdate=true;
   if(!reducedMotion){
