@@ -91,6 +91,7 @@ export function installTouchArrivalFeedback(canvas,doc=document){
  },{passive:true});
  canvas.addEventListener('pointermove',e=>{
   if(pointerId!==e.pointerId)return;
+  if(!Number.isFinite(e.clientX)||!Number.isFinite(e.clientY))return;
   if(Math.hypot(e.clientX-startX,e.clientY-startY)>9)dragging=true;
   if(dragging)cue.drag(e.clientX,e.clientY);
  },{passive:true});
@@ -99,7 +100,9 @@ export function installTouchArrivalFeedback(canvas,doc=document){
  const finish=(e,onCanvas)=>{
   if(pointerId!==e.pointerId)return;
   pointerId=null;
-  if(onCanvas&&isCanvasPointInside(canvas,e.clientX,e.clientY))cue.arrive(e.clientX,e.clientY);else cue.cancel();
+  // A drag pans the view; it must not masquerade as a tap destination.
+  if(!dragging&&onCanvas&&isCanvasPointInside(canvas,e.clientX,e.clientY))cue.arrive(e.clientX,e.clientY);else cue.cancel();
+  dragging=false;
  };
  canvas.addEventListener('pointerup',e=>finish(e,true),{passive:true});
  doc.defaultView?.addEventListener('pointerup',e=>finish(e,false),{passive:true});
