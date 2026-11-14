@@ -20,6 +20,11 @@ const cue=installTouchArrivalFeedback(canvas,doc);
 canvas.emit('pointerdown',{pointerId:1,button:0,isPrimary:true,clientX:100,clientY:100});
 canvas.emit('pointermove',{pointerId:1,clientX:140,clientY:130});
 assert.match(cue.element.className,/is-drag/);
+// Drag release inside canvas should NOT signal a movement destination.
+canvas.emit('pointerup',{pointerId:1,clientX:140,clientY:130});
+assert.equal(cue.element.className,'v56-touch-cue','camera drag must not show arrival');
+canvas.emit('pointerdown',{pointerId:1,button:0,isPrimary:true,clientX:100,clientY:100});
+canvas.emit('pointermove',{pointerId:1,clientX:140,clientY:130});
 // Pointer capture delivers pointerup to canvas even when released outside.
 canvas.emit('pointerup',{pointerId:1,clientX:500,clientY:130});
 assert.equal(cue.element.className,'v56-touch-cue','outside release must not show arrival');
