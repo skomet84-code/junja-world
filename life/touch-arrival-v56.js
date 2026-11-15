@@ -83,17 +83,18 @@ export function isCanvasPointInside(canvas,x,y){
 export function installTouchArrivalFeedback(canvas,doc=document){
  if(!canvas)return null;
  const cue=createTouchArrivalFeedback(doc);
- let pointerId=null,startX=0,startY=0,dragging=false;
+ let pointerId=null,startX=0,startY=0,dragging=false,multiTouch=false;
  canvas.addEventListener('pointerdown',e=>{
-  if(pointerId!==null||e.button!==0||e.isPrimary===false)return;
-  pointerId=e.pointerId;startX=e.clientX;startY=e.clientY;dragging=false;
+  if(pointerId!==null){multiTouch=true;cue.cancel();return;}
+  if(e.button!==0||e.isPrimary===false||!isCanvasPointInside(canvas,e.clientX,e.clientY))return;
+  pointerId=e.pointerId;startX=e.clientX;startY=e.clientY;dragging=false;multiTouch=false;
   cue.press(e.clientX,e.clientY);
  },{passive:true});
  canvas.addEventListener('pointermove',e=>{
   if(pointerId!==e.pointerId)return;
   if(!Number.isFinite(e.clientX)||!Number.isFinite(e.clientY))return;
   if(Math.hypot(e.clientX-startX,e.clientY-startY)>9)dragging=true;
-  if(dragging)cue.drag(e.clientX,e.clientY);
+  if(dragging&&!multiTouch)cue.drag(e.clientX,e.clientY);
  },{passive:true});
  // A release outside the canvas must not leave a glowing destination behind.
  // Only a release delivered to the game canvas gets the arrival ripple.
@@ -101,16 +102,16 @@ export function installTouchArrivalFeedback(canvas,doc=document){
   if(pointerId!==e.pointerId)return;
   pointerId=null;
   // A drag pans the view; it must not masquerade as a tap destination.
-  if(!dragging&&onCanvas&&isCanvasPointInside(canvas,e.clientX,e.clientY))cue.arrive(e.clientX,e.clientY);else cue.cancel();
-  dragging=false;
+  if(!dragging&&!multiTouch&&onCanvas&&isCanvasPointInside(canvas,e.clientX,e.clientY))cue.arrive(e.clientX,e.clientY);else cue.cancel();
+  dragging=false;multiTouch=false;
  };
  canvas.addEventListener('pointerup',e=>finish(e,true),{passive:true});
  doc.defaultView?.addEventListener('pointerup',e=>finish(e,false),{passive:true});
  canvas.addEventListener('pointercancel',e=>{
   if(pointerId!==e.pointerId)return;
-  pointerId=null;cue.cancel();
+  pointerId=null;multiTouch=false;cue.cancel();
  },{passive:true});
- const clear=()=>{pointerId=null;cue.cancel()};
+ const clear=()=>{pointerId=null;multiTouch=false;cue.cancel()};
  doc.defaultView?.addEventListener('pointercancel',e=>{if(pointerId===e.pointerId)clear()},{passive:true});
  doc.defaultView?.addEventListener('blur',clear);
  doc.addEventListener('visibilitychange',()=>{if(doc.hidden)clear()});
