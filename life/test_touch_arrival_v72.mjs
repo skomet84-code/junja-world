@@ -39,4 +39,16 @@ assert.equal(cue.element.className,'v56-touch-cue');
 canvas.emit('pointerdown',{pointerId:5,button:0,isPrimary:true,clientX:80,clientY:90});
 doc.defaultView.emit('blur');
 assert.equal(cue.element.className,'v56-touch-cue');
-console.log('PASS v72 touch arrival, capture bounds, cancel and blur');
+// Two-finger camera pinch must never look like a tap-to-move destination.
+canvas.emit('pointerdown',{pointerId:10,button:0,isPrimary:true,clientX:100,clientY:120});
+canvas.emit('pointerdown',{pointerId:11,button:0,isPrimary:false,clientX:140,clientY:120});
+assert.equal(cue.element.className,'v56-touch-cue','second finger cancels press feedback');
+canvas.emit('pointerup',{pointerId:11,clientX:140,clientY:120});
+canvas.emit('pointerup',{pointerId:10,clientX:100,clientY:120});
+assert.equal(cue.element.className,'v56-touch-cue','pinch must not trigger arrival');
+canvas.emit('pointerdown',{pointerId:12,button:0,isPrimary:true,clientX:100,clientY:120});
+canvas.emit('pointerup',{pointerId:12,clientX:100,clientY:120});
+assert.match(cue.element.className,/is-arrival/,'fresh tap after pinch works');
+canvas.emit('pointerdown',{pointerId:13,button:0,isPrimary:true,clientX:NaN,clientY:120});
+assert.match(cue.element.className,/is-arrival/,'invalid pointerdown is ignored');
+console.log('PASS v95 touch arrival, multitouch suppression, capture bounds, cancel and blur');
