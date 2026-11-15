@@ -199,16 +199,20 @@ window.startVillageGame=()=>{
    const data=await r.json();
    window.__villageCloudSave=data.save||null;
    stage="game";
-   await import("./game.js?v=v55-grand-20261020");
+   await import("./game.js?v=v97-startup-diagnostic-20261116");
    window.__villageGameStarted=true;
    return true;
   }catch(e){
    window.__villageGameStarted=false;
    const gate=document.getElementById("villageGate"),status=document.getElementById("villageGateStatus");
    if(gate)gate.hidden=false;
-   if(status)status.textContent=stage==="game"?
-    "⚠️ 게임 화면을 불러오지 못했어요. 저장 기록은 유지돼요. 새로고침 후 다시 시도해 주세요.":
-    "⚠️ 저장 기록을 확인할 수 없어요. 기존 레벨을 보호하기 위해 입장을 중지했어요. 잠시 후 다시 로그인해 주세요.";
+   if(status){
+    const detail=String(e?.message||e||"알 수 없는 오류").slice(0,180);
+    status.textContent=(stage==="game"?
+     "⚠️ 게임 실행 오류 (저장 기록 유지): ":
+     "⚠️ 저장 서버 오류 (기존 레벨 보호): ")+detail;
+    status.setAttribute("role","alert");
+   }
    console.error("Village startup blocked to protect save",e);
    return false;
   }finally{window.__villageStartPromise=null}
