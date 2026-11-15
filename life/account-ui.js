@@ -35,7 +35,7 @@ function signOutView(){
  window.dispatchEvent(new CustomEvent('village-auth',{detail:null}));
  window.villageGateLogout?.();
 }
-async function refresh(){
+async function refresh({enterVillage=true}={}){
  let r;
  try{r=await api('me')}catch(e){
   signOutView();
@@ -54,10 +54,15 @@ async function refresh(){
   location.reload();return true;
  }
  window.dispatchEvent(new CustomEvent('village-auth',{detail:r.user}));
- try{await window.villageGateEnter?.(r.user)}catch(e){say('⚠️ 마을 입장 중 오류: '+(e?.message||'확인 필요'))}
+ if(enterVillage){
+  try{
+   await window.villageGateEnter?.(r.user);
+   if(document.getElementById('villageGate')?.hidden)layer.classList.remove('show');
+  }catch(e){say('⚠️ 마을 입장 중 오류: '+(e?.message||'확인 필요'))}
+ }
  return true;
 }
-$('accountOpen').onclick=()=>{layer.classList.add('show');void refresh()};
+$('accountOpen').onclick=()=>{layer.classList.add('show');void refresh({enterVillage:false})};
 $('accountClose').onclick=()=>layer.classList.remove('show');
 async function action(name,body){
  if(authBusy)return;
