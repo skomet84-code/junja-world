@@ -206,6 +206,8 @@ window.startVillageGame=()=>{
    window.__villageGameStarted=false;
    const gate=document.getElementById("villageGate"),status=document.getElementById("villageGateStatus");
    if(gate)gate.hidden=false;
+   const retry=document.getElementById("villageGateRetry");
+   if(retry)retry.hidden=false;
    if(status){
     const detail=String(e?.message||e||"알 수 없는 오류").slice(0,180);
     status.textContent=(stage==="game"?
@@ -261,17 +263,21 @@ window.addEventListener('load',()=>{
 #villageGateCard p{line-height:1.5;font-size:14px}
 #villageGateCard button{border:0;border-radius:13px;padding:12px 18px;background:#8fca9c;color:#173e27;font-weight:800;margin:5px}
 #villageGateCard button.secondary{background:#e4e5d1}
+#villageGateCard button[hidden]{display:none}
+#villageGateCard button:disabled{opacity:.65;cursor:wait}
+#villageGateRetry{min-height:48px;touch-action:manipulation;background:#d7ead5!important}
 </style>
-<div id="villageGate"><div id="villageGateCard"><div style="font-size:58px">🌳🐰🏡</div><h1>모여봐요<br>반말방숲</h1><p>친구들과 함께 살아가는 우리들의 마을</p><button id="villageGateLogin">🔐 로그인</button><button id="villageGateRegister" class="secondary">🌱 회원가입</button><p id="villageGateStatus">신규 회원가입 후 로그인하세요. 운영자 기록은 별도로 보호됩니다.</p></div></div>
+<div id="villageGate"><div id="villageGateCard"><div style="font-size:58px">🌳🐰🏡</div><h1>모여봐요<br>반말방숲</h1><p>친구들과 함께 살아가는 우리들의 마을</p><button id="villageGateLogin">🔐 로그인</button><button id="villageGateRegister" class="secondary">🌱 회원가입</button><button id="villageGateRetry" type="button" hidden aria-live="polite">↻ 마을 다시 열기</button><p id="villageGateStatus">신규 회원가입 후 로그인하세요. 운영자 기록은 별도로 보호됩니다.</p></div></div>
 <script>
 (function(){
-const gate=document.getElementById('villageGate'),status=document.getElementById('villageGateStatus');
+const gate=document.getElementById('villageGate'),status=document.getElementById('villageGateStatus'),retry=document.getElementById('villageGateRetry');
 function openAccount(register){document.getElementById('accountLayer').classList.add('show');if(register){document.getElementById('accountNick').focus()}else{document.getElementById('accountUser').focus()}}
 document.getElementById('villageGateLogin').onclick=()=>openAccount(false);
 document.getElementById('villageGateRegister').onclick=()=>openAccount(true);
 
-window.villageGateEnter=async function(user){if(!user)return;status.textContent='환영해요, '+user.nickname+'! 저장 기록을 확인하고 마을을 여는 중이에요…';const ready=await window.startVillageGame?.();if(ready)gate.hidden=true;};
-window.villageGateLogout=function(){gate.hidden=false;status.textContent='계정으로 로그인하면 입장할 수 있어요.'};
+window.villageGateEnter=async function(user){if(!user)return;retry.hidden=true;status.textContent='환영해요, '+user.nickname+'! 저장 기록을 확인하고 마을을 여는 중이에요…';const ready=await window.startVillageGame?.();if(ready)gate.hidden=true;};
+retry.onclick=async()=>{if(retry.disabled)return;retry.disabled=true;retry.textContent='⏳ 다시 연결하는 중…';status.textContent='저장 기록을 확인하고 마을을 다시 여는 중이에요…';try{if(await window.startVillageGame?.()){gate.hidden=true;retry.hidden=true}}finally{retry.disabled=false;retry.textContent='↻ 마을 다시 열기'}};
+window.villageGateLogout=function(){gate.hidden=false;retry.hidden=true;status.textContent='계정으로 로그인하면 입장할 수 있어요.'};
 })();
 </script><style>
 /* v47: disciplined 8-button responsive quick bar; every touch target is at least 44px. */
