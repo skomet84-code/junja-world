@@ -321,7 +321,15 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   sphere(districtSign,0xf5d78b,side,77,0,11)}
  box(districtSign,0xf6dfb6,0,80,0,127,18,11);
  label(districtSign,'BUSINESS VILLAGE',0,128,0,140);
- pickRoots.push(fountain(scene));bench(scene,845,875);bench(scene,1160,810);bench(scene,2740,1940);
+ pickRoots.push(fountain(scene));
+ // v98: two lightweight, independent water ripples above the fountain pool.
+ // Keep them outside the static batch and raycast roots so interaction remains unchanged.
+ const fountainRipples=[0,1].map(i=>{
+  const ring=new T.Mesh(new T.RingGeometry(24,25.6,48),new T.MeshBasicMaterial({color:0xe8fff2,transparent:true,opacity:.48,side:T.DoubleSide,depthWrite:false}));
+  ring.rotation.x=-Math.PI/2;ring.position.set(1010,27.7+i*.15,695);
+  ring.castShadow=false;ring.receiveShadow=false;ring.renderOrder=3;scene.add(ring);return ring;
+ });
+ bench(scene,845,875);bench(scene,1160,810);bench(scene,2740,1940);
  for(const [x,z] of [[650,780],[1340,780],[760,1100],[1450,1020],[1215,605],[740,610],[2130,950],[2700,860],[3100,1000],[2830,1940]])lamp(scene,x,z);
  // Pier physically projects above the sea; fish action uses this same location.
  const dock=group(scene,1498,0,1240);dock.userData.pick={type:'station',id:'pier'};for(let j=0;j<12;j++)box(dock,j%2?0xc8a77a:0xd2b386,0,2,-50+j*10,94,5,8);for(const x of [-50,50])for(const z of [-50,60]){cylinder(dock,0x9c815e,x,12,z,5,35);sphere(dock,0xbfa17b,x,30,z,6,3,6)}
@@ -532,6 +540,14 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
     renderer.shadowMap.needsUpdate=true;
    }
   }
+  // Calm fountain animation; reduced-motion devices keep a fixed pair of rings.
+  for(let i=0;i<fountainRipples.length;i++){
+   const ripple=fountainRipples[i];
+   const phase=reducedMotion?i*.5:((time*.24+i*.5)%1);
+   const radiusScale=.7+phase*1.65;
+   ripple.scale.set(radiusScale,radiusScale,1);
+   ripple.material.opacity=reducedMotion?.23:(.44*(1-phase));
+  }
   // Warm, subtle lantern breathing at dusk/night. No dynamic lights or new draw calls.
   // Reduced-motion users receive a stable glow instead of pulsing animation.
   // v93: fade smoothly when daypart changes, independent of FPS; no extra lights.
@@ -585,5 +601,5 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,burst,setGathering,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,daypart:lastVillageLightPhase,residentMotion:villagers.length,residentPositions:villagers.map(v=>({x:Math.round(v.root.position.x),y:Math.round(v.root.position.z)})),displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(595-46,880)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{burstMesh.geometry.dispose();burstMesh.material.dispose();for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();for(const guest of guestAvatars.values())if(guest.pet)guest.pet.dispose();renderer.dispose();previewRenderer?.dispose()}};
+ return {render,burst,setGathering,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,daypart:lastVillageLightPhase,residentMotion:villagers.length,residentPositions:villagers.map(v=>({x:Math.round(v.root.position.x),y:Math.round(v.root.position.z)})),displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(595-46,880)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const ripple of fountainRipples){scene.remove(ripple);ripple.geometry.dispose();ripple.material.dispose()}burstMesh.geometry.dispose();burstMesh.material.dispose();for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();for(const guest of guestAvatars.values())if(guest.pet)guest.pet.dispose();renderer.dispose();previewRenderer?.dispose()}};
 }
