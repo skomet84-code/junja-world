@@ -526,6 +526,19 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
  const burstParts=Array.from({length:24},()=>({life:0})),dummy=new T.Object3D();let burstCursor=0;
  function burst(x,z,color=0xf6d793){if(reducedMotion)return;for(let i=0;i<10;i++){const p=burstParts[burstCursor%24],angle=i*Math.PI*2/10;Object.assign(p,{x,z,y:25,dx:Math.cos(angle)*38,dz:Math.sin(angle)*38,dy:40+Math.random()*25,life:1});burstMesh.setColorAt(burstCursor%24,new T.Color(color));burstCursor++}burstMesh.instanceColor.needsUpdate=true}
  // v92: gather emissive porch lamps once, not during every animation frame.
+ // v99: one instanced draw call for a tiny firefly grove near the plaza.
+ // Purely decorative: no picking, shadows, dynamic lights, or saved state.
+ const fireflyCount=isCompact?9:16;
+ const fireflyGeometry=new T.SphereGeometry(2.8,6,4);
+ const fireflyMaterial=new T.MeshBasicMaterial({color:0xffe9a2,transparent:true,opacity:.86,depthWrite:false});
+ const fireflies=new T.InstancedMesh(fireflyGeometry,fireflyMaterial,fireflyCount);
+ fireflies.instanceMatrix.setUsage(T.DynamicDrawUsage);
+ fireflies.frustumCulled=false;fireflies.castShadow=false;fireflies.receiveShadow=false;
+ const fireflyDummy=new T.Object3D();
+ const fireflySeeds=Array.from({length:fireflyCount},(_,i)=>({
+  x:790+(i*73%410),z:1020+(i*127%350),phase:i*2.399963,rate:.52+(i%5)*.12
+ }));
+ scene.add(fireflies);
  const animatedEntryLanterns=[];
  scene.traverse(node=>{if(node.userData.entryLanterns) animatedEntryLanterns.push(...node.userData.entryLanterns)});
  let lastVillageLightPhase='',nextVillageLightPoll=0;
@@ -539,6 +552,20 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
     skyAmbient.intensity=mood.hemisphere;sun.intensity=mood.sun;
     renderer.shadowMap.needsUpdate=true;
    }
+  }
+  // Fireflies appear only in the evening/night, and only near the player.
+  // Reduced-motion preference holds every firefly in a fixed position.
+  const fireflyNight=lastVillageLightPhase==='evening'||lastVillageLightPhase==='night';
+  const fireflyNearby=Math.hypot(actor.x-995,actor.y-1180)<1050;
+  fireflies.visible=fireflyNight&&fireflyNearby;
+  if(fireflies.visible){
+   for(let i=0;i<fireflyCount;i++){
+    const f=fireflySeeds[i],t=reducedMotion?0:time*f.rate+f.phase;
+    fireflyDummy.position.set(f.x+Math.sin(t*.7)*12,37+(i%4)*11+Math.sin(t*1.7)*9,f.z+Math.cos(t*.8)*11);
+    fireflyDummy.scale.setScalar(reducedMotion?.78:.6+.35*(1+Math.sin(t*2.3)));
+    fireflyDummy.updateMatrix();fireflies.setMatrixAt(i,fireflyDummy.matrix);
+   }
+   fireflies.instanceMatrix.needsUpdate=true;
   }
   // Calm fountain animation; reduced-motion devices keep a fixed pair of rings.
   for(let i=0;i<fountainRipples.length;i++){
@@ -601,5 +628,5 @@ export function createWorld({canvas,width,height,stations,resources,beds,npcs,an
   avgMs+=(dt*1000-avgMs)*.05;frameCount++;
  }
  resize();follow(currentPlayer);
- return {render,burst,setGathering,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,daypart:lastVillageLightPhase,residentMotion:villagers.length,residentPositions:villagers.map(v=>({x:Math.round(v.root.position.x),y:Math.round(v.root.position.z)})),displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(595-46,880)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{for(const ripple of fountainRipples){scene.remove(ripple);ripple.geometry.dispose();ripple.material.dispose()}burstMesh.geometry.dispose();burstMesh.material.dispose();for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();for(const guest of guestAvatars.values())if(guest.pet)guest.pet.dispose();renderer.dispose();previewRenderer?.dispose()}};
+ return {render,burst,setGathering,screenToWorld,pick,fitting,setNickname:(name)=>playerLabel.userData.setLabel(name),sayLocal,turnFitting:()=>{previewAngle+=Math.PI/4},walkFitting:()=>{previewWalking=!previewWalking;return previewWalking},blocked:(x,z)=>solids.some(s=>Math.hypot(x-s.x,z-s.z)<s.r+8),stats:()=>({renderer:'WebGL 3D',drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,averageFrameMs:Math.round(avgMs),frames:frameCount,rig:'shared joint hierarchy',mobileBackbuffer:isCompact?1.35:1.8,interactiveRaycastRoots:pickRoots.length,onlineGuests:guestAvatars.size,daypart:lastVillageLightPhase,residentMotion:villagers.length,residentPositions:villagers.map(v=>({x:Math.round(v.root.position.x),y:Math.round(v.root.position.z)})),displayNameWidth:playerLabel.scale.x,speech:playerSpeech.visible?playerPhrase:null,pet:petId,faceCameraElevation:Math.round(Math.atan2(595-46,880)*180/Math.PI),fittingView:previewCamera?(()=>{previewAvatar.root.updateMatrixWorld(true);previewCamera.updateMatrixWorld(true);const box=new T.Box3().setFromObject(previewAvatar.root);return {width:previewCanvas.clientWidth,height:previewCanvas.clientHeight,feetNdcY:new T.Vector3(0,box.min.y,0).project(previewCamera).y,headNdcY:new T.Vector3(0,box.max.y,0).project(previewCamera).y}})():null,coat:player.equipped.coat,hat:player.equipped.hat}),dispose:()=>{scene.remove(fireflies);fireflyGeometry.dispose();fireflyMaterial.dispose();for(const ripple of fountainRipples){scene.remove(ripple);ripple.geometry.dispose();ripple.material.dispose()}burstMesh.geometry.dispose();burstMesh.material.dispose();for(const guest of guestAvatars.values())guest.avatar.dispose();guestAvatars.clear();if(petActor)petActor.dispose();if(previewPet)previewPet.dispose();for(const guest of guestAvatars.values())if(guest.pet)guest.pet.dispose();renderer.dispose();previewRenderer?.dispose()}};
 }
