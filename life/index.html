@@ -194,7 +194,11 @@ window.startVillageGame=()=>{
  window.__villageStartPromise=(async()=>{
   let stage="save";
   try{
-   const r=await fetch("/api/account?action=save",{credentials:"same-origin",cache:"no-store"});
+   const saveAbort=new AbortController();
+   const saveTimer=setTimeout(()=>saveAbort.abort(),8000);
+   let r;
+   try{r=await fetch("/api/account?action=save",{credentials:"same-origin",cache:"no-store",signal:saveAbort.signal});}
+   finally{clearTimeout(saveTimer)}
    if(!r.ok)throw Error("저장 서버 응답 "+r.status);
    const data=await r.json();
    window.__villageCloudSave=data.save||null;
@@ -302,7 +306,19 @@ function openAccount(register){if(!register&&!document.getElementById('accountMe
 document.getElementById('villageGateLogin').onclick=()=>openAccount(false);
 document.getElementById('villageGateRegister').onclick=()=>openAccount(true);
 
-window.villageGateEnter=async function(user){if(!user)return;retry.hidden=true;status.textContent='환영해요, '+user.nickname+'! 저장 기록을 확인하고 마을을 여는 중이에요…';const ready=await window.startVillageGame?.();if(ready)gate.hidden=true;};
+window.villageGateEnter=async function(user){
+ if(!user)return false;
+ document.getElementById('accountLayer')?.classList.remove('show');
+ retry.hidden=false;retry.disabled=true;retry.textContent='⏳ 마을 연결 중…';
+ status.textContent='환영해요, '+user.nickname+'! 저장 기록을 확인하고 마을을 여는 중이에요…';
+ const watchdog=setTimeout(()=>{
+  if(gate.hidden)return;
+  status.textContent='⚠️ 마을 입장이 지연되고 있어요. 다시 열기를 눌러 재시도할 수 있어요.';
+  retry.disabled=false;retry.textContent='↻ 마을 다시 열기';
+ },12000);
+ try{const ready=await window.startVillageGame?.();if(ready)gate.hidden=true;return !!ready;}
+ finally{clearTimeout(watchdog);retry.disabled=false;retry.textContent='↻ 마을 다시 열기';}
+};
 retry.onclick=async()=>{if(retry.disabled)return;retry.disabled=true;retry.textContent='⏳ 다시 연결하는 중…';status.textContent='저장 기록을 확인하고 마을을 다시 여는 중이에요…';try{if(await window.startVillageGame?.()){gate.hidden=true;retry.hidden=true}}finally{retry.disabled=false;retry.textContent='↻ 마을 다시 열기'}};
 window.villageGateLogout=function(){gate.hidden=false;retry.hidden=true;status.textContent='계정으로 로그인하면 입장할 수 있어요.'};
 })();
