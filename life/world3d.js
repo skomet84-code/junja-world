@@ -6,7 +6,7 @@ import {BUSINESS_PORTAL_V42} from './district-portal-v42.js';
 import {v43LightMood} from './village-life-v43.js';
 import {sampleCanopyBreeze} from './canopy-breeze-v73.js';
 import {sampleGatherPulse} from './gather-interaction-v74.js';
-import {approachGlow,porchGlowTarget} from './porch-glow-v93.mjs';
+import {approachGlow,porchGlowTarget} from './porch-glow-v93.js';
 
 const materials=new Map();
 function material(color){if(!materials.has(color))materials.set(color,new T.MeshStandardMaterial({color,roughness:.95}));return materials.get(color)}
