@@ -86,8 +86,15 @@ async function action(name,body){
    return;
   }
   say(r.message||'✅ 로그인 성공! 마을을 불러오는 중이야.');
-  if(name==='login'){$('accountPassword').value='';layer.classList.remove('show')}
-  await refresh();
+  if(name==='login')$('accountPassword').value='';
+  const refreshed=await refresh();
+  // Keep the account panel available if save loading or 3D startup fails.
+  // The gate is hidden only after startVillageGame reports success.
+  if(name==='login'&&refreshed&&!document.getElementById('villageGate')?.hidden){
+   layer.classList.remove('show');
+   const gateStatus=$('villageGateStatus');
+   if(gateStatus&&!gateStatus.textContent.includes('오류'))gateStatus.textContent='마을을 열지 못했어. 아래 다시 열기를 눌러줘.';
+  }
  }catch(e){say('⚠️ '+e.message)}
  finally{
   authBusy=false;
