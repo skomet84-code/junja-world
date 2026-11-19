@@ -64,6 +64,7 @@ async function refresh({enterVillage=true}={}){
 }
 $('accountOpen').onclick=()=>{layer.classList.add('show');void refresh({enterVillage:false})};
 $('accountClose').onclick=()=>layer.classList.remove('show');
+$('accountEnterVillage').onclick=async()=>{layer.classList.remove('show');await window.villageGateEnter?.({nickname:userRead('village-auth-nickname')||'친구'});};
 async function action(name,body){
  if(authBusy)return;
  authBusy=true;
