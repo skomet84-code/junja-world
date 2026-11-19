@@ -205,7 +205,28 @@ window.startVillageGame=()=>{
    // Keep login responsive: previous recursive preflight could stall on iOS.
    const entry="./game.js?v=v102-start-"+window.__villageGameLoadAttempt;
    const timeout=new Promise((_,reject)=>setTimeout(()=>reject(Error("게임 모듈 로딩이 15초를 초과했어. 연결을 확인하고 다시 시도해 줘.")),15000));
-   await Promise.race([import(entry),timeout]);
+   try{await Promise.race([import(entry),timeout]);}
+   catch(importError){
+    // Diagnose the failing dependency only after import fails; never block normal startup.
+    const visited=new Set(),queue=[new URL(entry,location.href).href],failures=[];
+    const deadline=Date.now()+4500;
+    while(queue.length&&visited.size<85&&Date.now()<deadline&&failures.length<3){
+     const url=queue.shift();if(visited.has(url))continue;visited.add(url);
+     try{
+      const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),1200);
+      let res;try{res=await fetch(url,{cache:"no-store",signal:ctrl.signal});}finally{clearTimeout(timer)}
+      const type=res.headers.get("content-type")||"";
+      if(!res.ok||/text\\/html/i.test(type)){failures.push(new URL(url).pathname+" HTTP "+res.status+" "+type);continue}
+      const source=await res.text();
+      for(const m of source.matchAll(/(?:\\bfrom\\s*|\\bimport\\s*|\\bimport\\s*\\(\\s*)["'](\\.[^"']+)["']/g)){
+       const dep=new URL(m[1],url).href;
+       if(!visited.has(dep)&&!queue.includes(dep))queue.push(dep);
+      }
+     }catch(err){failures.push(new URL(url).pathname+" "+String(err?.message||err).slice(0,60))}
+    }
+    if(failures.length)throw Error("모듈 파일 확인: "+failures.join("; "));
+    throw importError;
+   }
    window.__villageGameStarted=true;
    return true;
   }catch(e){
