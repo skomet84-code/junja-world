@@ -202,39 +202,10 @@ window.startVillageGame=()=>{
    // A failed dynamic import is cached by URL in browsers (including iOS Safari).
    // Give each explicit retry a fresh module URL without changing saved data.
    window.__villageGameLoadAttempt=(window.__villageGameLoadAttempt||0)+1;
-   // Resolve the actual missing module before importing: Safari hides the URL in its error.
-   const entry="./game.js?v=v101-diagnostic-"+window.__villageGameLoadAttempt;
-   const entryResponse=await fetch(entry,{cache:"no-store",credentials:"same-origin"});
-   if(!entryResponse.ok)throw Error("게임 파일 HTTP "+entryResponse.status+" ("+entry+")");
-   const entryText=await entryResponse.text();
-   if(/<html[\\s>]/i.test(entryText.slice(0,300)))throw Error("게임 파일 대신 HTML이 전달됨: "+entry);
-   // Recursively validate transitive module dependencies. A top-level-only
-   // check misses failures in world3d/avatar/vendor dependencies on iOS.
-   const checked=new Set(),issues=[];
-   const queue=[{url:entryResponse.url,source:entryText,depth:0}];
-   while(queue.length&&checked.size<130&&issues.length<4){
-    const batch=queue.splice(0,8);
-    await Promise.all(batch.map(async node=>{
-     if(checked.has(node.url))return;
-     checked.add(node.url);
-     const refs=[...node.source.matchAll(/(?:\\bfrom\\s*|\\bimport\\s*|\\bimport\\s*\\(\\s*)["'](\\.[^"']+)["']/g)].map(m=>m[1]);
-     if(node.depth>=5)return;
-     await Promise.all(refs.map(async ref=>{
-      const url=new URL(ref,node.url).href;
-      if(checked.has(url)||queue.some(q=>q.url===url))return;
-      try{
-       const response=await fetch(url,{cache:"no-store",credentials:"same-origin"});
-       const type=response.headers.get("content-type")||"";
-       if(!response.ok||type.includes("text/html")){
-        issues.push(ref+" ("+(response.ok?"HTML":response.status)+")");return;
-       }
-       if(node.depth<4)queue.push({url,source:await response.text(),depth:node.depth+1});
-      }catch(e){issues.push(ref+" ("+String(e?.message||e).slice(0,50)+")")}
-     }));
-    }));
-   }
-   if(issues.length)throw Error("모듈 연결 오류: "+issues.slice(0,3).join(", "));
-   await import(entry);
+   // Keep login responsive: previous recursive preflight could stall on iOS.
+   const entry="./game.js?v=v102-start-"+window.__villageGameLoadAttempt;
+   const timeout=new Promise((_,reject)=>setTimeout(()=>reject(Error("게임 모듈 로딩이 15초를 초과했어. 연결을 확인하고 다시 시도해 줘.")),15000));
+   await Promise.race([import(entry),timeout]);
    window.__villageGameStarted=true;
    return true;
   }catch(e){
