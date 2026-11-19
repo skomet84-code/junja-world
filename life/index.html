@@ -202,7 +202,24 @@ window.startVillageGame=()=>{
    // A failed dynamic import is cached by URL in browsers (including iOS Safari).
    // Give each explicit retry a fresh module URL without changing saved data.
    window.__villageGameLoadAttempt=(window.__villageGameLoadAttempt||0)+1;
-   await import("./game.js?v=v100-retry-"+window.__villageGameLoadAttempt);
+   // Resolve the actual missing module before importing: Safari hides the URL in its error.
+   const entry="./game.js?v=v101-diagnostic-"+window.__villageGameLoadAttempt;
+   const entryResponse=await fetch(entry,{cache:"no-store",credentials:"same-origin"});
+   if(!entryResponse.ok)throw Error("게임 파일 HTTP "+entryResponse.status+" ("+entry+")");
+   const entryText=await entryResponse.text();
+   if(/<html[\\s>]/i.test(entryText.slice(0,300)))throw Error("게임 파일 대신 HTML이 전달됨: "+entry);
+   const importPaths=[...entryText.matchAll(/\\bfrom\\s*["'](\\.[^"']+)["']/g)].map(m=>m[1]);
+   const failed=await Promise.all(importPaths.map(async p=>{
+    const url=new URL(p,entryResponse.url).href;
+    try{const response=await fetch(url,{cache:"no-store",credentials:"same-origin"});
+     if(!response.ok)return p+" HTTP "+response.status;
+     const type=response.headers.get("content-type")||"";
+     if(type.includes("text/html"))return p+" HTML 응답";
+     return null;
+    }catch{return p+" 네트워크 실패"}
+   }));
+   if(failed.some(Boolean))throw Error("모듈 파일 오류: "+failed.filter(Boolean).slice(0,3).join(", "));
+   await import(entry);
    window.__villageGameStarted=true;
    return true;
   }catch(e){
